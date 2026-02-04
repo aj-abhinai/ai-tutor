@@ -2,37 +2,34 @@
  * /api/explain - AI Tutor API Route
  *
  * Standard 7 NCERT Interactive Tutor
- * Input: { subject: "Science" | "Maths", topic: string }
- * Output: JSON with quickExplanation, stepByStep, practiceQuestion, answer
+ * Input: { subject, chapterId, topicId, subtopicId, mode?, studentAnswer? }
+ * Output: JSON with quickExplanation, stepByStep, curiosityQuestion or feedback
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
-import { getTopicKnowledge, formatKnowledgeForPrompt } from "@/lib/curriculum";
+import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 
 // Valid subjects for Standard 7
 const VALID_SUBJECTS = ["Science", "Maths"] as const;
 type Subject = typeof VALID_SUBJECTS[number];
 
-type PracticeOption = { label: string; text: string };
 type StepItem = {
     title: string;
     explanation: string;
     keyProperty?: string;
 };
-type TutorResponse = {
+type TutorLessonResponse = {
     quickExplanation: string;
     stepByStep: StepItem[];
-    practiceQuestion: {
-        question: string;
-        options?: PracticeOption[];
-        type: "mcq" | "short";
-    };
-    answer: {
-        correct: string;
-        explanation: string;
-    };
     curiosityQuestion?: string;
+};
+
+type TutorFeedbackResponse = {
+    rating: string;
+    praise: string;
+    fix: string;
+    rereadTip: string;
 };
 
 // System prompt for friendly Class 7 tutor (from agent.md)
@@ -43,13 +40,11 @@ Rules:
 - Start with a 2-3 sentence quick explanation. The first sentence must be a formal definition.
 - Break it down step-by-step with examples from daily life and one key property per step
 - Be encouraging and friendly ("Great question!", "You've got this!")
-- Include ONE practice question (MCQ with 4 options)
-- Give the answer with a short explanation
 - Use LaTeX for math equations (wrap in $...$ for inline)
 - Keep it SHORT - no long paragraphs
 - Base content on NCERT Class 7 textbook
+- Use the provided topic reference and avoid off-topic details
 - Return only JSON with no markdown or code fences
-- Use option labels A, B, C, D
 - Add a curiosity question that starts with Why or How
 - Do not use markdown symbols like **, *, #, or bullets in any field
 
@@ -63,25 +58,35 @@ Output strictly in this JSON format:
       "keyProperty": "One key property of this step."
     }
   ],
-  "practiceQuestion": {
-    "question": "A simple question to check understanding",
-    "options": [
-      { "label": "A", "text": "Option A" },
-      { "label": "B", "text": "Option B" },
-      { "label": "C", "text": "Option C" },
-      { "label": "D", "text": "Option D" }
-    ],
-    "type": "mcq"
-  },
-  "answer": {
-    "correct": "A",
-    "explanation": "Short explanation why this is correct"
-  },
   "curiosityQuestion": "A short Why/How question to explore further"
 }
 `;
 
-const MAX_TOPIC_LENGTH = 200;
+const FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
+
+Task:
+Given a student's "Explain it back" answer, give kind feedback.
+
+Rules:
+- Use simple words a 12-year-old understands
+- Always appreciate effort
+- Point out one thing they did right
+- Point out one thing to improve
+- Suggest what to re-read (mention a step or key idea)
+- Keep it short, no long paragraphs
+- Return only JSON, no markdown or code fences
+
+Output strictly in this JSON format:
+{
+  "rating": "great" | "good start" | "needs work",
+  "praise": "A short encouraging line",
+  "fix": "One clear improvement tip",
+  "rereadTip": "What to re-read or review"
+}
+`;
+
+const MAX_ID_LENGTH = 120;
+const MAX_STUDENT_ANSWER_LENGTH = 600;
 
 // Rate limiting (simple in-memory)
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -136,21 +141,6 @@ function isNonEmptyString(value: unknown): value is string {
     return typeof value === "string" && value.trim().length > 0;
 }
 
-function normalizeOptions(raw: unknown): PracticeOption[] {
-    if (!Array.isArray(raw)) return [];
-    const options: PracticeOption[] = [];
-
-    for (const entry of raw) {
-        if (!entry || typeof entry !== "object") continue;
-        const label = (entry as { label?: unknown }).label;
-        const text = (entry as { text?: unknown }).text;
-        if (!isNonEmptyString(label) || !isNonEmptyString(text)) continue;
-        options.push({ label: label.trim().toUpperCase(), text: text.trim() });
-    }
-
-    return options;
-}
-
 function normalizeSteps(raw: unknown): StepItem[] | null {
     if (Array.isArray(raw)) {
         const steps: StepItem[] = [];
@@ -190,70 +180,48 @@ function parseJsonFromModel(text: string): unknown {
     return JSON.parse(cleaned);
 }
 
-function normalizeTutorResponse(raw: unknown): TutorResponse | null {
+function normalizeLessonResponse(raw: unknown): TutorLessonResponse | null {
     if (!raw || typeof raw !== "object") return null;
     const obj = raw as Record<string, unknown>;
     const quickExplanation = obj.quickExplanation;
     const stepByStep = obj.stepByStep;
-    const practiceQuestion = obj.practiceQuestion;
-    const answer = obj.answer;
     const curiosityQuestion = obj.curiosityQuestion;
 
     if (!isNonEmptyString(quickExplanation)) return null;
-    if (!practiceQuestion || typeof practiceQuestion !== "object") return null;
-    if (!answer || typeof answer !== "object") return null;
-
-    const question = (practiceQuestion as { question?: unknown }).question;
-    const optionsRaw = (practiceQuestion as { options?: unknown }).options;
-    const answerCorrect = (answer as { correct?: unknown }).correct;
-    const answerExplanation = (answer as { explanation?: unknown }).explanation;
-
-    if (
-        !isNonEmptyString(question) ||
-        !isNonEmptyString(answerCorrect) ||
-        !isNonEmptyString(answerExplanation)
-    ) {
-        return null;
-    }
 
     const steps = normalizeSteps(stepByStep);
     if (!steps) return null;
 
-    const options = normalizeOptions(optionsRaw);
     const curiosity = isNonEmptyString(curiosityQuestion) ? curiosityQuestion.trim() : "";
-    if (options.length >= 2) {
-        const correct = answerCorrect.trim().toUpperCase();
-        const labels = new Set(options.map((opt) => opt.label));
-        if (!labels.has(correct)) return null;
-
-        return {
-            quickExplanation: quickExplanation.trim(),
-            stepByStep: steps,
-            practiceQuestion: {
-                question: question.trim(),
-                options,
-                type: "mcq",
-            },
-            answer: {
-                correct,
-                explanation: answerExplanation.trim(),
-            },
-            curiosityQuestion: curiosity || undefined,
-        };
-    }
-
     return {
         quickExplanation: quickExplanation.trim(),
         stepByStep: steps,
-        practiceQuestion: {
-            question: question.trim(),
-            type: "short",
-        },
-        answer: {
-            correct: answerCorrect.trim(),
-            explanation: answerExplanation.trim(),
-        },
         curiosityQuestion: curiosity || undefined,
+    };
+}
+
+function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
+    if (!raw || typeof raw !== "object") return null;
+    const obj = raw as Record<string, unknown>;
+    const rating = obj.rating;
+    const praise = obj.praise;
+    const fix = obj.fix;
+    const rereadTip = obj.rereadTip;
+
+    if (
+        !isNonEmptyString(rating) ||
+        !isNonEmptyString(praise) ||
+        !isNonEmptyString(fix) ||
+        !isNonEmptyString(rereadTip)
+    ) {
+        return null;
+    }
+
+    return {
+        rating: rating.trim(),
+        praise: praise.trim(),
+        fix: fix.trim(),
+        rereadTip: rereadTip.trim(),
     };
 }
 
@@ -278,7 +246,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { subject, topic } = body as { subject?: unknown; topic?: unknown };
+    const {
+        subject,
+        chapterId,
+        topicId,
+        subtopicId,
+        mode,
+        studentAnswer,
+    } = body as {
+        subject?: unknown;
+        chapterId?: unknown;
+        topicId?: unknown;
+        subtopicId?: unknown;
+        mode?: unknown;
+        studentAnswer?: unknown;
+    };
+
+    const requestMode = mode === "feedback" ? "feedback" : "lesson";
 
     // Validate subject
     if (!subject || typeof subject !== "string") {
@@ -295,27 +279,64 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Validate topic
-    if (!topic || typeof topic !== "string") {
+    if (!isNonEmptyString(chapterId)) {
+        return NextResponse.json(
+            { error: "Chapter is required" },
+            { status: 400 }
+        );
+    }
+
+    if (!isNonEmptyString(topicId)) {
         return NextResponse.json(
             { error: "Topic is required" },
             { status: 400 }
         );
     }
 
-    const trimmedTopic = topic.trim();
-    if (trimmedTopic.length === 0) {
+    if (!isNonEmptyString(subtopicId)) {
         return NextResponse.json(
-            { error: "Topic cannot be empty" },
+            { error: "Subtopic is required" },
             { status: 400 }
         );
     }
 
-    if (trimmedTopic.length > MAX_TOPIC_LENGTH) {
+    if (chapterId.trim().length > MAX_ID_LENGTH ||
+        topicId.trim().length > MAX_ID_LENGTH ||
+        subtopicId.trim().length > MAX_ID_LENGTH) {
         return NextResponse.json(
-            { error: `Topic must be ${MAX_TOPIC_LENGTH} characters or less` },
+            { error: `IDs must be ${MAX_ID_LENGTH} characters or less` },
             { status: 400 }
         );
+    }
+
+    const selectedSubtopic = getSubtopicById(
+        subject,
+        chapterId.trim(),
+        topicId.trim(),
+        subtopicId.trim()
+    );
+
+    if (!selectedSubtopic) {
+        return NextResponse.json(
+            { error: "Selected chapter/topic/subtopic was not found" },
+            { status: 400 }
+        );
+    }
+
+    if (requestMode === "feedback") {
+        if (!isNonEmptyString(studentAnswer)) {
+            return NextResponse.json(
+                { error: "Student answer is required" },
+                { status: 400 }
+            );
+        }
+
+        if (studentAnswer.trim().length > MAX_STUDENT_ANSWER_LENGTH) {
+            return NextResponse.json(
+                { error: `Answer must be ${MAX_STUDENT_ANSWER_LENGTH} characters or less` },
+                { status: 400 }
+            );
+        }
     }
 
     // Check API key
@@ -334,21 +355,16 @@ export async function POST(request: NextRequest) {
     });
 
     // Build the prompt with curriculum knowledge if available
-    const topicKnowledge = getTopicKnowledge(subject, trimmedTopic);
     const promptParts: { text: string }[] = [
-        { text: SYSTEM_PROMPT },
+        { text: requestMode === "feedback" ? FEEDBACK_PROMPT : SYSTEM_PROMPT },
+        { text: formatSubtopicForPrompt(selectedSubtopic) },
+        {
+            text:
+                requestMode === "feedback"
+                    ? `Student answer:\n${studentAnswer?.trim()}`
+                    : `Subject: ${subject}\nSubtopic: "${selectedSubtopic.title}"`,
+        },
     ];
-
-    // Inject curriculum knowledge if we have it for this topic
-    if (topicKnowledge) {
-        promptParts.push({
-            text: formatKnowledgeForPrompt(topicKnowledge),
-        });
-    }
-
-    promptParts.push({
-        text: `Subject: ${subject}\nTopic: "${trimmedTopic}"`,
-    });
 
     let result;
     try {
@@ -377,13 +393,24 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const normalized = normalizeTutorResponse(parsed);
-    if (!normalized) {
+    if (requestMode === "feedback") {
+        const feedback = normalizeFeedbackResponse(parsed);
+        if (!feedback) {
+            return NextResponse.json(
+                { error: "Model returned an unexpected response. Please try again." },
+                { status: 502 }
+            );
+        }
+        return NextResponse.json({ feedback });
+    }
+
+    const lesson = normalizeLessonResponse(parsed);
+    if (!lesson) {
         return NextResponse.json(
             { error: "Model returned an unexpected response. Please try again." },
             { status: 502 }
         );
     }
 
-    return NextResponse.json({ content: normalized });
+    return NextResponse.json({ content: lesson });
 }

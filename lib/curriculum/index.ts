@@ -1,70 +1,102 @@
 /**
- * NCERT Class 7 Curriculum Knowledge Base (2024-25)
- *
- * Main entry point that re-exports all curriculum content and provides
- * helper functions for looking up topic knowledge.
+ * NCERT Class 7 Curriculum Knowledge Base (selected chapters)
  */
 
-// Re-export types
-export type { TopicKnowledge } from "./types";
+import { SCIENCE_CURRICULUM } from "./science";
+import { MATHS_CURRICULUM } from "./maths";
+import {
+    SubjectName,
+    SubjectCurriculum,
+    ChapterKnowledge,
+    TopicKnowledge,
+    SubtopicKnowledge,
+} from "./types";
 
-// Re-export topic lists and knowledge bases
-export { SCIENCE_TOPICS, SCIENCE_KNOWLEDGE } from "./science";
-export { MATHS_TOPICS, MATHS_KNOWLEDGE } from "./maths";
+export type {
+    SubjectName,
+    SubjectCurriculum,
+    ChapterKnowledge,
+    TopicKnowledge,
+    SubtopicKnowledge,
+    QuestionItem,
+    PracticeOption,
+} from "./types";
 
-// Import for helper functions
-import { SCIENCE_KNOWLEDGE } from "./science";
-import { MATHS_KNOWLEDGE } from "./maths";
-import { TopicKnowledge } from "./types";
+export { SCIENCE_CURRICULUM } from "./science";
+export { MATHS_CURRICULUM } from "./maths";
 
-/**
- * Get curriculum knowledge for a specific topic
- */
-export function getTopicKnowledge(
-    subject: "Science" | "Maths",
-    topic: string
-): TopicKnowledge | null {
-    const knowledgeBase = subject === "Science" ? SCIENCE_KNOWLEDGE : MATHS_KNOWLEDGE;
-    return knowledgeBase[topic] || null;
+const SUBJECT_MAP: Record<SubjectName, SubjectCurriculum> = {
+    Science: SCIENCE_CURRICULUM,
+    Maths: MATHS_CURRICULUM,
+};
+
+export function getSubjectCurriculum(subject: SubjectName): SubjectCurriculum {
+    return SUBJECT_MAP[subject];
 }
 
-/**
- * Format topic knowledge as context string for AI prompt
- */
-export function formatKnowledgeForPrompt(knowledge: TopicKnowledge): string {
-    let context = "=== NCERT TEXTBOOK REFERENCE (2024-25) ===\n\n";
+export function getChapterById(
+    subject: SubjectName,
+    chapterId: string
+): ChapterKnowledge | null {
+    const curriculum = getSubjectCurriculum(subject);
+    return curriculum.chapters.find((chapter) => chapter.id === chapterId) || null;
+}
 
-    context += "KEY CONCEPTS:\n";
-    knowledge.keyConcepts.forEach((concept, i) => {
+export function getTopicById(
+    subject: SubjectName,
+    chapterId: string,
+    topicId: string
+): TopicKnowledge | null {
+    const chapter = getChapterById(subject, chapterId);
+    if (!chapter) return null;
+    return chapter.topics.find((topic) => topic.id === topicId) || null;
+}
+
+export function getSubtopicById(
+    subject: SubjectName,
+    chapterId: string,
+    topicId: string,
+    subtopicId: string
+): SubtopicKnowledge | null {
+    const topic = getTopicById(subject, chapterId, topicId);
+    if (!topic) return null;
+    return topic.subtopics.find((subtopic) => subtopic.id === subtopicId) || null;
+}
+
+export function formatSubtopicForPrompt(subtopic: SubtopicKnowledge): string {
+    let context = "=== NCERT TOPIC REFERENCE (Class 7) ===\n\n";
+
+    context += `SUBTOPIC: ${subtopic.title}\n\n`;
+
+    context += "LEARNING OBJECTIVES:\n";
+    subtopic.learningObjectives.forEach((obj, i) => {
+        context += `${i + 1}. ${obj}\n`;
+    });
+
+    context += "\nKEY CONCEPTS:\n";
+    subtopic.keyConcepts.forEach((concept, i) => {
         context += `${i + 1}. ${concept}\n`;
     });
 
-    if (knowledge.formulas && knowledge.formulas.length > 0) {
-        context += "\nFORMULAS:\n";
-        knowledge.formulas.forEach((formula) => {
-            context += `• ${formula}\n`;
-        });
-    }
-
     context += "\nKEY TERMS:\n";
-    Object.entries(knowledge.keyTerms).forEach(([term, definition]) => {
-        context += `• ${term}: ${definition}\n`;
+    Object.entries(subtopic.keyTerms).forEach(([term, definition]) => {
+        context += `- ${term}: ${definition}\n`;
     });
 
     context += "\nTEXTBOOK EXAMPLES:\n";
-    knowledge.textbookExamples.forEach((example) => {
-        context += `• ${example}\n`;
+    subtopic.examples.forEach((example) => {
+        context += `- ${example}\n`;
     });
 
-    if (knowledge.commonMisconceptions && knowledge.commonMisconceptions.length > 0) {
-        context += "\nCOMMON MISCONCEPTIONS TO CORRECT:\n";
-        knowledge.commonMisconceptions.forEach((m) => {
-            context += `• ${m}\n`;
+    if (subtopic.misconceptions && subtopic.misconceptions.length > 0) {
+        context += "\nCOMMON MISCONCEPTIONS:\n";
+        subtopic.misconceptions.forEach((m) => {
+            context += `- ${m}\n`;
         });
     }
 
-    context += "\n=== END TEXTBOOK REFERENCE ===\n";
-    context += "\nUse this reference to ensure accuracy. Include examples when relevant.\n";
+    context += "\n=== END TOPIC REFERENCE ===\n";
+    context += "Use this to keep the explanation accurate and age-appropriate.\n";
 
     return context;
 }

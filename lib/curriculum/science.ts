@@ -1,420 +1,609 @@
 /**
- * NCERT Class 7 Science Knowledge Base (2024-25 "Curiosity" Textbook)
- *
- * Contains structured knowledge for all 12 chapters from the new NCERT
- * Class 7 Science textbook for curriculum-aligned AI responses.
+ * NCERT Class 7 Science Knowledge Base (selected chapters)
  */
 
-import { TopicKnowledge } from "./types";
+import { SubjectCurriculum } from "./types";
 
-export const SCIENCE_TOPICS = [
-    "The Ever-Evolving World of Science",
-    "Exploring Substances: Acidic, Basic, and Neutral",
-    "Electricity: Circuits and Their Components",
-    "The World of Metals and Non-metals",
-    "Changes Around Us: Physical and Chemical",
-    "Adolescence: A Stage of Growth and Change",
-    "Heat Transfer in Nature",
-    "Measurement of Time and Motion",
-    "Life Processes in Animals",
-    "Life Processes in Plants",
-    "Light: Shadows and Reflections",
-    "Earth, Moon, and the Sun",
-] as const;
-
-export const SCIENCE_KNOWLEDGE: Record<string, TopicKnowledge> = {
-    "The Ever-Evolving World of Science": {
-        keyConcepts: [
-            "Science is a systematic way of understanding nature through observation and experimentation",
-            "Scientific knowledge evolves over time as new discoveries are made",
-            "The scientific method: Observation → Question → Hypothesis → Experiment → Conclusion",
-            "Science helps us understand everyday phenomena",
-            "Scientists use tools and technology to make observations and measurements",
-            "Science is interconnected - physics, chemistry, biology work together",
-        ],
-        keyTerms: {
-            Science: "Systematic study of nature through observation and experiments",
-            Observation: "Carefully watching and noting what happens",
-            Hypothesis: "A proposed explanation that can be tested",
-            Experiment: "A test to check if a hypothesis is correct",
-            Conclusion: "The final decision based on experimental results",
-            Technology: "Application of science to solve practical problems",
+export const SCIENCE_CURRICULUM: SubjectCurriculum = {
+    subject: "Science",
+    chapters: [
+        {
+            id: "electricity-circuits",
+            title: "Electricity: Circuits and Their Components",
+            overview: "Circuits, components, and how materials affect current.",
+            topics: [
+                {
+                    id: "circuit-basics",
+                    title: "Circuit Basics",
+                    overview: "Closed and open circuits plus simple diagrams.",
+                    subtopics: [
+                        {
+                            id: "closed-open-circuits",
+                            title: "Closed and Open Circuits",
+                            learningObjectives: [
+                                "Define closed and open circuits",
+                                "Explain why a bulb glows only in a closed circuit",
+                                "Identify breaks that make a circuit open",
+                            ],
+                            keyConcepts: [
+                                "A circuit is a complete path for current",
+                                "A closed circuit lets current flow",
+                                "An open circuit breaks the path",
+                            ],
+                            keyTerms: {
+                                Circuit: "A complete path for electric current",
+                                "Closed circuit": "A complete, unbroken path",
+                                "Open circuit": "A broken path where current cannot flow",
+                            },
+                            examples: [
+                                "A torch glows when its switch is ON",
+                                "A doorbell works only when the circuit is complete",
+                            ],
+                            misconceptions: [
+                                "A bulb can glow even if the circuit has a break",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "closed-open-q1",
+                                    question: "A bulb glows only when the circuit is",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "open" },
+                                        { label: "B", text: "closed" },
+                                        { label: "C", text: "broken" },
+                                        { label: "D", text: "without wires" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Current flows only in a closed circuit.",
+                                    },
+                                },
+                                {
+                                    id: "closed-open-q2",
+                                    question: "Which action makes a circuit open?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Connecting the switch" },
+                                        { label: "B", text: "Removing a wire" },
+                                        { label: "C", text: "Using a battery" },
+                                        { label: "D", text: "Using a bulb" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Removing a wire breaks the path.",
+                                    },
+                                },
+                                {
+                                    id: "closed-open-q3",
+                                    question: "What is a closed circuit?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "A complete, unbroken path for current to flow.",
+                                        explanation: "Current needs a complete loop to move.",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: "circuit-symbols",
+                            title: "Circuit Symbols",
+                            learningObjectives: [
+                                "Recognize symbols for cell, bulb, and switch",
+                                "Explain why circuit diagrams are useful",
+                            ],
+                            keyConcepts: [
+                                "Symbols are simple signs for components",
+                                "Circuit diagrams show how parts connect",
+                            ],
+                            keyTerms: {
+                                Symbol: "A simple sign used to show a component",
+                                "Circuit diagram": "A drawing using symbols to show a circuit",
+                            },
+                            examples: [
+                                "A diagram shows a cell, switch, and bulb in a loop",
+                                "A torch circuit can be drawn with symbols",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "symbols-q1",
+                                    question: "Which symbol usually represents a cell?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Two unequal parallel lines" },
+                                        { label: "B", text: "A circle with a cross" },
+                                        { label: "C", text: "A zigzag line" },
+                                        { label: "D", text: "A triangle" },
+                                    ],
+                                    answer: {
+                                        correct: "A",
+                                        explanation: "A cell is drawn as two unequal lines.",
+                                    },
+                                },
+                                {
+                                    id: "symbols-q2",
+                                    question: "Why are circuit symbols useful?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "They make diagrams clear and quick to draw.",
+                                        explanation: "Symbols are a short, clear way to show parts.",
+                                    },
+                                },
+                                {
+                                    id: "symbols-q3",
+                                    question: "Name two components shown in circuit diagrams.",
+                                    type: "short",
+                                    answer: {
+                                        correct: "Cell and bulb (or switch and wires).",
+                                        explanation: "Common symbols include cell, bulb, and switch.",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    id: "components-materials",
+                    title: "Components and Materials",
+                    overview: "Cells, switches, and materials in a circuit.",
+                    subtopics: [
+                        {
+                            id: "cells-bulbs-switches",
+                            title: "Cells, Bulbs, and Switches",
+                            learningObjectives: [
+                                "Describe the role of a cell or battery",
+                                "Explain how a switch controls current",
+                                "Explain why a bulb glows",
+                            ],
+                            keyConcepts: [
+                                "A cell provides electrical energy",
+                                "A bulb glows when current heats its filament",
+                                "A switch opens or closes a circuit",
+                            ],
+                            keyTerms: {
+                                Cell: "A single source of electrical energy",
+                                Switch: "A device that opens or closes a circuit",
+                                Filament: "Thin wire inside a bulb that glows when heated",
+                            },
+                            examples: [
+                                "Room lights turn on when the switch closes the circuit",
+                                "A torch uses cells to light a bulb",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "cells-switches-q1",
+                                    question: "A switch in OFF position makes the circuit",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "closed" },
+                                        { label: "B", text: "open" },
+                                        { label: "C", text: "short" },
+                                        { label: "D", text: "brighter" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "OFF means the circuit is open.",
+                                    },
+                                },
+                                {
+                                    id: "cells-switches-q2",
+                                    question: "Why does a bulb glow in a circuit?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "Current heats the filament, making it glow.",
+                                        explanation: "The filament gets hot and emits light.",
+                                    },
+                                },
+                                {
+                                    id: "cells-switches-q3",
+                                    question: "What is the job of a cell in a circuit?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "To provide electrical energy.",
+                                        explanation: "The cell supplies energy to push current.",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: "conductors-insulators",
+                            title: "Conductors and Insulators",
+                            learningObjectives: [
+                                "Classify materials as conductors or insulators",
+                                "Give examples of each",
+                                "Explain why wires are covered",
+                            ],
+                            keyConcepts: [
+                                "Conductors allow current to flow",
+                                "Insulators block current",
+                                "Metals are good conductors",
+                            ],
+                            keyTerms: {
+                                Conductor: "Material that allows current to pass",
+                                Insulator: "Material that blocks current",
+                            },
+                            examples: [
+                                "Copper wires carry current in circuits",
+                                "Plastic covering on wires prevents shocks",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "conductors-q1",
+                                    question: "Which material is a good conductor?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Copper" },
+                                        { label: "B", text: "Rubber" },
+                                        { label: "C", text: "Wood" },
+                                        { label: "D", text: "Plastic" },
+                                    ],
+                                    answer: {
+                                        correct: "A",
+                                        explanation: "Copper is a metal and conducts electricity.",
+                                    },
+                                },
+                                {
+                                    id: "conductors-q2",
+                                    question: "Why are wires covered with plastic?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "To make them heavier" },
+                                        { label: "B", text: "To prevent shocks" },
+                                        { label: "C", text: "To make them shiny" },
+                                        { label: "D", text: "To stop the battery" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Plastic is an insulator and keeps us safe.",
+                                    },
+                                },
+                                {
+                                    id: "conductors-q3",
+                                    question: "Give one example of an insulator.",
+                                    type: "short",
+                                    answer: {
+                                        correct: "Plastic, rubber, or wood.",
+                                        explanation: "Insulators block the flow of current.",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
         },
-        textbookExamples: [
-            "Understanding why the sky appears blue is science",
-            "Galileo's observations of Jupiter's moons changed our understanding of the solar system",
-            "Scientists discovered that diseases are caused by germs, not 'bad air'",
-            "The discovery of vaccines shows how science evolves to help humanity",
-        ],
-        commonMisconceptions: [
-            "Science has answers to everything - actually science is always evolving and some questions remain unanswered",
-            "Scientific theories are just guesses - actually theories are well-tested explanations supported by evidence",
-        ],
-    },
-
-    "Exploring Substances: Acidic, Basic, and Neutral": {
-        keyConcepts: [
-            "Substances can be classified as acidic, basic (alkaline), or neutral",
-            "Acids taste sour; bases taste bitter and feel slippery",
-            "Indicators change color to show if something is acidic or basic",
-            "Litmus paper: Red in acid, Blue in base",
-            "Neutralization: Acid + Base → Salt + Water",
-            "pH scale measures how acidic or basic a substance is (0-14)",
-            "pH 7 is neutral; below 7 is acidic; above 7 is basic",
-        ],
-        keyTerms: {
-            Acid: "Substance that tastes sour, turns blue litmus red, pH below 7",
-            Base: "Substance that tastes bitter, turns red litmus blue, pH above 7",
-            Neutral: "Neither acidic nor basic, pH equals 7",
-            Indicator: "Substance that changes color in acids and bases",
-            "pH scale": "Scale from 0-14 measuring acidity or basicity",
-            Neutralization: "Reaction between acid and base forming salt and water",
-            Salt: "Compound formed when acid reacts with base",
+        {
+            id: "life-processes-plants",
+            title: "Life Processes in Plants",
+            overview: "How plants make food, transport water, and exchange gases.",
+            topics: [
+                {
+                    id: "photosynthesis",
+                    title: "Photosynthesis",
+                    overview: "How plants make food using sunlight.",
+                    subtopics: [
+                        {
+                            id: "raw-materials-products",
+                            title: "Raw Materials and Products",
+                            learningObjectives: [
+                                "List the raw materials needed for photosynthesis",
+                                "State the products of photosynthesis",
+                                "Explain why photosynthesis is important",
+                            ],
+                            keyConcepts: [
+                                "Plants use carbon dioxide and water to make food",
+                                "The food made is glucose and stored as starch",
+                                "Oxygen is released during photosynthesis",
+                            ],
+                            keyTerms: {
+                                Photosynthesis: "Process by which plants make food using light",
+                                Glucose: "Simple sugar made by plants",
+                                Starch: "Stored form of food in plants",
+                            },
+                            examples: [
+                                "Leaves make food during the day",
+                                "Plants release oxygen that we breathe",
+                            ],
+                            misconceptions: [
+                                "Plants only take in oxygen and give out carbon dioxide",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "photosynthesis-q1",
+                                    question: "Which two raw materials are used in photosynthesis?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Oxygen and glucose" },
+                                        { label: "B", text: "Carbon dioxide and water" },
+                                        { label: "C", text: "Nitrogen and water" },
+                                        { label: "D", text: "Water and oxygen" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Photosynthesis uses carbon dioxide and water.",
+                                    },
+                                },
+                                {
+                                    id: "photosynthesis-q2",
+                                    question: "A product of photosynthesis is",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Oxygen" },
+                                        { label: "B", text: "Nitrogen" },
+                                        { label: "C", text: "Smoke" },
+                                        { label: "D", text: "Salt" },
+                                    ],
+                                    answer: {
+                                        correct: "A",
+                                        explanation: "Oxygen is released during photosynthesis.",
+                                    },
+                                },
+                                {
+                                    id: "photosynthesis-q3",
+                                    question: "Why is photosynthesis important?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "It makes food for the plant and gives oxygen to the air.",
+                                        explanation: "Plants use the food to grow and we use oxygen.",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: "chlorophyll-sunlight",
+                            title: "Chlorophyll and Sunlight",
+                            learningObjectives: [
+                                "Describe the role of chlorophyll",
+                                "Explain why sunlight is needed",
+                                "Identify where photosynthesis happens most",
+                            ],
+                            keyConcepts: [
+                                "Chlorophyll is the green pigment that traps sunlight",
+                                "Sunlight provides energy to make food",
+                                "Photosynthesis mostly happens in green leaves",
+                            ],
+                            keyTerms: {
+                                Chlorophyll: "Green pigment that absorbs sunlight",
+                                Sunlight: "Energy source for photosynthesis",
+                            },
+                            examples: [
+                                "Green leaves are the main food factories",
+                                "Plants kept in darkness do not make food well",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "chlorophyll-q1",
+                                    question: "Chlorophyll helps plants by",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "absorbing sunlight" },
+                                        { label: "B", text: "absorbing water only" },
+                                        { label: "C", text: "making oxygen at night" },
+                                        { label: "D", text: "storing soil" },
+                                    ],
+                                    answer: {
+                                        correct: "A",
+                                        explanation: "Chlorophyll traps sunlight for photosynthesis.",
+                                    },
+                                },
+                                {
+                                    id: "chlorophyll-q2",
+                                    question: "Photosynthesis happens mostly in",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "roots" },
+                                        { label: "B", text: "green leaves" },
+                                        { label: "C", text: "flowers" },
+                                        { label: "D", text: "fruits" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Leaves have chlorophyll and get sunlight.",
+                                    },
+                                },
+                                {
+                                    id: "chlorophyll-q3",
+                                    question: "Why do plants kept in the dark grow weak?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "They cannot make enough food without sunlight.",
+                                        explanation: "Sunlight provides the energy for photosynthesis.",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    id: "transport-exchange",
+                    title: "Transport and Exchange",
+                    overview: "How water moves and gases exchange in leaves.",
+                    subtopics: [
+                        {
+                            id: "xylem-transport",
+                            title: "Xylem and Water Transport",
+                            learningObjectives: [
+                                "Explain how roots absorb water",
+                                "Describe the function of xylem",
+                                "State the direction of water movement",
+                            ],
+                            keyConcepts: [
+                                "Roots absorb water and minerals from soil",
+                                "Xylem carries water upward from roots to leaves",
+                                "Water moves through stems to all parts",
+                            ],
+                            keyTerms: {
+                                Xylem: "Tissue that carries water and minerals upward",
+                                "Root hair": "Tiny root structures that absorb water",
+                            },
+                            examples: [
+                                "Plants need regular watering to stay fresh",
+                                "Water rises from roots to leaves in tall plants",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "xylem-q1",
+                                    question: "Which tissue carries water in plants?",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "Phloem" },
+                                        { label: "B", text: "Xylem" },
+                                        { label: "C", text: "Epidermis" },
+                                        { label: "D", text: "Stomata" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Xylem carries water and minerals upward.",
+                                    },
+                                },
+                                {
+                                    id: "xylem-q2",
+                                    question: "Water moves in a plant mostly from",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "leaves to roots" },
+                                        { label: "B", text: "roots to leaves" },
+                                        { label: "C", text: "flowers to fruits" },
+                                        { label: "D", text: "stem to soil" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "Water is absorbed by roots and moves upward.",
+                                    },
+                                },
+                                {
+                                    id: "xylem-q3",
+                                    question: "How do roots absorb water?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "Through tiny root hairs from the soil.",
+                                        explanation: "Root hairs increase surface area for absorption.",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: "transpiration-stomata",
+                            title: "Transpiration and Stomata",
+                            learningObjectives: [
+                                "Define transpiration",
+                                "State where gas exchange happens",
+                                "Explain how transpiration helps plants",
+                            ],
+                            keyConcepts: [
+                                "Transpiration is loss of water vapor from leaves",
+                                "Stomata are tiny pores for gas exchange",
+                                "Transpiration cools the plant and helps pull water",
+                            ],
+                            keyTerms: {
+                                Transpiration: "Loss of water as vapor from leaves",
+                                Stomata: "Tiny pores on leaves",
+                            },
+                            examples: [
+                                "Leaves feel cooler after water evaporates",
+                                "Stomata close to save water on hot days",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "transpiration-q1",
+                                    question: "Transpiration is the loss of",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "food from roots" },
+                                        { label: "B", text: "water vapor from leaves" },
+                                        { label: "C", text: "oxygen from roots" },
+                                        { label: "D", text: "seeds from fruits" },
+                                    ],
+                                    answer: {
+                                        correct: "B",
+                                        explanation: "It is loss of water vapor from leaves.",
+                                    },
+                                },
+                                {
+                                    id: "transpiration-q2",
+                                    question: "Where do gases enter and leave a leaf?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "Through stomata on the leaf surface.",
+                                        explanation: "Stomata are tiny pores for gas exchange.",
+                                    },
+                                },
+                                {
+                                    id: "transpiration-q3",
+                                    question: "How does transpiration help a plant?",
+                                    type: "reasoning",
+                                    answer: {
+                                        correct:
+                                            "It cools the plant and helps pull water up from the roots.",
+                                        explanation: "Water loss creates a pull that moves water upward.",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: "respiration-plants",
+                            title: "Respiration in Plants",
+                            learningObjectives: [
+                                "Explain that plants respire day and night",
+                                "State the gases used and released in respiration",
+                            ],
+                            keyConcepts: [
+                                "Respiration uses oxygen and releases carbon dioxide",
+                                "Respiration happens all the time in plants",
+                                "Energy is released when food is broken down",
+                            ],
+                            keyTerms: {
+                                Respiration: "Process of breaking down food to release energy",
+                                Energy: "Power needed for growth and life processes",
+                            },
+                            examples: [
+                                "Seeds respire while germinating",
+                                "Plants respire even at night",
+                            ],
+                            questionBank: [
+                                {
+                                    id: "respiration-q1",
+                                    question: "In respiration, plants use",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "oxygen" },
+                                        { label: "B", text: "carbon dioxide" },
+                                        { label: "C", text: "sunlight" },
+                                        { label: "D", text: "nitrogen" },
+                                    ],
+                                    answer: {
+                                        correct: "A",
+                                        explanation: "Respiration uses oxygen to release energy.",
+                                    },
+                                },
+                                {
+                                    id: "respiration-q2",
+                                    question: "Plant respiration happens",
+                                    type: "mcq",
+                                    options: [
+                                        { label: "A", text: "only in the day" },
+                                        { label: "B", text: "only at night" },
+                                        { label: "C", text: "day and night" },
+                                        { label: "D", text: "only in winter" },
+                                    ],
+                                    answer: {
+                                        correct: "C",
+                                        explanation: "Respiration is continuous in plants.",
+                                    },
+                                },
+                                {
+                                    id: "respiration-q3",
+                                    question: "Why do plants need respiration?",
+                                    type: "short",
+                                    answer: {
+                                        correct: "To release energy for growth and life processes.",
+                                        explanation: "Energy from food is needed for all activities.",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
         },
-        textbookExamples: [
-            "Lemon juice, vinegar, orange juice are acidic (sour taste)",
-            "Soap, baking soda, lime water are basic",
-            "Pure water is neutral (pH 7)",
-            "Turmeric turns red in basic solutions - it's a natural indicator",
-            "Ant sting (formic acid) is neutralized by baking soda (base)",
-            "Our stomach contains hydrochloric acid for digestion",
-        ],
-        commonMisconceptions: [
-            "All acids are dangerous - actually many acids like citric acid in fruits are safe",
-            "Neutral means no chemicals - actually water is neutral but still a chemical",
-        ],
-    },
-
-    "Electricity: Circuits and Their Components": {
-        keyConcepts: [
-            "Electric current is the flow of electrons through a conductor",
-            "A complete circuit is needed for current to flow",
-            "Circuit components: cell/battery, wire, switch, bulb, resistor",
-            "Conductors allow electricity to pass; insulators do not",
-            "Series circuit: components connected one after another",
-            "Parallel circuit: components connected across same two points",
-            "Symbols are used to draw circuit diagrams",
-        ],
-        keyTerms: {
-            "Electric current": "Flow of electric charges (electrons) through a conductor",
-            Circuit: "Complete path for electric current to flow",
-            Conductor: "Material that allows electricity to pass (metals, copper wire)",
-            Insulator: "Material that blocks electricity (rubber, plastic, wood)",
-            "Series circuit": "Circuit where components are in a single path",
-            "Parallel circuit": "Circuit where components have multiple paths",
-            Switch: "Device to open or close a circuit",
-            Cell: "Device that provides electrical energy (battery)",
-        },
-        textbookExamples: [
-            "Copper wire is a good conductor; rubber coating is an insulator",
-            "If one bulb breaks in series circuit, all bulbs go off",
-            "In parallel circuit, one bulb breaking doesn't affect others",
-            "Torch uses series circuit with cells",
-            "House wiring uses parallel circuits",
-        ],
-        commonMisconceptions: [
-            "Current gets used up in a bulb - actually current flows through, energy is converted to light/heat",
-            "Thick wires carry more current by themselves - actually current depends on voltage and resistance",
-        ],
-    },
-
-    "The World of Metals and Non-metals": {
-        keyConcepts: [
-            "Elements are classified as metals and non-metals based on properties",
-            "Metals: shiny, conduct heat & electricity, malleable, ductile, sonorous",
-            "Non-metals: dull, poor conductors, brittle",
-            "Metals react with oxygen to form metal oxides (basic)",
-            "Non-metals react with oxygen to form non-metal oxides (acidic)",
-            "Metals react with acids to produce hydrogen gas",
-            "Reactivity series: some metals are more reactive than others",
-        ],
-        keyTerms: {
-            Metal: "Element that is shiny, conducts electricity, and is malleable",
-            "Non-metal": "Element that is usually dull and does not conduct electricity",
-            Malleable: "Can be beaten into thin sheets",
-            Ductile: "Can be drawn into wires",
-            Sonorous: "Produces ringing sound when struck",
-            Lustre: "Shiny appearance of metals",
-            Corrosion: "Gradual destruction of metals by reaction with environment",
-        },
-        textbookExamples: [
-            "Iron, copper, gold, silver, aluminium are metals",
-            "Carbon, sulphur, oxygen, nitrogen are non-metals",
-            "Gold is malleable - used for making thin jewelry",
-            "Copper is ductile - used for electrical wires",
-            "Iron corrodes (rusts) when exposed to air and moisture",
-            "Mercury is the only metal that is liquid at room temperature",
-        ],
-        commonMisconceptions: [
-            "All metals are hard - actually sodium is soft enough to cut with knife",
-            "All non-metals are gases - actually carbon and sulphur are solid non-metals",
-        ],
-    },
-
-    "Changes Around Us: Physical and Chemical": {
-        keyConcepts: [
-            "Physical change: No new substance formed, usually reversible",
-            "Chemical change: New substance formed, usually irreversible",
-            "Signs of chemical change: color change, gas release, heat/light, precipitate",
-            "Rusting is a chemical change (iron + oxygen + water → rust)",
-            "Melting, freezing, boiling are physical changes",
-            "Burning, cooking, digestion are chemical changes",
-        ],
-        keyTerms: {
-            "Physical change": "Change in form/state without new substance (reversible)",
-            "Chemical change": "Change that produces new substance (usually irreversible)",
-            Rusting: "Iron combining with oxygen and moisture to form iron oxide",
-            Crystallization: "Forming crystals from a solution (physical change)",
-            Combustion: "Burning - a chemical reaction with oxygen releasing heat and light",
-            Precipitate: "Solid formed when two solutions react",
-        },
-        textbookExamples: [
-            "Melting ice, dissolving sugar, tearing paper - physical changes",
-            "Burning wood, cooking food, milk turning to curd - chemical changes",
-            "Rusting of iron gate - chemical change",
-            "Making salt crystals from salt water - physical change (crystallization)",
-            "Digestion of food in stomach - chemical change",
-        ],
-        commonMisconceptions: [
-            "All physical changes are reversible - actually breaking glass is physical but not easily reversible",
-            "Chemical changes always need heating - actually rusting happens at room temperature",
-        ],
-    },
-
-    "Adolescence: A Stage of Growth and Change": {
-        keyConcepts: [
-            "Adolescence: Period from 11-19 years when body undergoes significant changes",
-            "Puberty: Beginning of adolescence when reproductive organs mature",
-            "Hormones control the changes during puberty",
-            "Secondary sexual characteristics appear during puberty",
-            "Growth spurt: Rapid increase in height during adolescence",
-            "Emotional changes and mood swings are normal during adolescence",
-            "Healthy diet, exercise, and hygiene are important during this period",
-        ],
-        keyTerms: {
-            Adolescence: "Transition period between childhood and adulthood (11-19 years)",
-            Puberty: "Age when reproductive organs begin to mature",
-            Hormones: "Chemical messengers that control body functions",
-            "Growth spurt": "Period of rapid physical growth",
-            "Secondary sexual characteristics": "Physical features that develop during puberty",
-            Menstruation: "Monthly cycle in females when uterus lining sheds",
-            "Adam's apple": "Voice box that becomes prominent in boys during puberty",
-        },
-        textbookExamples: [
-            "Height increases rapidly during teenage years",
-            "Voice becomes deeper in boys (voice box grows)",
-            "Skin may become oily, leading to pimples",
-            "Emotional changes - feeling happy, sad, or confused is normal",
-            "Boys develop facial hair; girls develop breasts",
-        ],
-        commonMisconceptions: [
-            "Everyone goes through puberty at the same age - actually timing varies person to person",
-            "Only physical changes happen - actually emotional and mental changes also occur",
-        ],
-    },
-
-    "Heat Transfer in Nature": {
-        keyConcepts: [
-            "Heat flows from hot objects to cold objects",
-            "Three modes of heat transfer: Conduction, Convection, Radiation",
-            "Conduction: Heat transfer through solids by particle vibration",
-            "Convection: Heat transfer in liquids/gases by movement of particles",
-            "Radiation: Heat transfer without any medium (like sun's heat)",
-            "Conductors transfer heat easily; insulators do not",
-            "Natural phenomena like sea breeze involve convection",
-        ],
-        keyTerms: {
-            Conduction: "Heat transfer through solid without particle movement",
-            Convection: "Heat transfer in fluids through particle movement",
-            Radiation: "Heat transfer through electromagnetic waves (no medium needed)",
-            Conductor: "Material that allows heat to pass easily (metals)",
-            Insulator: "Material that resists heat flow (wood, plastic, air)",
-            "Sea breeze": "Wind from sea to land during day (convection)",
-            "Land breeze": "Wind from land to sea at night (convection)",
-        },
-        textbookExamples: [
-            "Metal spoon becomes hot in tea - conduction",
-            "Water in pot heats from bottom up - convection",
-            "We feel sun's warmth - radiation through space",
-            "Sea breeze during day, land breeze at night",
-            "Woolen clothes trap air (insulator) and keep us warm",
-            "Black objects absorb more heat than white objects",
-        ],
-        commonMisconceptions: [
-            "Wool produces heat - actually wool traps air which is a poor conductor",
-            "Cold flows into our body - actually heat flows out of our body",
-        ],
-    },
-
-    "Measurement of Time and Motion": {
-        keyConcepts: [
-            "Motion is change in position over time",
-            "Speed = Distance / Time",
-            "Units: meters per second (m/s), kilometers per hour (km/h)",
-            "Uniform motion: equal distance in equal time intervals",
-            "Non-uniform motion: unequal distances in equal time intervals",
-            "Simple pendulum oscillates with regular time period",
-            "Time period depends on length of pendulum, not its mass",
-        ],
-        formulas: [
-            "Speed = Distance / Time",
-            "$v = \\frac{d}{t}$",
-            "Distance = Speed × Time",
-            "Time = Distance / Speed",
-            "1 km/h = 1000m / 3600s = 5/18 m/s",
-        ],
-        keyTerms: {
-            Speed: "Distance covered per unit time",
-            "Uniform motion": "Motion with constant speed in same direction",
-            "Non-uniform motion": "Motion where speed keeps changing",
-            Oscillation: "One complete to-and-fro motion of a pendulum",
-            "Time period": "Time for one complete oscillation",
-            Speedometer: "Instrument measuring speed of vehicle",
-            Odometer: "Instrument measuring total distance traveled",
-        },
-        textbookExamples: [
-            "Car traveling 100 km in 2 hours has speed = 50 km/h",
-            "Train moving at constant speed - uniform motion",
-            "Vehicle in traffic - non-uniform motion",
-            "Pendulum clock uses regular oscillations to measure time",
-            "Convert 36 km/h to m/s: 36 × 5/18 = 10 m/s",
-        ],
-        commonMisconceptions: [
-            "Fast things always have high speed - actually speed is relative to observer",
-            "Pendulum swings faster with heavier bob - actually time period depends only on length",
-        ],
-    },
-
-    "Life Processes in Animals": {
-        keyConcepts: [
-            "Animals need food, oxygen, and removal of waste to survive",
-            "Digestion breaks down complex food into simpler substances",
-            "Human digestive system: Mouth → Esophagus → Stomach → Intestines",
-            "Respiration releases energy from food using oxygen",
-            "Blood transports oxygen, nutrients, and waste in the body",
-            "Heart pumps blood through arteries and veins",
-            "Excretion removes waste products from the body",
-        ],
-        keyTerms: {
-            Digestion: "Breaking down food into absorbable nutrients",
-            Respiration: "Process of releasing energy from food",
-            Circulation: "Movement of blood through the body",
-            Excretion: "Removal of metabolic waste from body",
-            Enzymes: "Biological molecules that speed up digestion",
-            Villi: "Finger-like projections in intestine for absorption",
-            Hemoglobin: "Protein in red blood cells that carries oxygen",
-        },
-        textbookExamples: [
-            "Saliva contains enzymes that start digesting starch in mouth",
-            "Stomach acid kills germs and helps digest proteins",
-            "Small intestine has villi for better nutrient absorption",
-            "Kidneys filter blood and produce urine",
-            "Lungs exchange oxygen and carbon dioxide",
-        ],
-        commonMisconceptions: [
-            "Stomach does all digestion - actually digestion starts in mouth and continues in intestines",
-            "We breathe to take in oxygen only - actually we also need to remove carbon dioxide",
-        ],
-    },
-
-    "Life Processes in Plants": {
-        keyConcepts: [
-            "Plants make their own food through photosynthesis",
-            "Photosynthesis needs sunlight, water, CO₂, and chlorophyll",
-            "Photosynthesis happens in leaves (chloroplasts)",
-            "Plants also respire - they use oxygen and release CO₂",
-            "Transpiration: water loss through stomata in leaves",
-            "Xylem transports water; Phloem transports food",
-            "Plants reproduce through seeds or vegetative parts",
-        ],
-        formulas: [
-            "Photosynthesis: $6CO_2 + 6H_2O \\xrightarrow{\\text{sunlight}} C_6H_{12}O_6 + 6O_2$",
-            "Carbon dioxide + Water → Glucose + Oxygen",
-        ],
-        keyTerms: {
-            Photosynthesis: "Process by which plants make food using sunlight",
-            Chlorophyll: "Green pigment that captures light energy",
-            Stomata: "Tiny pores on leaves for gas exchange",
-            Transpiration: "Loss of water vapor from leaves",
-            Xylem: "Tissue that transports water from roots to leaves",
-            Phloem: "Tissue that transports food from leaves to other parts",
-            Germination: "Process when seed starts growing into a plant",
-        },
-        textbookExamples: [
-            "Leaves appear green due to chlorophyll",
-            "Plants wilt when they don't get enough water",
-            "Cutting a stem shows xylem vessels",
-            "Rose can grow from stem cutting (vegetative propagation)",
-            "Stomata close at night to prevent water loss",
-        ],
-        commonMisconceptions: [
-            "Plants don't respire - actually plants respire 24/7, photosynthesis only in light",
-            "Roots are for feeding only - actually roots mainly absorb water and minerals",
-        ],
-    },
-
-    "Light: Shadows and Reflections": {
-        keyConcepts: [
-            "Light travels in straight lines (rectilinear propagation)",
-            "Shadows form when opaque objects block light",
-            "Reflection: light bouncing off a surface",
-            "Laws of reflection: angle of incidence = angle of reflection",
-            "Plane mirror forms virtual, erect, same-size image",
-            "Convex mirror: curved outward, wider field of view",
-            "Concave mirror: curved inward, can magnify",
-        ],
-        keyTerms: {
-            "Rectilinear propagation": "Light traveling in straight lines",
-            Shadow: "Dark area formed when opaque object blocks light",
-            Reflection: "Bouncing of light from a surface",
-            "Incident ray": "Light ray falling on a surface",
-            "Reflected ray": "Light ray bouncing off a surface",
-            "Plane mirror": "Flat mirror that forms same-size image",
-            "Convex mirror": "Mirror curved outward like back of spoon",
-            "Concave mirror": "Mirror curved inward like inside of spoon",
-        },
-        textbookExamples: [
-            "We see objects because light reflects from them into our eyes",
-            "Shadow of a tree at noon is short; in evening it's long",
-            "Rear-view mirrors in vehicles are convex (wider view)",
-            "Dentists use concave mirrors to see teeth magnified",
-            "Plane mirror in bathroom shows exact reflection",
-        ],
-        commonMisconceptions: [
-            "We see things because our eyes send out light - actually eyes receive light reflected from objects",
-            "Mirrors make light - actually mirrors only reflect existing light",
-        ],
-    },
-
-    "Earth, Moon, and the Sun": {
-        keyConcepts: [
-            "Earth rotates on its axis (causes day and night)",
-            "Earth revolves around the Sun (causes seasons)",
-            "Moon revolves around Earth (takes about 27 days)",
-            "Moon's phases: New Moon → First Quarter → Full Moon → Last Quarter",
-            "Eclipses: Solar (Moon blocks Sun) and Lunar (Earth blocks Sun's light on Moon)",
-            "Tides are caused by Moon's gravitational pull on Earth's water",
-        ],
-        keyTerms: {
-            Rotation: "Spinning of Earth on its own axis",
-            Revolution: "Earth's movement around the Sun",
-            Axis: "Imaginary line through Earth from pole to pole",
-            "Lunar eclipse": "Earth's shadow falls on Moon",
-            "Solar eclipse": "Moon's shadow falls on Earth",
-            Phases: "Different appearances of Moon during a month",
-            Tides: "Rise and fall of sea water due to Moon's gravity",
-        },
-        textbookExamples: [
-            "Earth takes 24 hours to rotate once (causes day and night)",
-            "Earth takes 365.25 days to revolve around Sun (one year)",
-            "Full Moon appears once every 29.5 days",
-            "Solar eclipse should NEVER be viewed directly",
-            "High tide and low tide occur twice daily",
-        ],
-        commonMisconceptions: [
-            "Moon produces its own light - actually Moon reflects Sun's light",
-            "Seasons are caused by Earth's distance from Sun - actually caused by Earth's tilt",
-            "Eclipse happens every month - actually orbits are tilted so eclipses are rare",
-        ],
-    },
+    ],
 };

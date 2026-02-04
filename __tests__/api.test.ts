@@ -8,51 +8,45 @@
 // Mock response structure we expect from the new tutor API
 interface TutorResponse {
     content: {
-        quickExplanation: string;    // 2-3 sentences in simple language
+        quickExplanation: string;
         stepByStep: {
             title: string;
             explanation: string;
             keyProperty?: string;
-        }[];           // Breakdown with daily-life examples
-        practiceQuestion: {
-            question: string;
-            options?: { label: string; text: string }[];  // Optional for short answer
-            type: 'mcq' | 'short';
-        };
-        answer: {
-            correct: string;
-            explanation: string;
-        };
+        }[];
+        curiosityQuestion?: string;
     };
 }
 
 // Expected input structure
 interface TutorInput {
     subject: 'Science' | 'Maths';
-    topic: string;
+    chapterId: string;
+    topicId: string;
+    subtopicId: string;
 }
 
 describe('/api/explain - Standard 7 Tutor API', () => {
     const API_URL = 'http://localhost:3000/api/explain';
 
     describe('Input Validation', () => {
-        it('should reject request without topic', async () => {
+        it('should reject request without chapter', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science' })
+                body: JSON.stringify({ subject: 'Science', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
             const data = await response.json();
-            expect(data.error).toContain('Topic');
+            expect(data.error).toContain('Chapter');
         });
 
         it('should reject request without subject', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic: 'Photosynthesis' })
+                body: JSON.stringify({ chapterId: 'electricity-circuits', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
@@ -60,23 +54,28 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             expect(data.error).toContain('Subject');
         });
 
-        it('should reject empty topic', async () => {
+        it('should reject empty subtopic', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science', topic: '   ' })
+                body: JSON.stringify({
+                    subject: 'Science',
+                    chapterId: 'electricity-circuits',
+                    topicId: 'circuit-basics',
+                    subtopicId: '   '
+                })
             });
 
             expect(response.status).toBe(400);
             const data = await response.json();
-            expect(data.error).toContain('empty');
+            expect(data.error).toContain('Subtopic');
         });
 
         it('should reject invalid subject', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'History', topic: 'Some topic' })
+                body: JSON.stringify({ subject: 'History', chapterId: 'electricity-circuits', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
@@ -90,7 +89,12 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science', topic: 'Photosynthesis' })
+                body: JSON.stringify({
+                    subject: 'Science',
+                    chapterId: 'electricity-circuits',
+                    topicId: 'circuit-basics',
+                    subtopicId: 'closed-open-circuits'
+                })
             });
 
             expect(response.status).toBe(200);
@@ -103,7 +107,12 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Maths', topic: 'Fractions' })
+                body: JSON.stringify({
+                    subject: 'Maths',
+                    chapterId: 'fractions-decimals',
+                    topicId: 'fractions-basics',
+                    subtopicId: 'equivalent-fractions'
+                })
             });
 
             expect(response.status).toBe(200);
@@ -116,31 +125,21 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             }
         });
 
-        it('should include a practice question', async () => {
+        it('should allow curiosityQuestion in response', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science', topic: 'Acids and Bases' })
+                body: JSON.stringify({
+                    subject: 'Maths',
+                    chapterId: 'simple-equations',
+                    topicId: 'solve-equations',
+                    subtopicId: 'one-step-equations'
+                })
             });
 
             expect(response.status).toBe(200);
             const data = await response.json() as TutorResponse;
-            expect(data.content.practiceQuestion).toBeDefined();
-            expect(data.content.practiceQuestion.question).toBeDefined();
-        });
-
-        it('should include answer with explanation', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Maths', topic: 'Simple Equations' })
-            });
-
-            expect(response.status).toBe(200);
-            const data = await response.json() as TutorResponse;
-            expect(data.content.answer).toBeDefined();
-            expect(data.content.answer.correct).toBeDefined();
-            expect(data.content.answer.explanation).toBeDefined();
+            expect(data.content.curiosityQuestion).toBeDefined();
         });
     });
 });
