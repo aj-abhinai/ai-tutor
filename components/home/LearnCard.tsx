@@ -10,6 +10,11 @@ interface LearnCardProps {
   selectedSubtopic: SubtopicKnowledge | null;
   explainLevel: ExplainLevel;
   onExplainLevelChange: (level: ExplainLevel) => void;
+  deepEssay?: string | null;
+  deepLoading?: boolean;
+  deepError?: string;
+  deepCooldownUntil?: number | null;
+  onGenerateDeep?: (force?: boolean) => void;
   curiosityResponse: string;
   onCuriosityResponseChange: (value: string) => void;
   explainBack: string;
@@ -26,6 +31,11 @@ export function LearnCard({
   selectedSubtopic,
   explainLevel,
   onExplainLevelChange,
+  deepEssay,
+  deepLoading = false,
+  deepError = "",
+  deepCooldownUntil = null,
+  onGenerateDeep,
   curiosityResponse,
   onCuriosityResponseChange,
   explainBack,
@@ -36,8 +46,14 @@ export function LearnCard({
   selfCheck,
   onSelfCheckChange,
 }: LearnCardProps) {
-  const bulletPoints = data.bulletPoints?.[explainLevel] ?? [];
+  const bulletPoints = explainLevel === "deep" ? [] : data.bulletPoints?.[explainLevel] ?? [];
   const explanationHtml = data.quickExplanation;
+  const deepEssayHtml = deepEssay || data.bulletPoints?.deep?.join("") || "";
+  const deepHasAi = Boolean(deepEssay);
+  const cooldownMs = deepCooldownUntil ? Math.max(deepCooldownUntil - Date.now(), 0) : 0;
+  const cooldownSeconds = Math.ceil(cooldownMs / 1000);
+  const cooldownLabel = cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : null;
+  const canGenerate = !deepLoading && cooldownSeconds === 0;
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
@@ -74,18 +90,51 @@ export function LearnCard({
                 ? "Elaborated overview with examples and key terms."
                 : "Academic-style deep dive with classification and applications."}
           </span>
+          {explainLevel === "deep" && onGenerateDeep && (
+            <button
+              type="button"
+              onClick={() => onGenerateDeep(deepHasAi)}
+              disabled={!canGenerate}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                !canGenerate
+                  ? "cursor-not-allowed border-slate-200 text-slate-400"
+                  : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              }`}
+              aria-label="Generate deep explanation with AI"
+              title="Generate a longer deep explanation with AI"
+            >
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-800">
+                AI
+              </span>
+              {deepLoading
+                ? "Generating..."
+                : cooldownLabel
+                  ? cooldownLabel
+                  : deepHasAi
+                    ? "Regenerate"
+                    : "Generate"}
+            </button>
+          )}
         </div>
         <div className="prose prose-base max-w-none text-slate-800 leading-relaxed">
           {explanationHtml ? (
             <div dangerouslySetInnerHTML={renderHtml(explanationHtml)} />
           ) : null}
         </div>
-        {bulletPoints.length > 0 && explainLevel === "deep" && (
+        {explainLevel === "deep" && deepLoading && (
+          <div className="mt-4 text-sm text-slate-600">Generating the deep explanation…</div>
+        )}
+
+        {explainLevel === "deep" && deepError && (
+          <div className="mt-3 text-sm text-rose-700">{deepError}</div>
+        )}
+
+        {explainLevel === "deep" && deepEssayHtml && (
           <div className="mt-4 flex items-start gap-3">
             <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
             <div
               className="flex-1 prose prose-base max-w-none text-slate-800 leading-relaxed"
-              dangerouslySetInnerHTML={renderHtml(bulletPoints.join(""))}
+              dangerouslySetInnerHTML={renderHtml(deepEssayHtml)}
             />
           </div>
         )}

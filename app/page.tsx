@@ -79,10 +79,16 @@ export default function Home() {
   const [quizFeedback, setQuizFeedback] = useState<ExplainFeedback | null>(null);
   const [checkingQuiz, setCheckingQuiz] = useState(false);
   const [explainLevel, setExplainLevel] = useState<ExplainLevel>("simple");
+  const [deepEssay, setDeepEssay] = useState<string | null>(null);
+  const [deepLoading, setDeepLoading] = useState(false);
+  const [deepError, setDeepError] = useState("");
+  const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
 
   // Lesson cache to prevent duplicate API calls
   const lessonCache = useRef<Map<string, TutorLessonResponse>>(new Map());
   const isFetching = useRef(false);
+  const deepCache = useRef<Map<string, string>>(new Map());
+  const deepGenerateLog = useRef<Map<string, number[]>>(new Map());
 
   // Quiz State
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -166,6 +172,19 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!deepCooldownUntil) return;
+    const remaining = deepCooldownUntil - Date.now();
+    if (remaining <= 0) {
+      setDeepCooldownUntil(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setDeepCooldownUntil(null);
+    }, remaining);
+    return () => window.clearTimeout(timer);
+  }, [deepCooldownUntil]);
+
   // When subject changes, auto-select the first available chapter
   useEffect(() => {
     // Find the first chapter that has curriculum data
@@ -234,6 +253,10 @@ export default function Home() {
     setQuizFeedback(null);
     setCheckingQuiz(false);
     setExplainLevel("simple");
+    setDeepEssay(null);
+    setDeepLoading(false);
+    setDeepError("");
+    setDeepCooldownUntil(null);
     stopAudio();
   };
 
@@ -360,8 +383,21 @@ export default function Home() {
       return;
     }
 
-    const bulletNarration = (data.bulletPoints?.[explainLevel] ?? [])
-      .map((point, index) => `Point ${index + 1}. ${cleanTextForSpeech(point)}`)
+    const deepNarrationSource =
+      explainLevel === "deep"
+        ? deepEssay || (data.bulletPoints?.deep ?? []).join(" ")
+        : "";
+    const bulletNarrationSource =
+      explainLevel === "deep"
+        ? deepNarrationSource
+        : (data.bulletPoints?.[explainLevel] ?? []).join(" ");
+    const bulletNarration = bulletNarrationSource
+      .split(/\n+/)
+      .map((point, index) => {
+        const cleaned = cleanTextForSpeech(point);
+        return cleaned ? `Point ${index + 1}. ${cleaned}` : "";
+      })
+      .filter(Boolean)
       .join(" ");
     const textToRead = `Quick Explanation. ${cleanTextForSpeech(
       data.quickExplanation
@@ -428,6 +464,67 @@ export default function Home() {
 
   const handleExplainLevelChange = (level: ExplainLevel) => {
     setExplainLevel(level);
+  };
+
+  const fetchDeepEssay = async (force = false) => {
+    if (!selectedChapter || !selectedSubtopic || deepLoading) return;
+
+    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopic.id}`;
+    const cached = deepCache.current.get(cacheKey);
+    if (cached && !force) {
+      setDeepEssay(cached);
+      setDeepError("");
+      return;
+    }
+
+    const now = Date.now();
+    const windowMs = 2 * 60 * 1000;
+    const entries = deepGenerateLog.current.get(cacheKey) ?? [];
+    const recent = entries.filter((timestamp) => now - timestamp < windowMs);
+    if (recent.length >= 2) {
+      const lockUntil = Math.max(...recent) + windowMs;
+      setDeepCooldownUntil(lockUntil);
+      setDeepError("You can regenerate twice within 2 minutes. Please wait a bit.");
+      deepGenerateLog.current.set(cacheKey, recent);
+      return;
+    }
+
+    setDeepLoading(true);
+    setDeepError("");
+
+    try {
+      const res = await fetch("/api/deep", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject,
+          chapterId: selectedChapter.id,
+          topicId: selectedTopic?.id,
+          subtopicId: selectedSubtopic.id,
+        }),
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        setDeepError(resData.error || "Unable to generate the deep explanation right now.");
+      } else if (resData?.deepEssay) {
+        deepCache.current.set(cacheKey, resData.deepEssay);
+        setDeepEssay(resData.deepEssay);
+        const updated = [...recent, now];
+        deepGenerateLog.current.set(cacheKey, updated);
+        if (updated.length >= 2) {
+          const lockUntil = updated[0] + windowMs;
+          setDeepCooldownUntil(lockUntil);
+        } else {
+          setDeepCooldownUntil(null);
+        }
+      } else {
+        setDeepError("No deep explanation returned. Please try again.");
+      }
+    } catch {
+      setDeepError("Failed to connect to API");
+    } finally {
+      setDeepLoading(false);
+    }
   };
 
   const buildLessonContext = () => {
@@ -576,6 +673,11 @@ export default function Home() {
               selectedSubtopic={selectedSubtopic}
               explainLevel={explainLevel}
               onExplainLevelChange={handleExplainLevelChange}
+              deepEssay={deepEssay}
+              deepLoading={deepLoading}
+              deepError={deepError}
+              deepCooldownUntil={deepCooldownUntil}
+              onGenerateDeep={(force) => void fetchDeepEssay(force)}
               curiosityResponse={curiosityResponse}
               onCuriosityResponseChange={(value) => setCuriosityResponse(value)}
               explainBack={explainBack}
