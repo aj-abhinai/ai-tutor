@@ -5,44 +5,75 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 
 /**
- * AI Concept Explainer - Main Page
- * NCERT-aligned with Class and Chapter selection.
+ * Standard 7 AI Tutor - Main Page
+ * 
+ * A friendly, interactive tutor for Class 7 students.
+ * Subjects: Science and Maths (NCERT aligned)
  */
 
-interface APIResponse {
-  concept: string;
-  example: string;
-  mcqs: MCQQuestion[];
+// Response structure from API
+interface TutorResponse {
+  quickExplanation: string;
+  stepByStep: string;
+  practiceQuestion: {
+    question: string;
+    options: { label: string; text: string }[];
+    type: "mcq" | "short";
+  };
+  answer: {
+    correct: string;
+    explanation: string;
+  };
 }
 
-interface MCQQuestion {
-  question: string;
-  options: { label: string; text: string }[];
-  correctAnswer: string;
-  explanation: string;
-}
-
-type SectionKey = "concept" | "example" | "mcq";
-
-const SECTION_CONFIG: { key: SectionKey; title: string; emoji: string; color: string; bgColor: string; borderColor: string }[] = [
-  { key: "concept", title: "Concept Breakdown", emoji: "📚", color: "text-blue-800", bgColor: "bg-blue-50", borderColor: "border-blue-300" },
-  { key: "example", title: "Worked Example", emoji: "✏️", color: "text-green-800", bgColor: "bg-green-50", borderColor: "border-green-300" },
-  { key: "mcq", title: "Practice MCQs", emoji: "📝", color: "text-purple-800", bgColor: "bg-purple-50", borderColor: "border-purple-300" },
+// NCERT Class 7 Science chapters
+const SCIENCE_TOPICS = [
+  "Nutrition in Plants",
+  "Nutrition in Animals",
+  "Fibre to Fabric",
+  "Heat",
+  "Acids, Bases and Salts",
+  "Physical and Chemical Changes",
+  "Weather, Climate and Adaptations",
+  "Winds, Storms and Cyclones",
+  "Soil",
+  "Respiration in Organisms",
+  "Transportation in Animals and Plants",
+  "Reproduction in Plants",
+  "Motion and Time",
+  "Electric Current and its Effects",
+  "Light",
+  "Water: A Precious Resource",
+  "Forests: Our Lifeline",
+  "Wastewater Story",
 ];
 
-const CLASS_OPTIONS = [
-  { value: "6", label: "Class 6" },
-  { value: "7", label: "Class 7" },
-  { value: "8", label: "Class 8" },
-  { value: "9", label: "Class 9" },
-  { value: "10", label: "Class 10" },
-  { value: "11", label: "Class 11" },
-  { value: "12", label: "Class 12" },
+// NCERT Class 7 Maths chapters
+const MATHS_TOPICS = [
+  "Integers",
+  "Fractions and Decimals",
+  "Data Handling",
+  "Simple Equations",
+  "Lines and Angles",
+  "The Triangle and its Properties",
+  "Congruence of Triangles",
+  "Comparing Quantities",
+  "Rational Numbers",
+  "Practical Geometry",
+  "Perimeter and Area",
+  "Algebraic Expressions",
+  "Exponents and Powers",
+  "Symmetry",
+  "Visualising Solid Shapes",
 ];
 
+/**
+ * Render LaTeX equations using KaTeX
+ */
 function renderWithKaTeX(text: string): string {
   if (!text) return "";
 
+  // Display mode: $$...$$
   let rendered = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => {
     try {
       return katex.renderToString(eq.trim(), { displayMode: true, throwOnError: false });
@@ -51,6 +82,7 @@ function renderWithKaTeX(text: string): string {
     }
   });
 
+  // Inline mode: $...$
   rendered = rendered.replace(/\$([^$\n]+?)\$/g, (_, eq) => {
     try {
       return katex.renderToString(eq.trim(), { displayMode: false, throwOnError: false });
@@ -62,37 +94,64 @@ function renderWithKaTeX(text: string): string {
   return rendered;
 }
 
+/**
+ * Sanitize HTML to prevent XSS
+ */
+function sanitizeHtml(html: string): string {
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  // Remove dangerous elements
+  ["script", "style", "iframe", "object", "embed"].forEach((tag) => {
+    doc.querySelectorAll(tag).forEach((el) => el.remove());
+  });
+
+  return doc.body.innerHTML;
+}
+
 export default function Home() {
+  // Form state
+  const [subject, setSubject] = useState<"Science" | "Maths">("Science");
   const [topic, setTopic] = useState("");
-  const [studentClass, setStudentClass] = useState("11");
-  const [chapter, setChapter] = useState("");
-  const [data, setData] = useState<APIResponse | null>(null);
-  const [selectedSection, setSelectedSection] = useState<SectionKey>("concept");
+
+  // Response state
+  const [data, setData] = useState<TutorResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // MCQ Quiz State
-  const [currentMcqIndex, setCurrentMcqIndex] = useState(0);
+  // Quiz state
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
 
+  // Get topics based on selected subject
+  const topics = subject === "Science" ? SCIENCE_TOPICS : MATHS_TOPICS;
+
+  /**
+   * Handle subject change - reset topic when subject changes
+   */
+  const handleSubjectChange = (newSubject: "Science" | "Maths") => {
+    setSubject(newSubject);
+    setTopic(""); // Reset topic when subject changes
+  };
+
+  /**
+   * Call the explain API
+   */
   const handleExplain = async () => {
-    if (!topic.trim()) return;
+    if (!topic) return;
 
     setLoading(true);
     setError("");
     setData(null);
-    setCurrentMcqIndex(0);
     setSelectedAnswer(null);
-    setSubmitted(false);
-    setScore(0);
+    setShowAnswer(false);
 
     try {
       const res = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, class: studentClass, chapter }),
+        body: JSON.stringify({ subject, topic }),
       });
 
       const resData = await res.json();
@@ -101,7 +160,6 @@ export default function Home() {
         setError(resData.error || "Something went wrong");
       } else {
         setData(resData.content);
-        setSelectedSection("concept");
       }
     } catch {
       setError("Failed to connect to API");
@@ -110,261 +168,211 @@ export default function Home() {
     }
   };
 
-  const handleAnswerSubmit = () => {
-    if (!selectedAnswer || !data) return;
-    setSubmitted(true);
-    if (selectedAnswer === data.mcqs[currentMcqIndex].correctAnswer) {
-      setScore(prev => prev + 1);
-    }
+  /**
+   * Check if selected answer is correct
+   */
+  const handleCheckAnswer = () => {
+    setShowAnswer(true);
   };
 
-  const handleNextQuestion = () => {
-    setCurrentMcqIndex(prev => prev + 1);
-    setSelectedAnswer(null);
-    setSubmitted(false);
-  };
-
-  const currentConfig = SECTION_CONFIG.find((s) => s.key === selectedSection)!;
-  const mcqs = data?.mcqs || [];
-  const currentMcq = mcqs[currentMcqIndex];
-  const isQuizComplete = currentMcqIndex >= mcqs.length && mcqs.length > 0;
+  const isCorrect = showAnswer && data && selectedAnswer === data.answer.correct;
+  const isWrong = showAnswer && data && selectedAnswer !== data.answer.correct;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 p-6">
+      <div className="max-w-2xl mx-auto">
+
         {/* Header */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          AI Concept Explainer
-        </h1>
-        <p className="text-gray-600 mb-6">
-          NCERT-aligned explanations for JEE/NEET preparation.
-        </p>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            📚 Class 7 AI Tutor
+          </h1>
+          <p className="text-gray-600">
+            Learn Science and Maths the fun way! 🚀
+          </p>
+        </div>
 
-        {/* Input Section */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Class Selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Class *
-              </label>
-              <select
-                value={studentClass}
-                onChange={(e) => setStudentClass(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              >
-                {CLASS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* Subject and Topic Selection */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          {/* Subject Dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📚 Choose a Subject
+            </label>
+            <select
+              value={subject}
+              onChange={(e) => handleSubjectChange(e.target.value as "Science" | "Maths")}
+              className="w-full p-4 text-lg border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 bg-white"
+              disabled={loading}
+            >
+              <option value="Science">🔬 Science</option>
+              <option value="Maths">🔢 Maths</option>
+            </select>
+          </div>
 
-            {/* Chapter Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Chapter (Optional)
-              </label>
-              <input
-                value={chapter}
-                onChange={(e) => setChapter(e.target.value)}
-                placeholder="e.g. Motion in a Straight Line"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Topic Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Topic *
-              </label>
-              <input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleExplain()}
-                placeholder="e.g. Newton's Laws"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              />
-            </div>
+          {/* Topic Dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📖 Choose a Topic
+            </label>
+            <select
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              className="w-full p-4 text-lg border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 bg-white"
+              disabled={loading}
+            >
+              <option value="">-- Select a topic --</option>
+              {topics.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button
             onClick={handleExplain}
-            disabled={loading || !topic.trim()}
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !topic}
+            className="w-full bg-purple-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? "Generating NCERT-aligned explanation..." : "Explain Topic"}
+            {loading ? "🤔 Thinking..." : "✨ Teach Me!"}
           </button>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
-            {error}
+          <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-lg mb-6">
+            😕 {error}
           </div>
         )}
 
-        {/* Section Selector Cards */}
+        {/* Response Display */}
         {data && (
-          <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {SECTION_CONFIG.map((config) => (
-                <button
-                  key={config.key}
-                  onClick={() => setSelectedSection(config.key)}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${selectedSection === config.key
-                      ? `${config.bgColor} ${config.borderColor} shadow-md`
-                      : "bg-white border-gray-200 hover:border-gray-300"
-                    }`}
-                >
-                  <span className="text-2xl block mb-1">{config.emoji}</span>
-                  <span className={`text-sm font-medium ${selectedSection === config.key ? config.color : "text-gray-700"}`}>
-                    {config.title}
-                  </span>
-                </button>
-              ))}
+          <div className="space-y-6">
+
+            {/* Quick Explanation */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                💡 Quick Explanation
+              </h2>
+              <div
+                className="text-gray-700 text-lg leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(renderWithKaTeX(data.quickExplanation))
+                }}
+              />
             </div>
 
-            {/* Content Area */}
-            <div className={`bg-white border-2 ${currentConfig.borderColor} rounded-lg p-6`}>
-              <h2 className={`text-xl font-semibold ${currentConfig.color} mb-4 flex items-center gap-2`}>
-                <span>{currentConfig.emoji}</span>
-                {currentConfig.title}
+            {/* Step by Step */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                📝 Let&apos;s Understand Step-by-Step
+              </h2>
+              <div
+                className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(renderWithKaTeX(data.stepByStep))
+                }}
+              />
+            </div>
+
+            {/* Practice Question */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                🎯 Try This Question!
               </h2>
 
-              {/* Concept & Example */}
-              {selectedSection === "concept" && (
-                <div
-                  className="prose prose-gray max-w-none whitespace-pre-wrap font-sans leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: renderWithKaTeX(data.concept) }}
-                />
+              <div
+                className="text-lg font-medium text-gray-800 mb-4"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(renderWithKaTeX(data.practiceQuestion.question))
+                }}
+              />
+
+              {/* MCQ Options */}
+              <div className="space-y-3 mb-4">
+                {data.practiceQuestion.options.map((option) => {
+                  const isSelected = selectedAnswer === option.label;
+                  const isThisCorrect = showAnswer && option.label === data.answer.correct;
+                  const isThisWrong = showAnswer && isSelected && option.label !== data.answer.correct;
+
+                  let bgColor = "bg-gray-50 hover:bg-gray-100";
+                  let borderColor = "border-gray-200";
+
+                  if (isThisCorrect) {
+                    bgColor = "bg-green-100";
+                    borderColor = "border-green-500";
+                  } else if (isThisWrong) {
+                    bgColor = "bg-red-100";
+                    borderColor = "border-red-500";
+                  } else if (isSelected && !showAnswer) {
+                    bgColor = "bg-purple-100";
+                    borderColor = "border-purple-500";
+                  }
+
+                  return (
+                    <button
+                      key={option.label}
+                      onClick={() => !showAnswer && setSelectedAnswer(option.label)}
+                      disabled={showAnswer}
+                      className={`w-full p-4 text-left rounded-lg border-2 transition-all ${bgColor} ${borderColor}`}
+                    >
+                      <span className="font-bold mr-2">{option.label}.</span>
+                      <span dangerouslySetInnerHTML={{
+                        __html: sanitizeHtml(renderWithKaTeX(option.text))
+                      }} />
+                      {isThisCorrect && <span className="ml-2">✅</span>}
+                      {isThisWrong && <span className="ml-2">❌</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Check Answer Button */}
+              {!showAnswer && (
+                <button
+                  onClick={handleCheckAnswer}
+                  disabled={!selectedAnswer}
+                  className="w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Check My Answer! 🤞
+                </button>
               )}
 
-              {selectedSection === "example" && (
-                <div
-                  className="prose prose-gray max-w-none whitespace-pre-wrap font-sans leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: renderWithKaTeX(data.example) }}
-                />
-              )}
-
-              {/* MCQ Section */}
-              {selectedSection === "mcq" && (
-                <div>
-                  {mcqs.length === 0 ? (
-                    <p className="text-gray-500 italic">No MCQs found.</p>
-                  ) : isQuizComplete ? (
-                    <div className="text-center py-8">
-                      <div className="text-6xl mb-4">🎉</div>
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">Quiz Complete!</h3>
-                      <p className="text-xl text-gray-600">
-                        Your score: <span className="font-bold text-purple-600">{score}/{mcqs.length}</span>
-                      </p>
-                      <button
-                        onClick={() => {
-                          setCurrentMcqIndex(0);
-                          setSelectedAnswer(null);
-                          setSubmitted(false);
-                          setScore(0);
-                        }}
-                        className="mt-6 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
-                      >
-                        Retry Quiz
-                      </button>
-                    </div>
-                  ) : currentMcq && (
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm text-gray-500">
-                          Question {currentMcqIndex + 1} of {mcqs.length}
-                        </span>
-                        <span className="text-sm text-purple-600 font-medium">
-                          Score: {score}
-                        </span>
-                      </div>
-
-                      <div
-                        className="text-lg font-medium text-gray-800 mb-6"
-                        dangerouslySetInnerHTML={{ __html: renderWithKaTeX(currentMcq.question) }}
-                      />
-
-                      <div className="space-y-3 mb-6">
-                        {currentMcq.options.map((option) => {
-                          const isSelected = selectedAnswer === option.label;
-                          const isCorrect = option.label === currentMcq.correctAnswer;
-
-                          let optionStyle = "border-gray-200 hover:border-gray-400";
-                          if (submitted) {
-                            if (isCorrect) {
-                              optionStyle = "border-green-500 bg-green-50";
-                            } else if (isSelected && !isCorrect) {
-                              optionStyle = "border-red-500 bg-red-50";
-                            }
-                          } else if (isSelected) {
-                            optionStyle = "border-purple-500 bg-purple-50";
-                          }
-
-                          return (
-                            <button
-                              key={option.label}
-                              onClick={() => !submitted && setSelectedAnswer(option.label)}
-                              disabled={submitted}
-                              className={`w-full p-4 text-left rounded-lg border-2 transition-all ${optionStyle}`}
-                            >
-                              <span className="font-semibold mr-2">{option.label}.</span>
-                              <span dangerouslySetInnerHTML={{ __html: renderWithKaTeX(option.text) }} />
-                              {submitted && isCorrect && (
-                                <span className="ml-2 text-green-600">✓</span>
-                              )}
-                              {submitted && isSelected && !isCorrect && (
-                                <span className="ml-2 text-red-600">✗</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {!submitted ? (
-                        <button
-                          onClick={handleAnswerSubmit}
-                          disabled={!selectedAnswer}
-                          className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Submit Answer
-                        </button>
-                      ) : (
-                        <>
-                          <div className={`p-4 rounded-lg mb-4 ${selectedAnswer === currentMcq.correctAnswer
-                              ? "bg-green-50 border border-green-200"
-                              : "bg-red-50 border border-red-200"
-                            }`}>
-                            <p className={`font-semibold mb-2 ${selectedAnswer === currentMcq.correctAnswer ? "text-green-700" : "text-red-700"
-                              }`}>
-                              {selectedAnswer === currentMcq.correctAnswer ? "✓ Correct!" : "✗ Incorrect"}
-                            </p>
-                            <div
-                              className="text-gray-700 text-sm"
-                              dangerouslySetInnerHTML={{ __html: renderWithKaTeX(currentMcq.explanation) }}
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleNextQuestion}
-                            className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700"
-                          >
-                            {currentMcqIndex < mcqs.length - 1 ? "Next Question →" : "Finish Quiz"}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+              {/* Answer Feedback */}
+              {showAnswer && (
+                <div className={`p-4 rounded-lg ${isCorrect ? "bg-green-50 border-2 border-green-300" : "bg-yellow-50 border-2 border-yellow-300"}`}>
+                  <p className={`font-bold text-lg mb-2 ${isCorrect ? "text-green-700" : "text-yellow-700"}`}>
+                    {isCorrect ? "🎉 Great job! You got it right!" : "🤔 Not quite, but that's okay!"}
+                  </p>
+                  <p className="text-gray-700 mb-2">
+                    <span className="font-medium">Correct answer:</span> {data.answer.correct}
+                  </p>
+                  <div
+                    className="text-gray-600"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtml(renderWithKaTeX(data.answer.explanation))
+                    }}
+                  />
                 </div>
               )}
             </div>
-          </>
+
+            {/* Try Another Topic */}
+            <div className="text-center">
+              <button
+                onClick={() => {
+                  setData(null);
+                  setTopic("");
+                  setSelectedAnswer(null);
+                  setShowAnswer(false);
+                }}
+                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-300"
+              >
+                🔄 Learn Something Else
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </main>
