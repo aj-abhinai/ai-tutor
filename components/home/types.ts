@@ -1,12 +1,13 @@
 export type CardStep = "learn" | "listen" | "quiz";
+export type ExplainLevel = "simple" | "standard" | "deep";
 
 export interface TutorLessonResponse {
   quickExplanation: string;
-  stepByStep: {
-    title: string;
-    explanation: string;
-    keyProperty?: string;
-  }[];
+  bulletPoints: {
+    simple: string[];
+    standard: string[];
+    deep: string[];
+  };
   curiosityQuestion?: string;
 }
 
@@ -22,4 +23,5 @@ export interface ExplainFeedback {
   praise: string;
   fix: string;
   rereadTip: string;
+  isCorrect?: boolean;
 }

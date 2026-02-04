@@ -2,6 +2,7 @@
 
 import { Button, Card, Input, OptionButton } from "@/components/ui";
 import { QuestionItem } from "@/lib/curriculum";
+import { ExplainFeedback } from "./types";
 import { renderHtml, renderWithKaTeX } from "./lesson-utils";
 
 interface QuizCardProps {
@@ -17,8 +18,11 @@ interface QuizCardProps {
   showAnswer: boolean;
   canCheckAnswer: boolean;
   isAnswerCorrect: boolean;
+  checkingQuiz: boolean;
+  quizFeedback: ExplainFeedback | null;
   onCheckAnswer: () => void;
   onResetQuiz: () => void;
+  onPrevQuestion: () => void;
   onNextQuestion: () => void;
   onRestartQuestions: () => void;
   onChooseNewLesson: () => void;
@@ -37,35 +41,90 @@ export function QuizCard({
   showAnswer,
   canCheckAnswer,
   isAnswerCorrect,
+  checkingQuiz,
+  quizFeedback,
   onCheckAnswer,
   onResetQuiz,
+  onPrevQuestion,
   onNextQuestion,
   onRestartQuestions,
   onChooseNewLesson,
 }: QuizCardProps) {
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Knowledge Check</h2>
+      <h2 className="text-2xl font-semibold text-slate-900 mb-6">Check Understanding</h2>
 
       {currentQuestion ? (
         <>
-          <div className="text-sm text-gray-500 mb-2">
-            Question {questionIndex + 1} of {questionsLength}
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm text-slate-500">
+              Question {questionIndex + 1} of {questionsLength}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onPrevQuestion}
+                disabled={questionIndex === 0}
+                aria-label="Previous question"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M19 12H5" />
+                    <path d="M11 19l-7-7 7-7" />
+                  </svg>
+                  Prev
+                </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onNextQuestion}
+                disabled={questionIndex >= questionsLength - 1}
+                aria-label="Next question"
+              >
+                <span className="inline-flex items-center gap-1">
+                  Next
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M13 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </Button>
+            </div>
           </div>
           <div
-            className="text-lg font-medium text-gray-800 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100"
+            className="text-lg font-medium text-slate-800 mb-6 p-4 bg-white/80 rounded-xl border border-slate-200"
             dangerouslySetInnerHTML={renderHtml(currentQuestion.question)}
           />
         </>
       ) : (
-        <div className="text-sm text-gray-600 mb-6">
+        <div className="text-sm text-slate-600 mb-6">
           No questions available for this subtopic yet.
         </div>
       )}
 
       {currentQuestion && isShortAnswer ? (
         <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             {isReasoning ? "Your explanation" : "Your answer"}
           </label>
           <Input
@@ -98,26 +157,28 @@ export function QuizCard({
           size="lg"
           fullWidth
           onClick={onCheckAnswer}
-          disabled={!canCheckAnswer}
+          disabled={!canCheckAnswer || checkingQuiz}
         >
-          Check Answer
+          {checkingQuiz ? "Checking..." : "Check Answer"}
         </Button>
       ) : currentQuestion ? (
         <div className="animate-in fade-in zoom-in duration-300">
           <div
-            className={`p-6 rounded-xl mb-6 ${
+            className={`p-6 rounded-2xl mb-6 ${
               isAnswerCorrect
-                ? "bg-green-50 border-2 border-green-100"
-                : "bg-yellow-50 border-2 border-yellow-100"
+                ? "bg-emerald-50/70 border border-emerald-200"
+                : "bg-amber-50/70 border border-amber-200"
             }`}
           >
             <h3
-              className={`font-bold text-xl mb-2 ${
-                isAnswerCorrect ? "text-green-700" : "text-yellow-700"
+              className={`font-semibold text-xl mb-2 ${
+                isAnswerCorrect ? "text-emerald-800" : "text-amber-800"
               }`}
             >
               {isReasoning
-                ? "Nice try! Compare with the model answer."
+                ? isAnswerCorrect
+                  ? "Great explanation."
+                  : "Nice try! Compare with the model answer."
                 : isAnswerCorrect
                   ? "Correct! Great job."
                   : "Nice try! Check the explanation below."}
@@ -129,6 +190,22 @@ export function QuizCard({
                 </div>
                 <div>
                   <strong>Expected answer:</strong> {currentQuestion.answer.correct}
+                </div>
+              </div>
+            )}
+            {isShortAnswer && quizFeedback && (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+                  {quizFeedback.rating}
+                </div>
+                <div className="mt-2">
+                  <strong>What’s right:</strong> {quizFeedback.praise}
+                </div>
+                <div className="mt-2">
+                  <strong>Improve:</strong> {quizFeedback.fix}
+                </div>
+                <div className="mt-2">
+                  <strong>Re-read:</strong> {quizFeedback.rereadTip}
                 </div>
               </div>
             )}
@@ -144,7 +221,22 @@ export function QuizCard({
             </Button>
             {questionIndex < questionsLength - 1 ? (
               <Button variant="secondary" size="md" className="flex-1" onClick={onNextQuestion}>
-                Next Question
+                <span className="inline-flex items-center justify-center gap-2">
+                  Next Question
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M13 5l7 7-7 7" />
+                  </svg>
+                </span>
               </Button>
             ) : (
               <Button variant="secondary" size="md" className="flex-1" onClick={onRestartQuestions}>

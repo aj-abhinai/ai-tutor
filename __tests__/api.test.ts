@@ -9,11 +9,11 @@
 interface TutorResponse {
     content: {
         quickExplanation: string;
-        stepByStep: {
-            title: string;
-            explanation: string;
-            keyProperty?: string;
-        }[];
+        bulletPoints: {
+            simple: string[];
+            standard: string[];
+            deep: string[];
+        };
         curiosityQuestion?: string;
     };
 }
@@ -34,7 +34,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
+                body: JSON.stringify({ subject: 'Science', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
@@ -46,7 +46,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chapterId: 'electricity-circuits', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
+                body: JSON.stringify({ chapterId: 'electricity-circuits', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
@@ -61,7 +61,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
                 body: JSON.stringify({
                     subject: 'Science',
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: '   '
                 })
             });
@@ -75,7 +75,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'History', chapterId: 'electricity-circuits', topicId: 'circuit-basics', subtopicId: 'closed-open-circuits' })
+                body: JSON.stringify({ subject: 'History', chapterId: 'electricity-circuits', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
             });
 
             expect(response.status).toBe(400);
@@ -92,7 +92,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
                 body: JSON.stringify({
                     subject: 'Science',
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: 'closed-open-circuits'
                 })
             });
@@ -103,7 +103,7 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             expect(typeof data.content.quickExplanation).toBe('string');
         });
 
-        it('should return stepByStep explanation', async () => {
+        it('should return bulletPoints explanation', async () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -117,11 +117,12 @@ describe('/api/explain - Standard 7 Tutor API', () => {
 
             expect(response.status).toBe(200);
             const data = await response.json() as TutorResponse;
-            expect(data.content.stepByStep).toBeDefined();
-            expect(Array.isArray(data.content.stepByStep)).toBe(true);
-            if (Array.isArray(data.content.stepByStep)) {
-                expect(data.content.stepByStep[0]?.title).toBeDefined();
-                expect(data.content.stepByStep[0]?.explanation).toBeDefined();
+            expect(data.content.bulletPoints).toBeDefined();
+            expect(Array.isArray(data.content.bulletPoints.simple)).toBe(true);
+            expect(Array.isArray(data.content.bulletPoints.standard)).toBe(true);
+            expect(Array.isArray(data.content.bulletPoints.deep)).toBe(true);
+            if (Array.isArray(data.content.bulletPoints.standard)) {
+                expect(data.content.bulletPoints.standard.length).toBeGreaterThan(0);
             }
         });
 

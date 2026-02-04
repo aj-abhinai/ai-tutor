@@ -11,10 +11,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <select
                 ref={ref}
                 disabled={disabled}
-                className={`w-full p-4 text-lg border-2 rounded-lg outline-none transition-colors
+                className={`w-full rounded-xl border px-4 py-3 text-base outline-none transition-colors
                     ${disabled
-                        ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                        : "bg-white border-gray-300 text-gray-800 hover:border-teal-400 focus:border-teal-500 cursor-pointer"
+                        ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                        : "bg-white/90 border-slate-200 text-slate-900 hover:border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 cursor-pointer"
                     } ${className}`}
                 {...props}
             >

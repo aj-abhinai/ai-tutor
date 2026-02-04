@@ -5,9 +5,9 @@ export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 }
 
 const variantStyles: Record<string, string> = {
-    default: "border-gray-200 focus:border-teal-400",
-    teal: "border-teal-200 focus:border-teal-400",
-    indigo: "border-indigo-200 focus:border-indigo-400",
+    default: "border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200",
+    teal: "border-emerald-200 bg-emerald-50/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200",
+    indigo: "border-sky-200 bg-sky-50/40 focus:border-sky-400 focus:ring-2 focus:ring-sky-200",
 };
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
@@ -15,7 +15,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         return (
             <textarea
                 ref={ref}
-                className={`w-full rounded-xl border bg-white p-3 text-sm text-gray-700 focus:outline-none ${variantStyles[variant]} ${className}`}
+                className={`w-full rounded-xl border bg-white p-3 text-sm text-slate-700 outline-none transition-colors ${variantStyles[variant]} ${className}`}
                 {...props}
             />
         );

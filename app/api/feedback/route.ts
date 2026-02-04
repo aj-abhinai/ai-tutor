@@ -1,8 +1,8 @@
 /**
- * /api/feedback - Explain-it-back feedback route
+ * /api/feedback - Explain-it-back + quiz feedback route
  *
  * Standard 7 NCERT Interactive Tutor
- * Input: { subject, chapterId, topicId, subtopicId, studentAnswer }
+ * Input: { subject, chapterId, topicId, subtopicId, studentAnswer, mode?, question?, expectedAnswer?, answerExplanation?, lessonContext? }
  * Output: JSON with feedback
  */
 
@@ -19,7 +19,10 @@ type TutorFeedbackResponse = {
     praise: string;
     fix: string;
     rereadTip: string;
+    isCorrect?: boolean;
 };
+
+type FeedbackMode = "explain" | "quiz";
 
 const FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
 
@@ -44,6 +47,31 @@ Output strictly in this JSON format:
   "rating": "great" | "good start" | "needs work",
   "praise": "Right: ...",
   "fix": "Wrong or missing: ...",
+  "rereadTip": "Re-read: ..."
+}
+`;
+
+const QUIZ_FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
+
+Task:
+Grade a student's descriptive answer to a quiz question using the expected answer.
+
+Rules:
+- Use simple words a 12-year-old understands
+- Be kind and encouraging
+- Decide if the answer is correct based on the core idea
+- If partially correct, mark it as not correct but encourage it
+- Point out what is right and what is missing
+- Use the expected answer and explanation to guide your decision
+- Keep it short, no long paragraphs
+- Return only JSON, no markdown or code fences
+
+Output strictly in this JSON format:
+{
+  "isCorrect": true | false,
+  "rating": "correct" | "partially correct" | "incorrect",
+  "praise": "Right: ...",
+  "fix": "Missing or incorrect: ...",
   "rereadTip": "Re-read: ..."
 }
 `;
@@ -195,6 +223,20 @@ function isLikelyGibberish(answer: string): boolean {
     return false;
 }
 
+function normalizeAnswer(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function isExactMatch(a: string, b: string): boolean {
+    const normA = normalizeAnswer(a);
+    const normB = normalizeAnswer(b);
+    return normA.length > 0 && normA === normB;
+}
+
 function buildFallbackFeedback(
     studentAnswer: string,
     lessonText: string,
@@ -267,6 +309,15 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     const praise = pickString(obj, ["praise", "positive", "strength", "right", "whatWasRight"]);
     const fix = pickString(obj, ["fix", "improve", "improvement", "missing", "wrong", "whatToFix"]);
     const rereadTip = pickString(obj, ["rereadTip", "reread", "review", "next", "reReadTip"]);
+    const rawCorrect = obj.isCorrect ?? obj.correct ?? obj.is_correct;
+    let isCorrect: boolean | undefined;
+    if (typeof rawCorrect === "boolean") {
+        isCorrect = rawCorrect;
+    } else if (typeof rawCorrect === "string") {
+        const lowered = rawCorrect.trim().toLowerCase();
+        if (["true", "yes", "correct"].includes(lowered)) isCorrect = true;
+        if (["false", "no", "incorrect"].includes(lowered)) isCorrect = false;
+    }
 
     if (!rating || !praise || !fix || !rereadTip) {
         return null;
@@ -277,6 +328,7 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
         praise,
         fix,
         rereadTip,
+        isCorrect,
     };
 }
 
@@ -301,13 +353,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { subject, chapterId, topicId, subtopicId, studentAnswer, lessonContext } = body as {
+    const {
+        subject,
+        chapterId,
+        topicId,
+        subtopicId,
+        studentAnswer,
+        lessonContext,
+        mode,
+        question,
+        expectedAnswer,
+        answerExplanation,
+    } = body as {
         subject?: unknown;
         chapterId?: unknown;
         topicId?: unknown;
         subtopicId?: unknown;
         studentAnswer?: unknown;
         lessonContext?: unknown;
+        mode?: unknown;
+        question?: unknown;
+        expectedAnswer?: unknown;
+        answerExplanation?: unknown;
     };
 
     // Validate subject
@@ -385,6 +452,17 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    const feedbackMode: FeedbackMode = mode === "quiz" ? "quiz" : "explain";
+
+    if (feedbackMode === "quiz") {
+        if (!isNonEmptyString(question)) {
+            return NextResponse.json({ error: "Question is required" }, { status: 400 });
+        }
+        if (!isNonEmptyString(expectedAnswer)) {
+            return NextResponse.json({ error: "Expected answer is required" }, { status: 400 });
+        }
+    }
+
     // Check API key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -410,12 +488,26 @@ export async function POST(request: NextRequest) {
             ? lessonContext.trim()
             : "Lesson summary not provided.";
 
-    const promptParts: { text: string }[] = [
-        { text: FEEDBACK_PROMPT },
-        { text: "LESSON SUMMARY:\n" + lessonText },
-        { text: formatSubtopicForFeedback(selectedSubtopic) },
-        { text: `Subject: ${subject}\nStudent answer:\n${studentAnswer.trim()}` },
-    ];
+    const promptParts: { text: string }[] =
+        feedbackMode === "quiz"
+            ? [
+                  { text: QUIZ_FEEDBACK_PROMPT },
+                  { text: `Question:\n${String(question).trim()}` },
+                  { text: `Expected answer:\n${String(expectedAnswer).trim()}` },
+                  {
+                      text: isNonEmptyString(answerExplanation)
+                          ? `Answer explanation:\n${String(answerExplanation).trim()}`
+                          : "Answer explanation not provided.",
+                  },
+                  { text: formatSubtopicForFeedback(selectedSubtopic) },
+                  { text: `Student answer:\n${studentAnswer.trim()}` },
+              ]
+            : [
+                  { text: FEEDBACK_PROMPT },
+                  { text: "LESSON SUMMARY:\n" + lessonText },
+                  { text: formatSubtopicForFeedback(selectedSubtopic) },
+                  { text: `Subject: ${subject}\nStudent answer:\n${studentAnswer.trim()}` },
+              ];
 
     let result;
     try {
@@ -444,6 +536,14 @@ export async function POST(request: NextRequest) {
             selectedSubtopic.keyConcepts,
             selectedSubtopic.title
         );
+        if (feedbackMode === "quiz" && isNonEmptyString(expectedAnswer)) {
+            return NextResponse.json({
+                feedback: {
+                    ...fallback,
+                    isCorrect: isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim()),
+                },
+            });
+        }
         return NextResponse.json({ feedback: fallback });
     }
 
@@ -455,7 +555,19 @@ export async function POST(request: NextRequest) {
             selectedSubtopic.keyConcepts,
             selectedSubtopic.title
         );
+        if (feedbackMode === "quiz" && isNonEmptyString(expectedAnswer)) {
+            return NextResponse.json({
+                feedback: {
+                    ...fallback,
+                    isCorrect: isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim()),
+                },
+            });
+        }
         return NextResponse.json({ feedback: fallback });
+    }
+
+    if (feedbackMode === "quiz" && feedback.isCorrect === undefined && isNonEmptyString(expectedAnswer)) {
+        feedback.isCorrect = isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim());
     }
 
     return NextResponse.json({ feedback });

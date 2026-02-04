@@ -3,15 +3,13 @@
 import { Badge, Button, Card, TextArea } from "@/components/ui";
 import { SubtopicKnowledge } from "@/lib/curriculum";
 import { renderHtml } from "./lesson-utils";
-import { ExplainFeedback, TutorExpandResponse, TutorLessonResponse } from "./types";
+import { ExplainFeedback, ExplainLevel, TutorLessonResponse } from "./types";
 
 interface LearnCardProps {
   data: TutorLessonResponse;
   selectedSubtopic: SubtopicKnowledge | null;
-  expandedExplain: TutorExpandResponse | null;
-  expandingExplain: boolean;
-  expandError: string;
-  onExpandExplain: () => void;
+  explainLevel: ExplainLevel;
+  onExplainLevelChange: (level: ExplainLevel) => void;
   curiosityResponse: string;
   onCuriosityResponseChange: (value: string) => void;
   explainBack: string;
@@ -26,10 +24,8 @@ interface LearnCardProps {
 export function LearnCard({
   data,
   selectedSubtopic,
-  expandedExplain,
-  expandingExplain,
-  expandError,
-  onExpandExplain,
+  explainLevel,
+  onExplainLevelChange,
   curiosityResponse,
   onCuriosityResponseChange,
   explainBack,
@@ -40,144 +36,151 @@ export function LearnCard({
   selfCheck,
   onSelfCheckChange,
 }: LearnCardProps) {
-  const stepItems = data.stepByStep;
+  const bulletPoints = data.bulletPoints?.[explainLevel] ?? [];
+  const explanationHtml = data.quickExplanation;
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Explanation</h2>
-
-      <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/80 p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <Badge variant="amber">Quick Idea</Badge>
-          <span className="text-xs text-amber-700">Say it once in your own words.</span>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900">Explain</h2>
+          <p className="text-sm text-slate-600">Choose the depth that feels right.</p>
         </div>
-        <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed">
-          <div dangerouslySetInnerHTML={renderHtml(data.quickExplanation)} />
+        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 p-1 text-xs font-semibold text-slate-600">
+          {(["simple", "standard", "deep"] as ExplainLevel[]).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => onExplainLevelChange(level)}
+              className={`rounded-full px-3 py-1 capitalize transition-colors ${
+                explainLevel === level
+                  ? "bg-emerald-100 text-emerald-900"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {level}
+            </button>
+          ))}
         </div>
       </div>
 
-      <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">Let&apos;s break it down:</h3>
-      <div className="bg-sky-50 p-6 rounded-xl border border-sky-100">
-        {stepItems.length > 0 ? (
-          <ul className="space-y-4 text-gray-700">
-            {stepItems.map((step, index) => (
-              <li key={`${step.title}-${index}`}>
-                <div className="text-base font-semibold text-gray-800">
-                  Step {index + 1} - {step.title}
-                </div>
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <Badge variant="amber">{explainLevel === "simple" ? "Simple" : "Explain"}</Badge>
+          <span className="text-xs text-slate-500">
+            {explainLevel === "simple"
+              ? "Short and clear with the core idea."
+              : explainLevel === "standard"
+                ? "Elaborated overview with examples and key terms."
+                : "Academic-style deep dive with classification and applications."}
+          </span>
+        </div>
+        <div className="prose prose-base max-w-none text-slate-800 leading-relaxed">
+          {explanationHtml ? (
+            <div dangerouslySetInnerHTML={renderHtml(explanationHtml)} />
+          ) : null}
+        </div>
+        {bulletPoints.length > 0 && explainLevel === "deep" && (
+          <div className="mt-4 flex items-start gap-3">
+            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <div
+              className="flex-1 prose prose-base max-w-none text-slate-800 leading-relaxed"
+              dangerouslySetInnerHTML={renderHtml(bulletPoints.join(""))}
+            />
+          </div>
+        )}
+
+        {bulletPoints.length > 0 && explainLevel !== "deep" && (
+          <ul className="mt-4 space-y-3 text-slate-800">
+            {bulletPoints.map((point, index) => (
+              <li key={`${point}-${index}`} className="flex items-start gap-3">
+                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <div
-                  className="mt-1 text-gray-700"
-                  dangerouslySetInnerHTML={renderHtml(step.explanation)}
+                  className="flex-1 prose prose-base max-w-none text-slate-800 leading-relaxed"
+                  dangerouslySetInnerHTML={renderHtml(point)}
                 />
-                {step.keyProperty && (
-                  <div className="mt-2 text-sm text-gray-700">
-                    <span className="font-semibold text-sky-700">Key property:</span>{" "}
-                    <span dangerouslySetInnerHTML={renderHtml(step.keyProperty)} />
-                  </div>
-                )}
               </li>
             ))}
           </ul>
-        ) : (
-          <div className="text-sm text-gray-600">No steps available yet.</div>
-        )}
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50 p-5">
-        <div className="text-xs uppercase tracking-wide text-violet-700 font-semibold">
-          Deeper Explanation
-        </div>
-        <p className="mt-2 text-sm text-violet-700">
-          Want a little more detail? Get an extra explanation, a simple analogy, and a common
-          confusion to avoid.
-        </p>
-        <div className="mt-3">
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={onExpandExplain}
-            disabled={expandingExplain || !selectedSubtopic}
-          >
-            {expandingExplain ? "Expanding..." : "Explain More"}
-          </Button>
-        </div>
-        {expandError && <div className="mt-3 text-sm text-rose-700">{expandError}</div>}
-        {expandedExplain && (
-          <div className="mt-4 space-y-3 text-sm text-violet-900">
-            <div dangerouslySetInnerHTML={renderHtml(expandedExplain.expandedExplanation)} />
-            <div>
-              <span className="font-semibold">Analogy:</span>{" "}
-              <span dangerouslySetInnerHTML={renderHtml(expandedExplain.analogy)} />
-            </div>
-            <div>
-              <span className="font-semibold">Why it matters:</span>{" "}
-              <span dangerouslySetInnerHTML={renderHtml(expandedExplain.whyItMatters)} />
-            </div>
-            <div>
-              <span className="font-semibold">Common confusion:</span>{" "}
-              <span dangerouslySetInnerHTML={renderHtml(expandedExplain.commonConfusion)} />
-            </div>
-          </div>
         )}
       </div>
 
       {selectedSubtopic && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <div className="text-xs uppercase tracking-wide text-emerald-700 font-semibold">
-              Learning Goals
+        <details className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+            Study guide (goals + key terms)
+          </summary>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                Learning Goals
+              </div>
+              <ul className="mt-3 space-y-2 text-sm text-slate-800">
+                {selectedSubtopic.learningObjectives.map((objective) => (
+                  <li key={objective}>- {objective}</li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-3 space-y-2 text-sm text-emerald-900">
-              {selectedSubtopic.learningObjectives.map((objective) => (
-                <li key={objective}>- {objective}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-            <div className="text-xs uppercase tracking-wide text-indigo-700 font-semibold">
-              Key Terms
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                Key Terms
+              </div>
+              <ul className="mt-3 space-y-2 text-sm text-slate-800">
+                {Object.entries(selectedSubtopic.keyTerms).map(([term, definition]) => (
+                  <li key={term}>
+                    <span className="font-semibold">{term}:</span> {definition}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-3 space-y-2 text-sm text-indigo-900">
-              {Object.entries(selectedSubtopic.keyTerms).map(([term, definition]) => (
-                <li key={term}>
-                  <span className="font-semibold">{term}:</span> {definition}
-                </li>
-              ))}
-            </ul>
           </div>
-        </div>
+        </details>
       )}
 
-      {selectedSubtopic && selectedSubtopic.examples.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-5">
-          <div className="text-xs uppercase tracking-wide text-sky-700 font-semibold">Examples</div>
-          <ul className="mt-3 space-y-2 text-sm text-sky-900">
-            {selectedSubtopic.examples.map((example) => (
-              <li key={example}>- {example}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {(selectedSubtopic?.examples?.length || selectedSubtopic?.misconceptions?.length) && (
+        <details className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+            Examples and misconceptions
+          </summary>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {selectedSubtopic?.examples && selectedSubtopic.examples.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                  Examples
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-slate-800">
+                  {selectedSubtopic.examples.map((example) => (
+                    <li key={example}>- {example}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-      {selectedSubtopic?.misconceptions && selectedSubtopic.misconceptions.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">
-          <div className="text-xs uppercase tracking-wide text-rose-700 font-semibold">
-            Common Misconceptions
+            {selectedSubtopic?.misconceptions && selectedSubtopic.misconceptions.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                  Common Misconceptions
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-slate-800">
+                  {selectedSubtopic.misconceptions.map((item) => (
+                    <li key={item}>- {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          <ul className="mt-3 space-y-2 text-sm text-rose-900">
-            {selectedSubtopic.misconceptions.map((item) => (
-              <li key={item}>- {item}</li>
-            ))}
-          </ul>
-        </div>
+        </details>
       )}
 
       {data.curiosityQuestion && (
-        <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 p-5">
-          <div className="text-xs uppercase tracking-wide text-teal-700 font-semibold">
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
+          <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
             Curiosity Corner
           </div>
-          <div className="mt-2 text-gray-700" dangerouslySetInnerHTML={renderHtml(data.curiosityQuestion)} />
+          <div
+            className="mt-2 text-slate-700"
+            dangerouslySetInnerHTML={renderHtml(data.curiosityQuestion)}
+          />
           <TextArea
             variant="teal"
             value={curiosityResponse}
@@ -189,11 +192,11 @@ export function LearnCard({
         </div>
       )}
 
-      <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-        <div className="text-xs uppercase tracking-wide text-indigo-700 font-semibold">
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
+        <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
           Explain It Back
         </div>
-        <p className="mt-2 text-sm text-indigo-700">
+        <p className="mt-2 text-sm text-slate-600">
           Write 1-2 sentences in your own words. This helps memory.
         </p>
         <TextArea
@@ -216,8 +219,8 @@ export function LearnCard({
         </div>
 
         {explainFeedback && (
-          <div className="mt-4 rounded-2xl border border-indigo-200 bg-white p-4 text-sm text-indigo-900">
-            <div className="text-xs uppercase tracking-wide text-indigo-700 font-semibold">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+            <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
               {explainFeedback.rating}
             </div>
             <div className="font-semibold mb-1 mt-2">Feedback</div>
@@ -232,8 +235,8 @@ export function LearnCard({
         )}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-        <div className="text-sm font-semibold text-amber-800">
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
+        <div className="text-sm font-semibold text-slate-800">
           How do you feel about this subtopic?
         </div>
         <div className="mt-3 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@
  * /api/expand - Deeper explanation route
  *
  * Standard 7 NCERT Interactive Tutor
- * Input: { subject, chapterId, topicId, subtopicId }
+ * Input: { subject, chapterId, topicId, subtopicId, level }
  * Output: JSON with expanded explanation
  */
 
@@ -13,6 +13,8 @@ import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 // Valid subjects for Standard 7
 const VALID_SUBJECTS = ["Science", "Maths"] as const;
 type Subject = typeof VALID_SUBJECTS[number];
+type ExplainLevel = "simple" | "standard" | "deep";
+const VALID_LEVELS: ExplainLevel[] = ["simple", "standard", "deep"];
 
 type TutorExpandResponse = {
   expandedExplanation: string;
@@ -24,11 +26,14 @@ type TutorExpandResponse = {
 const EXPAND_PROMPT = `You are a friendly Class 7 tutor.
 
 Task:
-Give a deeper explanation of the subtopic using simple words.
+Give an explanation of the subtopic using simple words.
 
 Rules:
 - Use simple language a 12-year-old understands
 - Be kind and encouraging
+- Respect the requested explanation level
+- For simple and standard, stay within the given textbook context
+- For deep, you may extend slightly beyond the textbook (up to Class 9 level), but keep it tightly related
 - Add one short analogy
 - Add one short "why it matters"
 - Add one common confusion and fix it gently
@@ -36,9 +41,14 @@ Rules:
 - Return only JSON, no markdown or code fences
 - Do not use markdown symbols like **, *, #, or bullets in any field
 
+Explanation levels:
+- simple: 2-3 short sentences that cover the core idea (no extra example)
+- standard: 3-5 short sentences including one real-life example
+- deep: 5-7 short sentences including one real-life example plus one slightly advanced detail (Class 9 level)
+
 Output strictly in this JSON format:
 {
-  "expandedExplanation": "3-5 simple sentences",
+  "expandedExplanation": "Use the level guidance above",
   "analogy": "A short analogy",
   "whyItMatters": "A short line on why it matters",
   "commonConfusion": "A short confusion + correction"
@@ -168,6 +178,7 @@ export async function POST(request: NextRequest) {
     chapterId?: unknown;
     topicId?: unknown;
     subtopicId?: unknown;
+    level?: unknown;
   };
 
   // Validate subject
@@ -195,6 +206,19 @@ export async function POST(request: NextRequest) {
 
   if (!isNonEmptyString(subtopicId)) {
     return NextResponse.json({ error: "Subtopic is required" }, { status: 400 });
+  }
+
+  let explainLevel: ExplainLevel = "standard";
+  if (isNonEmptyString(level)) {
+    const normalized = level.trim().toLowerCase();
+    if (VALID_LEVELS.includes(normalized as ExplainLevel)) {
+      explainLevel = normalized as ExplainLevel;
+    } else {
+      return NextResponse.json(
+        { error: "Level must be simple, standard, or deep" },
+        { status: 400 }
+      );
+    }
   }
 
   if (
@@ -241,7 +265,7 @@ export async function POST(request: NextRequest) {
   const promptParts: { text: string }[] = [
     { text: EXPAND_PROMPT },
     { text: formatSubtopicForPrompt(selectedSubtopic) },
-    { text: `Subject: ${subject}\nSubtopic: "${selectedSubtopic.title}"` },
+    { text: `Subject: ${subject}\nSubtopic: "${selectedSubtopic.title}"\nLevel: ${explainLevel}` },
   ];
 
   let result;

@@ -15,7 +15,7 @@ import { cleanTextForSpeech } from "@/components/home/lesson-utils";
 import {
   CardStep,
   ExplainFeedback,
-  TutorExpandResponse,
+  ExplainLevel,
   TutorLessonResponse,
 } from "@/components/home/types";
 
@@ -76,14 +76,13 @@ export default function Home() {
   const [curiosityResponse, setCuriosityResponse] = useState("");
   const [explainFeedback, setExplainFeedback] = useState<ExplainFeedback | null>(null);
   const [checkingExplain, setCheckingExplain] = useState(false);
-  const [expandedExplain, setExpandedExplain] = useState<TutorExpandResponse | null>(null);
-  const [expandingExplain, setExpandingExplain] = useState(false);
-  const [expandError, setExpandError] = useState("");
+  const [quizFeedback, setQuizFeedback] = useState<ExplainFeedback | null>(null);
+  const [checkingQuiz, setCheckingQuiz] = useState(false);
+  const [explainLevel, setExplainLevel] = useState<ExplainLevel>("simple");
 
   // Lesson cache to prevent duplicate API calls
   const lessonCache = useRef<Map<string, TutorLessonResponse>>(new Map());
   const isFetching = useRef(false);
-  const expandCache = useRef<Map<string, TutorExpandResponse>>(new Map());
 
   // Quiz State
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -232,9 +231,9 @@ export default function Home() {
     setCuriosityResponse("");
     setExplainFeedback(null);
     setCheckingExplain(false);
-    setExpandedExplain(null);
-    setExpandingExplain(false);
-    setExpandError("");
+    setQuizFeedback(null);
+    setCheckingQuiz(false);
+    setExplainLevel("simple");
     stopAudio();
   };
 
@@ -242,6 +241,8 @@ export default function Home() {
     setSelectedAnswer(null);
     setShortAnswer("");
     setShowAnswer(false);
+    setQuizFeedback(null);
+    setCheckingQuiz(false);
   };
 
   const handleSubjectChange = (newSubject: "Science" | "Maths") => {
@@ -285,8 +286,7 @@ export default function Home() {
       setExplainBack("");
       setCuriosityResponse("");
       setExplainFeedback(null);
-      setExpandedExplain(null);
-      setExpandError("");
+      setExplainLevel("simple");
       return;
     }
 
@@ -321,8 +321,7 @@ export default function Home() {
         setExplainBack("");
         setCuriosityResponse("");
         setExplainFeedback(null);
-        setExpandedExplain(null);
-        setExpandError("");
+        setExplainLevel("simple");
       }
     } catch {
       setError("Failed to connect to API");
@@ -361,12 +360,12 @@ export default function Home() {
       return;
     }
 
-    const stepNarration = data.stepByStep
-      .map((step, index) => `Step ${index + 1}. ${step.title}. ${step.explanation}`)
+    const bulletNarration = (data.bulletPoints?.[explainLevel] ?? [])
+      .map((point, index) => `Point ${index + 1}. ${cleanTextForSpeech(point)}`)
       .join(" ");
     const textToRead = `Quick Explanation. ${cleanTextForSpeech(
       data.quickExplanation
-    )}. Let's understand step by step. ${cleanTextForSpeech(stepNarration)}`;
+    )}. Key points. ${bulletNarration}`;
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.rate = 0.9;
@@ -383,62 +382,58 @@ export default function Home() {
     setIsPlaying(true);
   };
 
-  const handleCheckAnswer = () => {
+  const handleCheckAnswer = async () => {
+    if (!currentQuestion) return;
+    if (isShortAnswer) {
+      if (!selectedChapter || !selectedSubtopic || checkingQuiz) return;
+      if (!shortAnswer.trim()) return;
+      setCheckingQuiz(true);
+      setQuizFeedback(null);
+      setError("");
+      try {
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject,
+            chapterId: selectedChapter.id,
+            topicId: selectedTopic?.id,
+            subtopicId: selectedSubtopic.id,
+            studentAnswer: shortAnswer.trim(),
+            lessonContext: buildLessonContext(),
+            mode: "quiz",
+            question: currentQuestion.question,
+            expectedAnswer: currentQuestion.answer.correct,
+            answerExplanation: currentQuestion.answer.explanation,
+          }),
+        });
+        const resData = await res.json();
+        if (!res.ok) {
+          setError(resData.error || "Unable to check your answer right now.");
+        } else if (resData?.feedback) {
+          setQuizFeedback(resData.feedback);
+        } else {
+          setError("No feedback returned. Please try again.");
+        }
+      } catch {
+        setError("Failed to connect to API");
+      } finally {
+        setCheckingQuiz(false);
+        setShowAnswer(true);
+      }
+      return;
+    }
     setShowAnswer(true);
   };
 
-  const handleExpandExplain = async () => {
-    if (!selectedChapter || !selectedSubtopic || expandingExplain) return;
-    if (!data) {
-      await fetchLesson();
-    }
-
-    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopic.id}`;
-    const cached = expandCache.current.get(cacheKey);
-    if (cached) {
-      setExpandedExplain(cached);
-      setExpandError("");
-      return;
-    }
-
-    setExpandingExplain(true);
-    setExpandError("");
-    setExpandedExplain(null);
-
-    try {
-      const res = await fetch("/api/expand", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          chapterId: selectedChapter.id,
-          topicId: selectedTopic?.id,
-          subtopicId: selectedSubtopic.id,
-        }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        setExpandError(resData.error || "Unable to expand the explanation right now.");
-      } else if (resData?.expanded) {
-        expandCache.current.set(cacheKey, resData.expanded);
-        setExpandedExplain(resData.expanded);
-      } else {
-        setExpandError("No extra explanation returned. Please try again.");
-      }
-    } catch {
-      setExpandError("Failed to connect to API");
-    } finally {
-      setExpandingExplain(false);
-    }
+  const handleExplainLevelChange = (level: ExplainLevel) => {
+    setExplainLevel(level);
   };
 
   const buildLessonContext = () => {
     if (!data) return "";
-    const steps = data.stepByStep.slice(0, 3).map((step) => {
-      const detail = step.keyProperty || step.explanation;
-      return `${step.title}: ${detail}`;
-    });
-    return `Quick Explanation: ${data.quickExplanation}\nKey Steps: ${steps.join(" | ")}`;
+    const points = data.bulletPoints?.standard?.slice(0, 4) ?? [];
+    return `Quick Explanation: ${data.quickExplanation}\nKey Points: ${points.join(" | ")}`;
   };
 
   const handleExplainBackCheck = async () => {
@@ -493,7 +488,8 @@ export default function Home() {
   const isMcqCorrect = Boolean(
     currentQuestion && selectedAnswer && selectedAnswer === currentQuestion.answer.correct
   );
-  const isAnswerCorrect = isShortAnswer ? isShortCorrect : isMcqCorrect;
+  const aiCorrect = isShortAnswer ? quizFeedback?.isCorrect : undefined;
+  const isAnswerCorrect = isShortAnswer ? (aiCorrect ?? isShortCorrect) : isMcqCorrect;
   const questionsLength = questions.length;
   const cardDisabled = !selectedSubtopic || loading;
   const isTopicDisabled = !selectedChapter;
@@ -502,6 +498,11 @@ export default function Home() {
 
   const handleNextQuestion = () => {
     setQuestionIndex((prev) => Math.min(prev + 1, questionsLength - 1));
+    resetQuizState();
+  };
+
+  const handlePrevQuestion = () => {
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
     resetQuizState();
   };
 
@@ -518,8 +519,13 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-sky-50 via-indigo-50 to-amber-50 p-6 flex flex-col items-center">
-      <div className="w-full max-w-3xl">
+    <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff1e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf5e6_55%,#f9f0dd)] px-6 py-8 flex flex-col items-center">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
+        <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-rose-200/30 blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-4xl">
         <PageHeader />
 
         <InputPanel
@@ -568,10 +574,8 @@ export default function Home() {
             <LearnCard
               data={data}
               selectedSubtopic={selectedSubtopic}
-              expandedExplain={expandedExplain}
-              expandingExplain={expandingExplain}
-              expandError={expandError}
-              onExpandExplain={handleExpandExplain}
+              explainLevel={explainLevel}
+              onExplainLevelChange={handleExplainLevelChange}
               curiosityResponse={curiosityResponse}
               onCuriosityResponseChange={(value) => setCuriosityResponse(value)}
               explainBack={explainBack}
@@ -606,8 +610,11 @@ export default function Home() {
               showAnswer={showAnswer}
               canCheckAnswer={canCheckAnswer}
               isAnswerCorrect={isAnswerCorrect}
+              checkingQuiz={checkingQuiz}
+              quizFeedback={quizFeedback}
               onCheckAnswer={handleCheckAnswer}
               onResetQuiz={resetQuizState}
+              onPrevQuestion={handlePrevQuestion}
               onNextQuestion={handleNextQuestion}
               onRestartQuestions={handleRestartQuestions}
               onChooseNewLesson={handleChooseNewLesson}

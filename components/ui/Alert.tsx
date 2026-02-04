@@ -5,10 +5,10 @@ export interface AlertProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles: Record<string, string> = {
-    error: "text-red-600 bg-red-50 border-red-100",
-    success: "text-green-700 bg-green-50 border-green-100",
-    warning: "text-yellow-700 bg-yellow-50 border-yellow-100",
-    info: "text-gray-600 bg-white border-gray-100",
+    error: "text-rose-700 bg-rose-50 border-rose-100",
+    success: "text-emerald-800 bg-emerald-50 border-emerald-100",
+    warning: "text-amber-800 bg-amber-50 border-amber-100",
+    info: "text-slate-600 bg-white/70 border-slate-200",
 };
 
 export const Alert = forwardRef<HTMLDivElement, AlertProps>(
@@ -18,7 +18,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
                 ref={ref}
                 role="alert"
                 aria-live="polite"
-                className={`p-3 rounded-lg text-center border ${variantStyles[variant]} ${className}`}
+                className={`p-3 rounded-xl text-center border ${variantStyles[variant]} ${className}`}
                 {...props}
             >
                 {children}

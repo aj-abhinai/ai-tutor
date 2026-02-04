@@ -14,7 +14,7 @@ describe('/api/feedback - Explain-it-back API', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: 'closed-open-circuits',
                     studentAnswer: 'A closed circuit lets current flow.'
                 })
@@ -32,7 +32,7 @@ describe('/api/feedback - Explain-it-back API', () => {
                 body: JSON.stringify({
                     subject: 'Science',
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: 'closed-open-circuits'
                 })
             });
@@ -50,7 +50,7 @@ describe('/api/feedback - Explain-it-back API', () => {
                 body: JSON.stringify({
                     subject: 'Science',
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: 'closed-open-circuits',
                     studentAnswer: longAnswer
                 })
@@ -70,7 +70,7 @@ describe('/api/feedback - Explain-it-back API', () => {
                 body: JSON.stringify({
                     subject: 'Science',
                     chapterId: 'electricity-circuits',
-                    topicId: 'circuit-basics',
+                    topicId: 'circuits-and-switches',
                     subtopicId: 'closed-open-circuits',
                     studentAnswer: 'A closed circuit lets current flow, an open circuit stops it.'
                 })

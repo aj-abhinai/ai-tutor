@@ -29,6 +29,7 @@ export interface SubtopicKnowledge {
     keyTerms: Record<string, string>;
     examples: string[];
     misconceptions?: string[];
+    deepDives?: string[];
     questionBank: QuestionItem[];
 }
 

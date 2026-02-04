@@ -6,9 +6,11 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles: Record<string, string> = {
-    default: "bg-white shadow-md",
-    highlight: "bg-white shadow-lg",
-    subtle: "bg-gray-50 border border-gray-100",
+    default:
+        "bg-white/85 border border-slate-200 shadow-[0_16px_32px_rgba(15,23,42,0.08)] backdrop-blur-sm",
+    highlight:
+        "bg-white/90 border border-slate-200 shadow-[0_24px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm",
+    subtle: "bg-white/70 border border-slate-200 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
 };
 
 const paddingStyles: Record<string, string> = {

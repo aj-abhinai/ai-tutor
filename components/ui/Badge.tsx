@@ -5,11 +5,11 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<string, string> = {
-    amber: "bg-white text-amber-700 border-amber-200",
-    teal: "bg-teal-100 text-teal-700 border-teal-200",
-    indigo: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    emerald: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    gray: "bg-gray-100 text-gray-700 border-gray-200",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    teal: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    indigo: "bg-sky-50 text-sky-700 border-sky-200",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    gray: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
