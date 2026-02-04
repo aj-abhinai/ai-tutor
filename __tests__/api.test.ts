@@ -9,7 +9,11 @@
 interface TutorResponse {
     content: {
         quickExplanation: string;    // 2-3 sentences in simple language
-        stepByStep: string;           // Breakdown with daily-life examples
+        stepByStep: {
+            title: string;
+            explanation: string;
+            keyProperty?: string;
+        }[];           // Breakdown with daily-life examples
         practiceQuestion: {
             question: string;
             options?: { label: string; text: string }[];  // Optional for short answer
@@ -105,6 +109,11 @@ describe('/api/explain - Standard 7 Tutor API', () => {
             expect(response.status).toBe(200);
             const data = await response.json() as TutorResponse;
             expect(data.content.stepByStep).toBeDefined();
+            expect(Array.isArray(data.content.stepByStep)).toBe(true);
+            if (Array.isArray(data.content.stepByStep)) {
+                expect(data.content.stepByStep[0]?.title).toBeDefined();
+                expect(data.content.stepByStep[0]?.explanation).toBeDefined();
+            }
         });
 
         it('should include a practice question', async () => {
