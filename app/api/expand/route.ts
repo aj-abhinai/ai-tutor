@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { subject, chapterId, topicId, subtopicId } = body as {
+  const { subject, chapterId, topicId, subtopicId, level } = body as {
     subject?: unknown;
     chapterId?: unknown;
     topicId?: unknown;
