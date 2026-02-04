@@ -6,11 +6,16 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-    ({ options, placeholder, className = "", ...props }, ref) => {
+    ({ options, placeholder, className = "", disabled, ...props }, ref) => {
         return (
             <select
                 ref={ref}
-                className={`w-full p-4 text-lg border-2 border-gray-200 rounded-lg focus:border-teal-500 outline-none bg-white ${className}`}
+                disabled={disabled}
+                className={`w-full p-4 text-lg border-2 rounded-lg outline-none transition-colors
+                    ${disabled
+                        ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-white border-gray-300 text-gray-800 hover:border-teal-400 focus:border-teal-500 cursor-pointer"
+                    } ${className}`}
                 {...props}
             >
                 {placeholder && <option value="">{placeholder}</option>}

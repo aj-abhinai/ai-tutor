@@ -3,7 +3,7 @@
  *
  * Standard 7 NCERT Interactive Tutor
  * Input: { subject, chapterId, topicId, subtopicId, mode?, studentAnswer? }
- * Output: JSON with quickExplanation, stepByStep, curiosityQuestion or feedback
+ * Output: JSON with quickExplanation, stepByStep, curiosityQuestion OR feedback
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -19,6 +19,7 @@ type StepItem = {
     explanation: string;
     keyProperty?: string;
 };
+
 type TutorLessonResponse = {
     quickExplanation: string;
     stepByStep: StepItem[];
@@ -300,9 +301,11 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    if (chapterId.trim().length > MAX_ID_LENGTH ||
+    if (
+        chapterId.trim().length > MAX_ID_LENGTH ||
         topicId.trim().length > MAX_ID_LENGTH ||
-        subtopicId.trim().length > MAX_ID_LENGTH) {
+        subtopicId.trim().length > MAX_ID_LENGTH
+    ) {
         return NextResponse.json(
             { error: `IDs must be ${MAX_ID_LENGTH} characters or less` },
             { status: 400 }
@@ -351,7 +354,7 @@ export async function POST(request: NextRequest) {
     // Call Gemini API
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash-lite", // Using a lighter model for better rate limits
     });
 
     // Build the prompt with curriculum knowledge if available
@@ -361,7 +364,7 @@ export async function POST(request: NextRequest) {
         {
             text:
                 requestMode === "feedback"
-                    ? `Student answer:\n${studentAnswer?.trim()}`
+                    ? `Student answer:\n${(studentAnswer as string).trim()}`
                     : `Subject: ${subject}\nSubtopic: "${selectedSubtopic.title}"`,
         },
     ];

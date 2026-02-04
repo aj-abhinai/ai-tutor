@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { getSubjectCurriculum } from "@/lib/curriculum";
@@ -161,6 +161,10 @@ export default function Home() {
   } | null>(null);
   const [checkingExplain, setCheckingExplain] = useState(false);
 
+  // Lesson cache to prevent duplicate API calls
+  const lessonCache = useRef<Map<string, TutorLessonResponse>>(new Map());
+  const isFetching = useRef(false);
+
   // Quiz State
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [shortAnswer, setShortAnswer] = useState("");
@@ -242,6 +246,18 @@ export default function Home() {
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  // When subject changes, auto-select the first available chapter
+  useEffect(() => {
+    // Find the first chapter that has curriculum data
+    const firstAvailableTitle = chapterTitles.find((title) =>
+      availableChaptersByTitle.has(title)
+    );
+    if (firstAvailableTitle && firstAvailableTitle !== chapterTitle) {
+      setChapterTitle(firstAvailableTitle);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subject, chapterTitles, availableChaptersByTitle]);
 
   // When chapter changes, set default topic and subtopic
   useEffect(() => {
@@ -332,8 +348,24 @@ export default function Home() {
   };
 
   const fetchLesson = async () => {
-    if (!selectedChapter || !selectedSubtopic || loading) return;
+    if (!selectedChapter || !selectedSubtopic) return;
 
+    // Prevent concurrent fetches (React StrictMode double-render protection)
+    if (isFetching.current || loading) return;
+
+    // Check cache first
+    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopic.id}`;
+    const cached = lessonCache.current.get(cacheKey);
+    if (cached) {
+      setData(cached);
+      setSelfCheck(null);
+      setExplainBack("");
+      setCuriosityResponse("");
+      setExplainFeedback(null);
+      return;
+    }
+
+    isFetching.current = true;
     setLoading(true);
     setError("");
     setSelectedAnswer(null);
@@ -357,6 +389,8 @@ export default function Home() {
       } else if (!resData?.content) {
         setError("Received an empty response. Please try again.");
       } else {
+        // Store in cache
+        lessonCache.current.set(cacheKey, resData.content);
         setData(resData.content);
         setSelfCheck(null);
         setExplainBack("");
@@ -366,6 +400,7 @@ export default function Home() {
     } catch {
       setError("Failed to connect to API");
     } finally {
+      isFetching.current = false;
       setLoading(false);
     }
   };
@@ -425,6 +460,15 @@ export default function Home() {
     setShowAnswer(true);
   };
 
+  const buildLessonContext = () => {
+    if (!data) return "";
+    const steps = data.stepByStep.slice(0, 3).map((step) => {
+      const detail = step.keyProperty || step.explanation;
+      return `${step.title}: ${detail}`;
+    });
+    return `Quick Explanation: ${data.quickExplanation}\nKey Steps: ${steps.join(" | ")}`;
+  };
+
   const handleExplainBackCheck = async () => {
     if (!selectedChapter || !selectedSubtopic || !explainBack.trim() || checkingExplain) return;
     setCheckingExplain(true);
@@ -432,16 +476,16 @@ export default function Home() {
     setError("");
 
     try {
-      const res = await fetch("/api/explain", {
+      const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "feedback",
           subject,
           chapterId: selectedChapter.id,
           topicId: selectedTopic?.id,
           subtopicId: selectedSubtopic.id,
           studentAnswer: explainBack.trim(),
+          lessonContext: buildLessonContext(),
         }),
       });
       const resData = await res.json();
@@ -487,7 +531,7 @@ export default function Home() {
       <div className="w-full max-w-3xl">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Class 7 AI Tutor</h1>
+          <h1 className="text-3xl font-bold text-gray-800">AI Tutor</h1>
           <p className="text-sm text-gray-600 mt-1">NCERT Science and Maths</p>
         </div>
 

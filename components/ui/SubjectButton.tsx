@@ -7,12 +7,12 @@ export interface SubjectButtonProps extends ButtonHTMLAttributes<HTMLButtonEleme
 
 const subjectStyles = {
     Science: {
-        active: "bg-emerald-100 border-emerald-500 text-emerald-700",
-        inactive: "bg-gray-50 border-gray-200 hover:border-emerald-300",
+        active: "bg-emerald-200 border-emerald-600 text-emerald-800 shadow-md",
+        inactive: "bg-white border-gray-300 text-gray-500 hover:border-emerald-400 hover:text-emerald-600",
     },
     Maths: {
-        active: "bg-sky-100 border-sky-500 text-sky-700",
-        inactive: "bg-gray-50 border-gray-200 hover:border-sky-300",
+        active: "bg-sky-200 border-sky-600 text-sky-800 shadow-md",
+        inactive: "bg-white border-gray-300 text-gray-500 hover:border-sky-400 hover:text-sky-600",
     },
 };
 
@@ -24,7 +24,7 @@ export const SubjectButton = forwardRef<HTMLButtonElement, SubjectButtonProps>(
             <button
                 ref={ref}
                 aria-pressed={isActive}
-                className={`flex-1 py-3 rounded-lg font-bold border-2 transition-all ${style} ${className}`}
+                className={`flex-1 py-3 rounded-lg font-bold border-2 transition-all cursor-pointer ${style} ${className}`}
                 {...props}
             >
                 {children || subject}

@@ -100,3 +100,26 @@ export function formatSubtopicForPrompt(subtopic: SubtopicKnowledge): string {
 
     return context;
 }
+
+export function formatSubtopicForFeedback(subtopic: SubtopicKnowledge): string {
+    let context = "=== NCERT TOPIC CHECKLIST (Class 7) ===\n\n";
+
+    context += `SUBTOPIC: ${subtopic.title}\n\n`;
+
+    context += "KEY IDEAS (short):\n";
+    subtopic.keyConcepts.slice(0, 4).forEach((concept, i) => {
+        context += `${i + 1}. ${concept}\n`;
+    });
+
+    if (subtopic.misconceptions && subtopic.misconceptions.length > 0) {
+        context += "\nCOMMON MISCONCEPTIONS:\n";
+        subtopic.misconceptions.slice(0, 3).forEach((m, i) => {
+            context += `${i + 1}. ${m}\n`;
+        });
+    }
+
+    context += "\n=== END TOPIC CHECKLIST ===\n";
+    context += "Use this only to judge if the student's answer is on track.\n";
+
+    return context;
+}

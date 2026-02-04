@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Class 7 AI Tutor",
-  description: "Interactive NCERT Science and Maths tutor for Class 7 students.",
+  title: "AI Tutor",
+  description: "Interactive NCERT Science and Maths tutor.",
 };
 
 export default function RootLayout({
