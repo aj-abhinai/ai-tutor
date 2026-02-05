@@ -1,146 +1,172 @@
 /**
  * Tests for /api/explain route
- * 
- * These tests verify the API behavior for the Standard 7 NCERT tutor.
- * Following TDD approach - tests written before implementation changes.
+ *
+ * These tests call the route handler directly (no running server required).
  */
 
-// Mock response structure we expect from the new tutor API
+import { NextRequest } from "next/server";
+import { POST } from "@/app/api/explain/route";
+
 interface TutorResponse {
-    content: {
-        quickExplanation: string;
-        bulletPoints: {
-            simple: string[];
-            standard: string[];
-            deep: string[];
-        };
-        curiosityQuestion?: string;
+  content: {
+    quickExplanation: string;
+    bulletPoints: {
+      simple: string[];
+      standard: string[];
+      deep: string[];
     };
+    curiosityQuestion?: string;
+  };
 }
 
-// Expected input structure
-interface TutorInput {
-    subject: 'Science' | 'Maths';
-    chapterId: string;
-    topicId: string;
-    subtopicId: string;
-}
+const VALID_BODY = {
+  subject: "Science" as const,
+  chapterId: "electricity-circuits",
+  topicId: "circuits-and-switches",
+  subtopicId: "closed-open-circuits",
+};
 
-describe('/api/explain - Standard 7 Tutor API', () => {
-    const API_URL = 'http://localhost:3000/api/explain';
+const makeJsonRequest = (body: unknown, headers: Record<string, string> = {}) =>
+  new NextRequest("http://localhost/api/explain", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
 
-    describe('Input Validation', () => {
-        it('should reject request without chapter', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'Science', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
-            });
+const makeRawRequest = (rawBody: string, headers: Record<string, string> = {}) =>
+  new NextRequest("http://localhost/api/explain", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: rawBody,
+  });
 
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Chapter');
-        });
-
-        it('should reject request without subject', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chapterId: 'electricity-circuits', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
-            });
-
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Subject');
-        });
-
-        it('should reject empty subtopic', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Science',
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: '   '
-                })
-            });
-
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Subtopic');
-        });
-
-        it('should reject invalid subject', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: 'History', chapterId: 'electricity-circuits', topicId: 'circuits-and-switches', subtopicId: 'closed-open-circuits' })
-            });
-
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Subject');
-        });
+describe("/api/explain - Standard 7 Tutor API", () => {
+  describe("Input validation", () => {
+    it("rejects an invalid JSON body", async () => {
+      const response = await POST(makeRawRequest("{"));
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Invalid JSON");
     });
 
-    describe('Response Structure', () => {
-        it('should return quickExplanation in response', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Science',
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: 'closed-open-circuits'
-                })
-            });
+    it("rejects request without subject", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          chapterId: VALID_BODY.chapterId,
+          topicId: VALID_BODY.topicId,
+          subtopicId: VALID_BODY.subtopicId,
+        })
+      );
 
-            expect(response.status).toBe(200);
-            const data = await response.json() as TutorResponse;
-            expect(data.content.quickExplanation).toBeDefined();
-            expect(typeof data.content.quickExplanation).toBe('string');
-        });
-
-        it('should return bulletPoints explanation', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Maths',
-                    chapterId: 'fractions-decimals',
-                    topicId: 'fractions-basics',
-                    subtopicId: 'equivalent-fractions'
-                })
-            });
-
-            expect(response.status).toBe(200);
-            const data = await response.json() as TutorResponse;
-            expect(data.content.bulletPoints).toBeDefined();
-            expect(Array.isArray(data.content.bulletPoints.simple)).toBe(true);
-            expect(Array.isArray(data.content.bulletPoints.standard)).toBe(true);
-            expect(Array.isArray(data.content.bulletPoints.deep)).toBe(true);
-            if (Array.isArray(data.content.bulletPoints.standard)) {
-                expect(data.content.bulletPoints.standard.length).toBeGreaterThan(0);
-            }
-        });
-
-        it('should allow curiosityQuestion in response', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Maths',
-                    chapterId: 'simple-equations',
-                    topicId: 'solve-equations',
-                    subtopicId: 'one-step-equations'
-                })
-            });
-
-            expect(response.status).toBe(200);
-            const data = await response.json() as TutorResponse;
-            expect(data.content.curiosityQuestion).toBeDefined();
-        });
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Subject");
     });
+
+    it("rejects invalid subject", async () => {
+      const response = await POST(
+        makeJsonRequest({ ...VALID_BODY, subject: "History" })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Subject");
+    });
+
+    it("rejects request without chapter", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          subject: VALID_BODY.subject,
+          topicId: VALID_BODY.topicId,
+          subtopicId: VALID_BODY.subtopicId,
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Chapter");
+    });
+
+    it("rejects request without topic", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          subject: VALID_BODY.subject,
+          chapterId: VALID_BODY.chapterId,
+          subtopicId: VALID_BODY.subtopicId,
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Topic");
+    });
+
+    it("rejects empty subtopic", async () => {
+      const response = await POST(
+        makeJsonRequest({ ...VALID_BODY, subtopicId: "   " })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Subtopic");
+    });
+
+    it("rejects ids longer than 120 characters", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          chapterId: "a".repeat(121),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("120");
+    });
+
+    it("rejects unknown chapter/topic/subtopic combo", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          subtopicId: "not-a-real-subtopic",
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("not found");
+    });
+
+    it("requires student answer in feedback mode", async () => {
+      const response = await POST(
+        makeJsonRequest({ ...VALID_BODY, mode: "feedback" })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Student answer");
+    });
+  });
+
+  describe("Response structure", () => {
+    it("returns a lesson payload with explanation + bullet points", async () => {
+      const response = await POST(makeJsonRequest(VALID_BODY));
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as TutorResponse;
+      expect(typeof data.content.quickExplanation).toBe("string");
+      expect(Array.isArray(data.content.bulletPoints.simple)).toBe(true);
+      expect(Array.isArray(data.content.bulletPoints.standard)).toBe(true);
+      expect(Array.isArray(data.content.bulletPoints.deep)).toBe(true);
+      expect(data.content.bulletPoints.simple.length).toBeGreaterThan(0);
+    });
+
+    it("allows curiosityQuestion in response", async () => {
+      const response = await POST(makeJsonRequest(VALID_BODY));
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as TutorResponse;
+      expect(data.content.curiosityQuestion).toBeDefined();
+    });
+  });
 });

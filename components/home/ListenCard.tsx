@@ -13,6 +13,7 @@ export function ListenCard({ isPlaying, ttsSupported, onPlayAudio }: ListenCardP
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300 text-center">
       <h2 className="text-2xl font-semibold text-slate-900 mb-6">Listen and Learn</h2>
 
+      {/* Audio play/pause control */}
       <div className="bg-white/80 rounded-2xl p-8 mb-6 flex flex-col items-center justify-center border border-slate-200">
         <button
           onClick={onPlayAudio}

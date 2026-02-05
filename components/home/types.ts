@@ -1,3 +1,4 @@
+// Shared types for home cards and API responses.
 export type CardStep = "learn" | "listen" | "quiz";
 export type ExplainLevel = "simple" | "standard" | "deep";
 

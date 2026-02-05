@@ -54,6 +54,7 @@ export function QuizCard({
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
       <h2 className="text-2xl font-semibold text-slate-900 mb-6">Check Understanding</h2>
 
+      {/* Question header + navigation */}
       {currentQuestion ? (
         <>
           <div className="flex items-center justify-between mb-2">
@@ -122,6 +123,7 @@ export function QuizCard({
         </div>
       )}
 
+      {/* Answer input (short answer or MCQ options) */}
       {currentQuestion && isShortAnswer ? (
         <div className="mb-8">
           <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -151,6 +153,7 @@ export function QuizCard({
         </div>
       ) : null}
 
+      {/* Check answer button or result panel */}
       {currentQuestion && !showAnswer ? (
         <Button
           variant="primary"
@@ -215,6 +218,7 @@ export function QuizCard({
             </div>
           </div>
 
+          {/* Post-answer navigation actions */}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button variant="secondary" size="md" className="flex-1" onClick={onResetQuiz}>
               Try Again
@@ -245,6 +249,7 @@ export function QuizCard({
             )}
           </div>
 
+          {/* Quick exit to start a new lesson */}
           <div className="mt-4">
             <Button
               variant="secondary"

@@ -28,6 +28,7 @@ import {
  * - Interactive Quiz
  */
 
+// Local chapter lists for dropdown labels (mapped to curriculum data below).
 // NCERT Class 7 Science chapters (2024-25 "Curiosity" textbook)
 const SCIENCE_CHAPTERS = [
   "The Ever-Evolving World of Science",
@@ -62,11 +63,12 @@ const MATHS_CHAPTERS = [
 ];
 
 export default function Home() {
-  // App State
+  // App state for subject + lesson selection.
   const [subject, setSubject] = useState<"Science" | "Maths">("Science");
   const [chapterTitle, setChapterTitle] = useState("");
   const [topicId, setTopicId] = useState("");
   const [subtopicId, setSubtopicId] = useState("");
+  // Lesson data + UI state for the active card.
   const [data, setData] = useState<TutorLessonResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -84,23 +86,25 @@ export default function Home() {
   const [deepError, setDeepError] = useState("");
   const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
 
-  // Lesson cache to prevent duplicate API calls
+  // Lesson cache to prevent duplicate API calls.
   const lessonCache = useRef<Map<string, TutorLessonResponse>>(new Map());
   const isFetching = useRef(false);
+  // Cache + throttle for deep explanations.
   const deepCache = useRef<Map<string, string>>(new Map());
   const deepGenerateLog = useRef<Map<string, number[]>>(new Map());
 
-  // Quiz State
+  // Quiz state.
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [shortAnswer, setShortAnswer] = useState("");
   const [showAnswer, setShowAnswer] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
 
-  // Audio State
+  // Audio state (TTS).
   const [isPlaying, setIsPlaying] = useState(false);
   const [ttsSupported, setTtsSupported] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
+  // Derived curriculum and dropdown options.
   const curriculum = useMemo(() => getSubjectCurriculum(subject), [subject]);
   const chapterTitles = useMemo(
     () => (subject === "Science" ? SCIENCE_CHAPTERS : MATHS_CHAPTERS),
@@ -123,6 +127,7 @@ export default function Home() {
     [chapterTitles, availableChaptersByTitle]
   );
 
+  // Resolve current selection chain.
   const selectedChapter = chapterTitle
     ? availableChaptersByTitle.get(chapterTitle) ?? null
     : null;
@@ -172,6 +177,7 @@ export default function Home() {
     };
   }, []);
 
+  // Clear deep cooldown when time elapses.
   useEffect(() => {
     if (!deepCooldownUntil) return;
     const remaining = deepCooldownUntil - Date.now();
@@ -230,6 +236,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicId, selectedTopic]);
 
+  // Stop audio playback and reset UI state.
   const stopAudio = () => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -237,6 +244,7 @@ export default function Home() {
     setIsPlaying(false);
   };
 
+  // Reset all lesson-related UI state between selections.
   const resetLessonState = () => {
     setData(null);
     setActiveCard(null);
@@ -260,6 +268,7 @@ export default function Home() {
     stopAudio();
   };
 
+  // Reset quiz-only UI state when moving between questions.
   const resetQuizState = () => {
     setSelectedAnswer(null);
     setShortAnswer("");
@@ -268,6 +277,7 @@ export default function Home() {
     setCheckingQuiz(false);
   };
 
+  // Selection handlers cascade resets to keep state consistent.
   const handleSubjectChange = (newSubject: "Science" | "Maths") => {
     setSubject(newSubject);
     setChapterTitle("");
@@ -294,6 +304,7 @@ export default function Home() {
     resetLessonState();
   };
 
+  // Fetch lesson content (with cache + concurrency guard).
   const fetchLesson = async () => {
     if (!selectedChapter || !selectedSubtopic) return;
 
@@ -354,6 +365,7 @@ export default function Home() {
     }
   };
 
+  // Activate a card and ensure lesson content is loaded.
   const handleSelectCard = async (card: CardStep) => {
     if (!selectedSubtopic) {
       setError("Please choose a chapter, topic, and subtopic first.");
@@ -375,6 +387,7 @@ export default function Home() {
     }
   };
 
+  // Build and play a TTS narration from the current lesson data.
   const handlePlayAudio = () => {
     if (!data || !ttsSupported) return;
 
@@ -418,6 +431,7 @@ export default function Home() {
     setIsPlaying(true);
   };
 
+  // Check quiz answers (local for MCQ, API for short answers).
   const handleCheckAnswer = async () => {
     if (!currentQuestion) return;
     if (isShortAnswer) {
@@ -462,10 +476,12 @@ export default function Home() {
     setShowAnswer(true);
   };
 
+  // Update explain level (simple / standard / deep).
   const handleExplainLevelChange = (level: ExplainLevel) => {
     setExplainLevel(level);
   };
 
+  // Fetch the deep essay and throttle regenerations.
   const fetchDeepEssay = async (force = false) => {
     if (!selectedChapter || !selectedSubtopic || deepLoading) return;
 
@@ -527,12 +543,14 @@ export default function Home() {
     }
   };
 
+  // Build a short lesson context for feedback prompts.
   const buildLessonContext = () => {
     if (!data) return "";
     const points = data.bulletPoints?.standard?.slice(0, 4) ?? [];
     return `Quick Explanation: ${data.quickExplanation}\nKey Points: ${points.join(" | ")}`;
   };
 
+  // Submit the "explain back" response for AI feedback.
   const handleExplainBackCheck = async () => {
     if (!selectedChapter || !selectedSubtopic || !explainBack.trim() || checkingExplain) return;
     setCheckingExplain(true);
@@ -567,6 +585,7 @@ export default function Home() {
     }
   };
 
+  // Derived quiz state for rendering + validation.
   const questions = selectedSubtopic?.questionBank ?? [];
   const currentQuestion = questions[questionIndex];
   const hasOptions = Boolean(currentQuestion?.options?.length);
@@ -593,6 +612,7 @@ export default function Home() {
   const isSubtopicDisabled = !selectedTopic;
   const showChapterWarning = Boolean(chapterTitle && !selectedChapter);
 
+  // Quiz navigation actions.
   const handleNextQuestion = () => {
     setQuestionIndex((prev) => Math.min(prev + 1, questionsLength - 1));
     resetQuizState();
@@ -608,6 +628,7 @@ export default function Home() {
     resetQuizState();
   };
 
+  // Shortcut to clear selections and start a new lesson.
   const handleChooseNewLesson = () => {
     setChapterTitle("");
     setTopicId("");
@@ -617,12 +638,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff1e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf5e6_55%,#f9f0dd)] px-6 py-8 flex flex-col items-center">
+      {/* Decorative background orbs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
         <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-rose-200/30 blur-3xl" />
       </div>
       <div className="relative w-full max-w-4xl">
+        {/* Hero header + subject selectors */}
         <PageHeader />
 
         <InputPanel
@@ -642,6 +665,7 @@ export default function Home() {
           showChapterWarning={showChapterWarning}
         />
 
+        {/* Learn / Listen / Quiz navigation */}
         <CardNav
           activeCard={activeCard}
           cardDisabled={cardDisabled}
@@ -657,16 +681,19 @@ export default function Home() {
 
         {/* CONTENT PANEL */}
         <div className="mt-6">
+          {/* Empty state before a card is selected */}
           {!activeCard && (
             <Card className="text-center text-gray-600">
               Choose a card to start. The lesson loads only after you pick a card.
             </Card>
           )}
 
+          {/* Loading state for lesson fetch */}
           {activeCard && loading && (
             <Card className="text-center text-gray-600">Preparing your lesson...</Card>
           )}
 
+          {/* Learn card (text + activities) */}
           {activeCard === "learn" && data && !loading && (
             <LearnCard
               data={data}
@@ -690,6 +717,7 @@ export default function Home() {
             />
           )}
 
+          {/* Listen card (TTS) */}
           {activeCard === "listen" && data && !loading && (
             <ListenCard
               isPlaying={isPlaying}
@@ -698,6 +726,7 @@ export default function Home() {
             />
           )}
 
+          {/* Quiz card (questions + feedback) */}
           {activeCard === "quiz" && data && !loading && (
             <QuizCard
               currentQuestion={currentQuestion}

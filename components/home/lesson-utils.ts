@@ -53,6 +53,7 @@ export function sanitizeHtml(html: string): string {
   return doc.body.innerHTML;
 }
 
+// Compose KaTeX rendering + HTML sanitization for safe rendering.
 export function renderHtml(text: string) {
   return { __html: sanitizeHtml(renderWithKaTeX(text)) };
 }

@@ -12,6 +12,7 @@ interface CardNavProps {
 export function CardNav({ activeCard, cardDisabled, onSelectCard }: CardNavProps) {
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      {/* Primary mode navigation cards. */}
       <NavCard
         onClick={() => onSelectCard("learn")}
         disabled={cardDisabled}
