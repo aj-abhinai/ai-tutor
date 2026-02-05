@@ -191,14 +191,15 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [deepCooldownUntil]);
 
-  // When subject changes, auto-select the first available chapter
+  // When subject changes, auto-select Chapter 3 as default (or first available)
   useEffect(() => {
-    // Find the first chapter that has curriculum data
-    const firstAvailableTitle = chapterTitles.find((title) =>
-      availableChaptersByTitle.has(title)
-    );
-    if (firstAvailableTitle && firstAvailableTitle !== chapterTitle) {
-      setChapterTitle(firstAvailableTitle);
+    // Prefer Chapter 3 (Electricity) as default, otherwise first available
+    const preferredTitle = "Electricity: Circuits and Their Components";
+    const defaultTitle = availableChaptersByTitle.has(preferredTitle)
+      ? preferredTitle
+      : chapterTitles.find((title) => availableChaptersByTitle.has(title));
+    if (defaultTitle && defaultTitle !== chapterTitle) {
+      setChapterTitle(defaultTitle);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject, chapterTitles, availableChaptersByTitle]);
