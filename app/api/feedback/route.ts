@@ -24,6 +24,7 @@ type TutorFeedbackResponse = {
 
 type FeedbackMode = "explain" | "quiz";
 
+// Prompt for explain-it-back feedback.
 const FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
 
 Task:
@@ -51,6 +52,7 @@ Output strictly in this JSON format:
 }
 `;
 
+// Prompt for descriptive quiz answer feedback.
 const QUIZ_FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
 
 Task:
@@ -76,9 +78,11 @@ Output strictly in this JSON format:
 }
 `;
 
+// Input length limits.
 const MAX_ID_LENGTH = 120;
 const MAX_STUDENT_ANSWER_LENGTH = 600;
 
+// Stopwords used for quick keyword overlap checks.
 const STOPWORDS = new Set([
     "the",
     "a",
@@ -180,6 +184,7 @@ function isNonEmptyString(value: unknown): value is string {
     return typeof value === "string" && value.trim().length > 0;
 }
 
+// Strip markdown fences and parse JSON from the model response.
 function parseJsonFromModel(text: string): unknown {
     if (!text) throw new Error("Empty response");
 
@@ -197,12 +202,14 @@ function parseJsonFromModel(text: string): unknown {
     return JSON.parse(cleaned);
 }
 
+// Extract key words for a lightweight overlap check.
 function extractKeywords(text: string): string[] {
     const words = text.toLowerCase().match(/[a-z]{3,}/g) ?? [];
     const filtered = words.filter((word) => !STOPWORDS.has(word));
     return Array.from(new Set(filtered));
 }
 
+// Heuristic to detect random or unreadable input.
 function isLikelyGibberish(answer: string): boolean {
     const trimmed = answer.trim();
     if (!trimmed) return true;
@@ -223,6 +230,7 @@ function isLikelyGibberish(answer: string): boolean {
     return false;
 }
 
+// Normalize strings for exact-match checks.
 function normalizeAnswer(text: string): string {
     return text
         .toLowerCase()
@@ -231,12 +239,14 @@ function normalizeAnswer(text: string): string {
         .trim();
 }
 
+// Quick exact-match fallback for short answers.
 function isExactMatch(a: string, b: string): boolean {
     const normA = normalizeAnswer(a);
     const normB = normalizeAnswer(b);
     return normA.length > 0 && normA === normB;
 }
 
+// Build rule-based feedback when the model output is invalid.
 function buildFallbackFeedback(
     studentAnswer: string,
     lessonText: string,
@@ -296,6 +306,7 @@ function pickString(obj: Record<string, unknown>, keys: string[]): string | null
     return null;
 }
 
+// Normalize varied model response shapes into a single format.
 function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     if (!raw || typeof raw !== "object") return null;
     let obj = raw as Record<string, unknown>;
@@ -342,6 +353,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Parse request body.
     let body: unknown;
     try {
         body = await request.json();
@@ -377,7 +389,7 @@ export async function POST(request: NextRequest) {
         answerExplanation?: unknown;
     };
 
-    // Validate subject
+    // Validate subject and selection IDs.
     if (!subject || typeof subject !== "string") {
         return NextResponse.json(
             { error: "Subject is required (Science or Maths)" },
@@ -452,6 +464,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Decide which prompt to use (explain vs quiz).
     const feedbackMode: FeedbackMode = mode === "quiz" ? "quiz" : "explain";
 
     if (feedbackMode === "quiz") {
@@ -463,7 +476,7 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    // Check API key
+    // Check API key before calling Gemini.
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         return NextResponse.json(
@@ -472,7 +485,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Call Gemini API
+    // Call Gemini API for feedback.
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash-lite",
@@ -482,7 +495,7 @@ export async function POST(request: NextRequest) {
         },
     });
 
-    // Build a smaller prompt for feedback
+    // Build a smaller prompt for feedback.
     const lessonText =
         typeof lessonContext === "string" && lessonContext.trim().length > 0
             ? lessonContext.trim()
@@ -526,6 +539,7 @@ export async function POST(request: NextRequest) {
     const response = result.response;
     const text = response.text();
 
+    // Parse JSON; fall back to rules if the model fails.
     let parsed: unknown;
     try {
         parsed = parseJsonFromModel(text);

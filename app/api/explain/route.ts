@@ -35,6 +35,7 @@ type TutorFeedbackResponse = {
     rereadTip: string;
 };
 
+// Prompt for explain-it-back feedback.
 const FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
 
 Task:
@@ -58,6 +59,7 @@ Output strictly in this JSON format:
 }
 `;
 
+// Input length limits.
 const MAX_ID_LENGTH = 120;
 const MAX_STUDENT_ANSWER_LENGTH = 600;
 
@@ -114,6 +116,7 @@ function isNonEmptyString(value: unknown): value is string {
     return typeof value === "string" && value.trim().length > 0;
 }
 
+// Strip markdown fences and parse JSON from the model response.
 function parseJsonFromModel(text: string): unknown {
     if (!text) throw new Error("Empty response");
 
@@ -131,6 +134,7 @@ function parseJsonFromModel(text: string): unknown {
     return JSON.parse(cleaned);
 }
 
+// Validate and normalize model feedback into the expected shape.
 function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     if (!raw || typeof raw !== "object") return null;
     const obj = raw as Record<string, unknown>;
@@ -166,6 +170,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Parse request body.
     let body: unknown;
     try {
         body = await request.json();
@@ -195,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     const requestMode = mode === "feedback" ? "feedback" : "lesson";
 
-    // Validate subject
+    // Validate subject and selection IDs.
     if (!subject || typeof subject !== "string") {
         return NextResponse.json(
             { error: "Subject is required (Science or Maths)" },
@@ -256,11 +261,13 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Lesson mode returns static curriculum content.
     if (requestMode === "lesson") {
         const lesson: TutorLessonResponse = buildLessonFromSubtopic(selectedSubtopic);
         return NextResponse.json({ content: lesson });
     }
 
+    // Feedback mode validates student input.
     if (!isNonEmptyString(studentAnswer)) {
         return NextResponse.json({ error: "Student answer is required" }, { status: 400 });
     }
@@ -278,7 +285,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // Call Gemini API
+    // Call Gemini API for feedback.
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash-lite", // Using a lighter model for better rate limits
@@ -307,6 +314,7 @@ export async function POST(request: NextRequest) {
     const response = result.response;
     const text = response.text();
 
+    // Parse and normalize the model output.
     let parsed: unknown;
     try {
         parsed = parseJsonFromModel(text);

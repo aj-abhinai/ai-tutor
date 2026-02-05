@@ -46,6 +46,7 @@ export function LearnCard({
   selfCheck,
   onSelfCheckChange,
 }: LearnCardProps) {
+  // Derived display content for the current explain level.
   const bulletPoints = explainLevel === "deep" ? [] : data.bulletPoints?.[explainLevel] ?? [];
   const explanationHtml = data.quickExplanation;
   const deepEssayHtml = deepEssay || data.bulletPoints?.deep?.join("") || "";
@@ -57,6 +58,7 @@ export function LearnCard({
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
+      {/* Header + explain-level toggle */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
           <h2 className="text-2xl font-semibold text-slate-900">Explain</h2>
@@ -80,6 +82,7 @@ export function LearnCard({
         </div>
       </div>
 
+      {/* Main explanation panel */}
       <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <Badge variant="amber">{explainLevel === "simple" ? "Simple" : "Explain"}</Badge>
@@ -139,6 +142,7 @@ export function LearnCard({
           </div>
         )}
 
+        {/* Bullet points for simple/standard levels */}
         {bulletPoints.length > 0 && explainLevel !== "deep" && (
           <ul className="mt-4 space-y-3 text-slate-800">
             {bulletPoints.map((point, index) => (
@@ -154,6 +158,7 @@ export function LearnCard({
         )}
       </div>
 
+      {/* Study guide details */}
       {selectedSubtopic && (
         <details className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
           <summary className="cursor-pointer text-sm font-semibold text-slate-700">
@@ -186,6 +191,7 @@ export function LearnCard({
         </details>
       )}
 
+      {/* Optional examples and misconceptions */}
       {(selectedSubtopic?.examples?.length || selectedSubtopic?.misconceptions?.length) && (
         <details className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
           <summary className="cursor-pointer text-sm font-semibold text-slate-700">
@@ -221,6 +227,7 @@ export function LearnCard({
         </details>
       )}
 
+      {/* Curiosity prompt and student response */}
       {data.curiosityQuestion && (
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4">
           <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
@@ -241,6 +248,7 @@ export function LearnCard({
         </div>
       )}
 
+      {/* Explain-it-back input + feedback */}
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
         <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
           Explain It Back
@@ -284,6 +292,7 @@ export function LearnCard({
         )}
       </div>
 
+      {/* Self-check confidence buttons */}
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
         <div className="text-sm font-semibold text-slate-800">
           How do you feel about this subtopic?

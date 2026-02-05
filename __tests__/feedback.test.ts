@@ -1,88 +1,203 @@
 /**
  * Tests for /api/feedback route
  *
- * These tests verify the feedback API behavior for the Standard 7 NCERT tutor.
+ * These tests call the route handler directly with mocked Gemini responses.
  */
 
-describe('/api/feedback - Explain-it-back API', () => {
-    const API_URL = 'http://localhost:3000/api/feedback';
+import { NextRequest } from "next/server";
+import { POST } from "@/app/api/feedback/route";
 
-    describe('Input Validation', () => {
-        it('should reject request without subject', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: 'closed-open-circuits',
-                    studentAnswer: 'A closed circuit lets current flow.'
-                })
-            });
+const generateContentMock = jest.fn();
 
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Subject');
-        });
+jest.mock("@google/generative-ai", () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: jest.fn().mockReturnValue({
+      generateContent: generateContentMock,
+    }),
+  })),
+}));
 
-        it('should reject request without student answer', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Science',
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: 'closed-open-circuits'
-                })
-            });
+const VALID_BODY = {
+  subject: "Science" as const,
+  chapterId: "electricity-circuits",
+  topicId: "circuits-and-switches",
+  subtopicId: "closed-open-circuits",
+  studentAnswer: "A closed circuit lets current flow.",
+};
 
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('Student answer');
-        });
+const makeJsonRequest = (body: unknown, headers: Record<string, string> = {}) =>
+  new NextRequest("http://localhost/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
 
-        it('should reject too-long student answer', async () => {
-            const longAnswer = 'a'.repeat(601);
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Science',
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: 'closed-open-circuits',
-                    studentAnswer: longAnswer
-                })
-            });
+describe("/api/feedback - Explain-it-back API", () => {
+  beforeEach(() => {
+    generateContentMock.mockReset();
+    process.env.GEMINI_API_KEY = "test-key";
+  });
 
-            expect(response.status).toBe(400);
-            const data = await response.json();
-            expect(data.error).toContain('characters or less');
-        });
+  describe("Input validation", () => {
+    it("rejects request without subject", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          chapterId: VALID_BODY.chapterId,
+          topicId: VALID_BODY.topicId,
+          subtopicId: VALID_BODY.subtopicId,
+          studentAnswer: VALID_BODY.studentAnswer,
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Subject");
     });
 
-    describe('Response Structure', () => {
-        it('should return feedback fields', async () => {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: 'Science',
-                    chapterId: 'electricity-circuits',
-                    topicId: 'circuits-and-switches',
-                    subtopicId: 'closed-open-circuits',
-                    studentAnswer: 'A closed circuit lets current flow, an open circuit stops it.'
-                })
-            });
+    it("rejects request without student answer", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          subject: VALID_BODY.subject,
+          chapterId: VALID_BODY.chapterId,
+          topicId: VALID_BODY.topicId,
+          subtopicId: VALID_BODY.subtopicId,
+        })
+      );
 
-            expect(response.status).toBe(200);
-            const data = await response.json();
-            expect(data.feedback).toBeDefined();
-            expect(typeof data.feedback.rating).toBe('string');
-            expect(typeof data.feedback.praise).toBe('string');
-            expect(typeof data.feedback.fix).toBe('string');
-            expect(typeof data.feedback.rereadTip).toBe('string');
-        });
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Student answer");
     });
+
+    it("rejects too-long student answer", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          studentAnswer: "a".repeat(601),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("characters or less");
+    });
+
+    it("rejects quiz mode without question", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "quiz",
+          expectedAnswer: "Current flows in a closed circuit.",
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Question");
+    });
+
+    it("rejects quiz mode without expected answer", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "quiz",
+          question: "What is a closed circuit?",
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Expected answer");
+    });
+
+    it("returns 500 when API key is missing", async () => {
+      const previous = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+
+      const response = await POST(makeJsonRequest(VALID_BODY));
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.error).toContain("Server configuration error");
+
+      process.env.GEMINI_API_KEY = previous;
+    });
+  });
+
+  describe("Response structure", () => {
+    it("returns feedback fields for explain mode", async () => {
+      generateContentMock.mockResolvedValue({
+        response: {
+          text: () =>
+            JSON.stringify({
+              rating: "great",
+              praise: "Right: You mentioned current flow.",
+              fix: "Wrong or missing: Add that open circuits stop current.",
+              rereadTip: "Re-read: closed and open circuits",
+            }),
+        },
+      });
+
+      const response = await POST(makeJsonRequest(VALID_BODY));
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(typeof data.feedback.rating).toBe("string");
+      expect(typeof data.feedback.praise).toBe("string");
+      expect(typeof data.feedback.fix).toBe("string");
+      expect(typeof data.feedback.rereadTip).toBe("string");
+    });
+
+    it("returns isCorrect for quiz mode", async () => {
+      generateContentMock.mockResolvedValue({
+        response: {
+          text: () =>
+            JSON.stringify({
+              isCorrect: true,
+              rating: "correct",
+              praise: "Right: You named the correct idea.",
+              fix: "Missing or incorrect: None.",
+              rereadTip: "Re-read: current flow",
+            }),
+        },
+      });
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "quiz",
+          question: "What is a closed circuit?",
+          expectedAnswer: "A closed circuit lets current flow.",
+          answerExplanation: "Current flows only when the circuit is complete.",
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.feedback.isCorrect).toBe(true);
+    });
+
+    it("falls back to rule-based feedback on invalid model JSON", async () => {
+      generateContentMock.mockResolvedValue({
+        response: { text: () => "not json" },
+      });
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "quiz",
+          question: "What is a closed circuit?",
+          expectedAnswer: "A closed circuit lets current flow.",
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(typeof data.feedback.rating).toBe("string");
+      expect(typeof data.feedback.praise).toBe("string");
+      expect(typeof data.feedback.fix).toBe("string");
+      expect(typeof data.feedback.rereadTip).toBe("string");
+      expect(data.feedback.isCorrect).toBe(true);
+    });
+  });
 });

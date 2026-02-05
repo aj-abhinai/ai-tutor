@@ -14,6 +14,7 @@ import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 const VALID_SUBJECTS = ["Science", "Maths"] as const;
 type Subject = typeof VALID_SUBJECTS[number];
 
+// Prompt for deep, structured explanations.
 const DEEP_PROMPT = `You are a friendly tutor for Class 7 students.
 
 Task:
@@ -41,6 +42,7 @@ Output strictly in this JSON format:
 }
 `;
 
+// Input length limits.
 const MAX_ID_LENGTH = 120;
 
 // Rate limiting (simple in-memory)
@@ -96,6 +98,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+// Strip markdown fences and parse JSON from the model response.
 function parseJsonFromModel(text: string): unknown {
   if (!text) throw new Error("Empty response");
 
@@ -123,6 +126,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Parse request body.
   let body: unknown;
   try {
     body = await request.json();
@@ -141,7 +145,7 @@ export async function POST(request: NextRequest) {
     subtopicId?: unknown;
   };
 
-  // Validate subject
+  // Validate subject and selection IDs.
   if (!subject || typeof subject !== "string") {
     return NextResponse.json(
       { error: "Subject is required (Science or Maths)" },
@@ -193,12 +197,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check API key
+  // Check API key before calling Gemini.
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
+  // Call Gemini API for the deep explanation.
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",

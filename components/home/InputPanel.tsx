@@ -38,6 +38,7 @@ export function InputPanel({
 }: InputPanelProps) {
   return (
     <Card variant="subtle" className="backdrop-blur-sm">
+      {/* Subject toggle buttons */}
       <div className="mb-5">
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
           Subject
@@ -54,6 +55,7 @@ export function InputPanel({
         </div>
       </div>
 
+      {/* Chapter, topic, and subtopic selectors */}
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
@@ -94,6 +96,7 @@ export function InputPanel({
         </div>
       </div>
 
+      {/* Helper text and availability warning */}
       <p className="text-sm text-slate-500 mt-4">
         Pick a chapter, topic, and subtopic, then choose a card below to load the lesson.
       </p>
