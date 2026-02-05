@@ -57,6 +57,5 @@ Students can understand a topic in minutes, explain it back in their own words, 
 - Non-NCERT content
 - Malayalam output
 - Server-side TTS
-- Experimental
 - Client-side Mermaid diagram rendering (Experimental)
     (API call -> generate Mermaid text -> client-side rendering)
