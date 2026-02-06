@@ -1,13 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Badge, Button, Card, TextArea } from "@/components/ui";
-import { SubtopicKnowledge } from "@/lib/curriculum";
+import { SubtopicKnowledge, TopicKnowledge } from "@/lib/curriculum";
 import { renderHtml } from "./lesson-utils";
 import { ExplainFeedback, ExplainLevel, TutorLessonResponse } from "./types";
 
 interface LearnCardProps {
   data: TutorLessonResponse;
+  selectedTopic: TopicKnowledge | null;
   selectedSubtopic: SubtopicKnowledge | null;
+  onSubtopicChange: (subtopicId: string) => void;
   explainLevel: ExplainLevel;
   onExplainLevelChange: (level: ExplainLevel) => void;
   deepEssay?: string | null;
@@ -28,7 +31,9 @@ interface LearnCardProps {
 
 export function LearnCard({
   data,
+  selectedTopic,
   selectedSubtopic,
+  onSubtopicChange,
   explainLevel,
   onExplainLevelChange,
   deepEssay,
@@ -55,6 +60,25 @@ export function LearnCard({
   const cooldownSeconds = Math.ceil(cooldownMs / 1000);
   const cooldownLabel = cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : null;
   const canGenerate = !deepLoading && cooldownSeconds === 0;
+  const availableSubtopics = selectedTopic?.subtopics ?? [];
+  const visualCards = selectedSubtopic?.visualCards ?? [];
+  const [visualIndex, setVisualIndex] = useState(0);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const currentVisualCard = visualCards[visualIndex] ?? null;
+
+  useEffect(() => {
+    setVisualIndex(0);
+    setIsFlipping(false);
+  }, [selectedSubtopic?.id]);
+
+  const handleNextVisualCard = () => {
+    if (visualCards.length <= 1 || isFlipping) return;
+    setIsFlipping(true);
+    window.setTimeout(() => {
+      setVisualIndex((prev) => (prev + 1) % visualCards.length);
+      setIsFlipping(false);
+    }, 180);
+  };
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
@@ -81,6 +105,34 @@ export function LearnCard({
           ))}
         </div>
       </div>
+
+      {/* Inline subtopic selector for the selected topic. */}
+      {availableSubtopics.length > 0 && (
+        <div className="mb-4">
+          <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-2">
+            Subtopic
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableSubtopics.map((subtopic) => {
+              const isActive = selectedSubtopic?.id === subtopic.id;
+              return (
+                <button
+                  key={subtopic.id}
+                  type="button"
+                  onClick={() => onSubtopicChange(subtopic.id)}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                      : "border-slate-200 bg-white/80 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/60"
+                  }`}
+                >
+                  {subtopic.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Main explanation panel */}
       <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
@@ -157,6 +209,47 @@ export function LearnCard({
           </ul>
         )}
       </div>
+      {/* Visual cards with flip-like next transition */}
+      {currentVisualCard && (
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                Visual Card
+              </div>
+              <div className="text-sm font-semibold text-slate-800">{currentVisualCard.title}</div>
+            </div>
+            <div className="text-xs text-slate-500">
+              {visualIndex + 1} / {visualCards.length}
+            </div>
+          </div>
+          <div
+            className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition-transform duration-200 ${
+              isFlipping ? "[transform:rotateY(90deg)]" : "[transform:rotateY(0deg)]"
+            }`}
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <img
+              src={currentVisualCard.imageSrc}
+              alt={currentVisualCard.title}
+              className="w-full h-auto rounded-lg max-h-[520px] object-contain bg-white"
+            />
+          </div>
+          {currentVisualCard.caption && (
+            <p className="mt-3 text-sm text-slate-700">{currentVisualCard.caption}</p>
+          )}
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleNextVisualCard}
+              disabled={visualCards.length <= 1 || isFlipping}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Study guide details */}
       {selectedSubtopic && (

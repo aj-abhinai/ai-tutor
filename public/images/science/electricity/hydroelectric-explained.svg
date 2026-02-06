@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600" role="img" aria-labelledby="title desc">
+  <title id="title">Hydroelectric power flow for Class 7</title>
+  <desc id="desc">A step by step flow diagram showing how water helps generate electricity and send it to homes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ecfeff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <style>
+      .title { font: 800 54px 'Segoe UI', sans-serif; fill: #0f172a; }
+      .subtitle { font: 600 28px 'Segoe UI', sans-serif; fill: #334155; }
+      .stepTitle { font: 700 30px 'Segoe UI', sans-serif; fill: #0f172a; }
+      .stepText { font: 500 24px 'Segoe UI', sans-serif; fill: #334155; }
+      .badgeText { font: 800 24px 'Segoe UI', sans-serif; fill: #ffffff; }
+      .small { font: 600 21px 'Segoe UI', sans-serif; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1600" fill="url(#bg)"/>
+
+  <text x="600" y="90" text-anchor="middle" class="title">How Hydroelectricity Is Made</text>
+
+  <g transform="translate(120,150)">
+
+    <g transform="translate(70,50)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#eef2ff" stroke="#a5b4fc" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#4f46e5"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">1</text>
+      <text x="95" y="52" class="stepTitle">River Water Flows from Hills</text>
+      <text x="95" y="87" class="stepText">Rainwater and rivers bring water down with energy.</text>
+      <path d="M410 130 L410 180" stroke="#94a3b8" stroke-width="4"/>
+      <polygon points="410,196 400,178 420,178" fill="#94a3b8"/>
+    </g>
+
+    <g transform="translate(70,230)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#ecfeff" stroke="#67e8f9" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#0891b2"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">2</text>
+      <text x="95" y="52" class="stepTitle">Dam Stores Water</text>
+      <text x="95" y="87" class="stepText">A dam holds water at a height, ready to release.</text>
+      <path d="M410 130 L410 180" stroke="#94a3b8" stroke-width="4"/>
+      <polygon points="410,196 400,178 420,178" fill="#94a3b8"/>
+    </g>
+
+    <g transform="translate(70,410)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#2563eb"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">3</text>
+      <text x="95" y="52" class="stepTitle">Fast Water Spins a Turbine</text>
+      <text x="95" y="87" class="stepText">When water falls, it pushes turbine blades.</text>
+      <circle cx="735" cy="60" r="28" fill="#dbeafe" stroke="#60a5fa" stroke-width="3"/>
+      <path d="M735 35 L742 60 L735 85 L728 60 Z" fill="#3b82f6"/>
+      <path d="M710 60 L735 67 L760 60 L735 53 Z" fill="#3b82f6"/>
+      <path d="M410 130 L410 180" stroke="#94a3b8" stroke-width="4"/>
+      <polygon points="410,196 400,178 420,178" fill="#94a3b8"/>
+    </g>
+
+    <g transform="translate(70,590)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#f0fdf4" stroke="#86efac" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#16a34a"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">4</text>
+      <text x="95" y="52" class="stepTitle">Turbine Turns a Generator</text>
+      <text x="95" y="87" class="stepText">The generator changes motion energy into electricity.</text>
+      <rect x="665" y="36" width="120" height="48" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="3"/>
+      <text x="725" y="68" text-anchor="middle" class="small">Generator</text>
+      <path d="M410 130 L410 180" stroke="#94a3b8" stroke-width="4"/>
+      <polygon points="410,196 400,178 420,178" fill="#94a3b8"/>
+    </g>
+
+    <g transform="translate(70,770)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#fff7ed" stroke="#fdba74" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#ea580c"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">5</text>
+      <text x="95" y="52" class="stepTitle">Electricity Travels in Transmission Lines</text>
+      <text x="95" y="87" class="stepText">High-voltage lines carry electricity over long distances.</text>
+      <line x1="650" y1="45" x2="790" y2="45" stroke="#7c2d12" stroke-width="4"/>
+      <line x1="650" y1="62" x2="790" y2="62" stroke="#7c2d12" stroke-width="4"/>
+      <line x1="650" y1="79" x2="790" y2="79" stroke="#7c2d12" stroke-width="4"/>
+      <path d="M410 130 L410 180" stroke="#94a3b8" stroke-width="4"/>
+      <polygon points="410,196 400,178 420,178" fill="#94a3b8"/>
+    </g>
+
+    <g transform="translate(70,950)">
+      <rect x="0" y="0" width="820" height="120" rx="18" fill="#fefce8" stroke="#fde047" stroke-width="3"/>
+      <circle cx="45" cy="60" r="28" fill="#ca8a04"/>
+      <text x="45" y="68" text-anchor="middle" class="badgeText">6</text>
+      <text x="95" y="52" class="stepTitle">Homes, Schools, and Factories Use It</text>
+      <text x="95" y="87" class="stepText">Electricity powers lights, fans, machines, and devices.</text>
+      <rect x="685" y="28" width="98" height="78" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+      <polygon points="685,28 734,0 783,28" fill="#fecaca" stroke="#64748b" stroke-width="3"/>
+      <rect x="724" y="70" width="20" height="36" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+    </g>
+
+    <g transform="translate(70,1125)">
+      <rect x="0" y="0" width="820" height="130" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="3"/>
+      <text x="30" y="50" class="stepTitle">Remember</text>
+      <text x="30" y="88" class="stepText">Water energy -> turbine motion -> electrical energy.</text>
+      <text x="30" y="118" class="stepText">Hydroelectricity is a renewable source when managed well.</text>
+    </g>
+  </g>
+</svg>

@@ -143,6 +143,29 @@ export const SCIENCE_CHAPTER_3: SubjectCurriculum = {
                             misconceptions: [
                                 "Electricity is created inside the wires",
                             ],
+                            visualCards: [
+                                {
+                                    id: "hydroelectric-explained",
+                                    title: "Hydroelectricity: Step by Step",
+                                    imageSrc: "/images/science/electricity/hydroelectric-explained.svg",
+                                    caption:
+                                        "This diagram shows how flowing water helps make electricity and how that electricity reaches people.",
+                                },
+                                {
+                                    id: "sources-grid-overview",
+                                    title: "How Electricity Reaches Us",
+                                    imageSrc: "/images/science/electricity/sources-grid-overview.svg",
+                                    caption:
+                                        "Electricity is generated at power stations and moves through transmission lines to homes and schools.",
+                                },
+                                {
+                                    id: "sources-renewable-and-portable",
+                                    title: "Renewable and Portable Sources",
+                                    imageSrc: "/images/science/electricity/sources-renewable-portable.svg",
+                                    caption:
+                                        "Sun and wind are renewable sources, while cells and batteries are portable sources for torches and small devices.",
+                                },
+                            ],
                             questionBank: [
                                 {
                                     id: "sources-q1",

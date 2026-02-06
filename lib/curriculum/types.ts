@@ -30,6 +30,12 @@ export interface SubtopicKnowledge {
     examples: string[];
     misconceptions?: string[];
     deepDives?: string[];
+    visualCards?: {
+        id: string;
+        title: string;
+        imageSrc: string;
+        caption?: string;
+    }[];
     questionBank: QuestionItem[];
 }
 
