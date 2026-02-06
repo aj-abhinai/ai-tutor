@@ -146,18 +146,10 @@ export default function Home() {
     ? selectedChapter.topics.find((topic) => topic.id === topicId) ?? null
     : null;
 
-  const subtopicOptions = useMemo(() => {
-    if (!selectedTopic) {
-      return [{ value: "", label: "N/A (coming soon)" }];
-    }
-    return selectedTopic.subtopics.map((subtopic) => ({
-      value: subtopic.id,
-      label: subtopic.title,
-    }));
-  }, [selectedTopic]);
-
   const selectedSubtopic = selectedTopic
-    ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ?? null
+    ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
+      selectedTopic.subtopics[0] ??
+      null
     : null;
 
   // Load TTS voices and cleanup audio on unmount
@@ -246,9 +238,13 @@ export default function Home() {
   };
 
   // Reset all lesson-related UI state between selections.
-  const resetLessonState = () => {
+  const resetLessonState = (options?: { preserveActiveCard?: boolean; preserveExplainLevel?: boolean }) => {
+    const preserveActiveCard = options?.preserveActiveCard ?? false;
+    const preserveExplainLevel = options?.preserveExplainLevel ?? false;
     setData(null);
-    setActiveCard(null);
+    if (!preserveActiveCard) {
+      setActiveCard(null);
+    }
     setSelectedAnswer(null);
     setShortAnswer("");
     setShowAnswer(false);
@@ -261,7 +257,9 @@ export default function Home() {
     setCheckingExplain(false);
     setQuizFeedback(null);
     setCheckingQuiz(false);
-    setExplainLevel("simple");
+    if (!preserveExplainLevel) {
+      setExplainLevel("simple");
+    }
     setDeepEssay(null);
     setDeepLoading(false);
     setDeepError("");
@@ -300,20 +298,29 @@ export default function Home() {
     resetLessonState();
   };
 
-  const handleSubtopicChange = (newSubtopicId: string) => {
+  const handleSubtopicChange = async (newSubtopicId: string) => {
     setSubtopicId(newSubtopicId);
-    resetLessonState();
+    resetLessonState({ preserveActiveCard: true, preserveExplainLevel: true });
+    if (activeCard) {
+      await fetchLesson({ subtopicIdOverride: newSubtopicId, preserveExplainLevel: true });
+    }
   };
 
   // Fetch lesson content (with cache + concurrency guard).
-  const fetchLesson = async () => {
-    if (!selectedChapter || !selectedSubtopic) return;
+  const fetchLesson = async (options?: { subtopicIdOverride?: string; preserveExplainLevel?: boolean }) => {
+    if (!selectedChapter || !selectedTopic) return;
+    const subtopicIdOverride = options?.subtopicIdOverride;
+    const preserveExplainLevel = options?.preserveExplainLevel ?? false;
+    const targetSubtopic = subtopicIdOverride
+      ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicIdOverride) ?? null
+      : selectedSubtopic;
+    if (!targetSubtopic) return;
 
     // Prevent concurrent fetches (React StrictMode double-render protection)
     if (isFetching.current || loading) return;
 
     // Check cache first
-    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopic.id}`;
+    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic.id}:${targetSubtopic.id}`;
     const cached = lessonCache.current.get(cacheKey);
     if (cached) {
       setData(cached);
@@ -321,7 +328,9 @@ export default function Home() {
       setExplainBack("");
       setCuriosityResponse("");
       setExplainFeedback(null);
-      setExplainLevel("simple");
+      if (!preserveExplainLevel) {
+        setExplainLevel("simple");
+      }
       return;
     }
 
@@ -339,8 +348,8 @@ export default function Home() {
         body: JSON.stringify({
           subject,
           chapterId: selectedChapter.id,
-          topicId: selectedTopic?.id,
-          subtopicId: selectedSubtopic.id,
+          topicId: selectedTopic.id,
+          subtopicId: targetSubtopic.id,
         }),
       });
       const resData = await res.json();
@@ -356,7 +365,9 @@ export default function Home() {
         setExplainBack("");
         setCuriosityResponse("");
         setExplainFeedback(null);
-        setExplainLevel("simple");
+        if (!preserveExplainLevel) {
+          setExplainLevel("simple");
+        }
       }
     } catch {
       setError("Failed to connect to API");
@@ -368,8 +379,13 @@ export default function Home() {
 
   // Activate a card and ensure lesson content is loaded.
   const handleSelectCard = async (card: CardStep) => {
+    if (!selectedTopic) {
+      setError("Please choose a chapter and topic first.");
+      return;
+    }
+
     if (!selectedSubtopic) {
-      setError("Please choose a chapter, topic, and subtopic first.");
+      setError("No subtopics are available for this topic yet.");
       return;
     }
 
@@ -610,7 +626,6 @@ export default function Home() {
   const questionsLength = questions.length;
   const cardDisabled = !selectedSubtopic || loading;
   const isTopicDisabled = !selectedChapter;
-  const isSubtopicDisabled = !selectedTopic;
   const showChapterWarning = Boolean(chapterTitle && !selectedChapter);
 
   // Quiz navigation actions.
@@ -653,16 +668,12 @@ export default function Home() {
           subject={subject}
           chapterTitle={chapterTitle}
           topicId={topicId}
-          subtopicId={subtopicId}
           chapterOptions={chapterOptions}
           topicOptions={topicOptions}
-          subtopicOptions={subtopicOptions}
           onSubjectChange={handleSubjectChange}
           onChapterChange={handleChapterChange}
           onTopicChange={handleTopicChange}
-          onSubtopicChange={handleSubtopicChange}
           isTopicDisabled={isTopicDisabled}
-          isSubtopicDisabled={isSubtopicDisabled}
           showChapterWarning={showChapterWarning}
         />
 
@@ -698,7 +709,9 @@ export default function Home() {
           {activeCard === "learn" && data && !loading && (
             <LearnCard
               data={data}
+              selectedTopic={selectedTopic}
               selectedSubtopic={selectedSubtopic}
+              onSubtopicChange={handleSubtopicChange}
               explainLevel={explainLevel}
               onExplainLevelChange={handleExplainLevelChange}
               deepEssay={deepEssay}

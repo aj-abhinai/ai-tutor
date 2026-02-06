@@ -7,16 +7,12 @@ interface InputPanelProps {
   subject: SubjectName;
   chapterTitle: string;
   topicId: string;
-  subtopicId: string;
   chapterOptions: { value: string; label: string }[];
   topicOptions: { value: string; label: string }[];
-  subtopicOptions: { value: string; label: string }[];
   onSubjectChange: (subject: SubjectName) => void;
   onChapterChange: (chapterTitle: string) => void;
   onTopicChange: (topicId: string) => void;
-  onSubtopicChange: (subtopicId: string) => void;
   isTopicDisabled: boolean;
-  isSubtopicDisabled: boolean;
   showChapterWarning: boolean;
 }
 
@@ -24,16 +20,12 @@ export function InputPanel({
   subject,
   chapterTitle,
   topicId,
-  subtopicId,
   chapterOptions,
   topicOptions,
-  subtopicOptions,
   onSubjectChange,
   onChapterChange,
   onTopicChange,
-  onSubtopicChange,
   isTopicDisabled,
-  isSubtopicDisabled,
   showChapterWarning,
 }: InputPanelProps) {
   return (
@@ -55,8 +47,8 @@ export function InputPanel({
         </div>
       </div>
 
-      {/* Chapter, topic, and subtopic selectors */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Chapter and topic selectors */}
+      <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
             Chapter
@@ -81,24 +73,11 @@ export function InputPanel({
             disabled={isTopicDisabled}
           />
         </div>
-
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-            Subtopic
-          </label>
-          <Select
-            value={subtopicId}
-            onChange={(e) => onSubtopicChange(e.target.value)}
-            options={subtopicOptions}
-            placeholder="-- Choose a Subtopic --"
-            disabled={isSubtopicDisabled}
-          />
-        </div>
       </div>
 
       {/* Helper text and availability warning */}
       <p className="text-sm text-slate-500 mt-4">
-        Pick a chapter, topic, and subtopic, then choose a card below to load the lesson.
+        Pick a chapter and topic, then choose a card below to load the lesson.
       </p>
       {showChapterWarning && (
         <p className="text-xs text-amber-700 mt-2">
