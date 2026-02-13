@@ -11,7 +11,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 import {
   createRateLimiter,
-  getClientIp,
+  getRateLimitKey,
+  hasAiRouteAccess,
   isNonEmptyString,
   parseJsonFromModel,
 } from "@/lib/api/shared";
@@ -104,11 +105,18 @@ function normalizeExpandResponse(raw: unknown): TutorExpandResponse | null {
 
 export async function POST(request: NextRequest) {
   // Rate limit check
-  const clientIp = getClientIp(request);
-  if (isRateLimited(clientIp)) {
+  const clientKey = getRateLimitKey(request);
+  if (await isRateLimited(clientKey)) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Please try again shortly." },
       { status: 429 }
+    );
+  }
+
+  if (!hasAiRouteAccess(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized request origin for AI endpoint." },
+      { status: 401 }
     );
   }
 

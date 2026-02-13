@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Alert, Button, StatusCard } from "@/components/ui";
 import { LabHeader } from "@/components/lab/LabHeader";
 import { ChemicalPicker } from "@/components/lab/ChemicalPicker";
-import { ReactionResult } from "@/components/lab/ReactionResult";
 import { getChemicalsList, getDefaultReactionPair } from "@/lib/reaction-engine";
 import type { Reaction } from "@/lib/reactions";
+
+const ReactionResult = dynamic(
+    () => import("@/components/lab/ReactionResult").then((m) => m.ReactionResult)
+);
 
 interface LabAPIResponse {
     reaction: Reaction | null;

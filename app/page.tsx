@@ -2,16 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import "katex/dist/katex.min.css";
 import { getSubjectCurriculum } from "@/lib/curriculum";
 
 import { Alert, StatusCard } from "@/components/ui";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
-import { LearnCard } from "@/components/home/LearnCard";
-import { ListenCard } from "@/components/home/ListenCard";
 import { PageHeader } from "@/components/home/PageHeader";
-import { QuizCard } from "@/components/home/QuizCard";
 import { cleanTextForSpeech } from "@/components/home/lesson-utils";
 import {
   CardStep,
@@ -19,6 +17,16 @@ import {
   ExplainLevel,
   TutorLessonResponse,
 } from "@/components/home/types";
+
+const LearnCard = dynamic(
+  () => import("@/components/home/LearnCard").then((m) => m.LearnCard)
+);
+const ListenCard = dynamic(
+  () => import("@/components/home/ListenCard").then((m) => m.ListenCard)
+);
+const QuizCard = dynamic(
+  () => import("@/components/home/QuizCard").then((m) => m.QuizCard)
+);
 
 /**
  * Standard 7 AI Tutor - Main Page

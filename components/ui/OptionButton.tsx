@@ -45,8 +45,9 @@ export const OptionButton = forwardRef<HTMLButtonElement, OptionButtonProps>(
                     </span>
                     <span
                         className="flex-1 min-w-0 text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: text }}
-                    />
+                    >
+                        {text}
+                    </span>
                     {showStatus && (
                         <span
                             className={`text-xs font-semibold ${isCorrect ? "text-emerald-700" : "text-rose-700"}`}

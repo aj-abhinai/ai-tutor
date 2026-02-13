@@ -9,7 +9,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { type Reaction } from "@/lib/reactions";
 import { findExampleReactionForChemical, findReaction } from "@/lib/reaction-engine";
-import { createRateLimiter, getClientIp, isNonEmptyString } from "@/lib/api/shared";
+import {
+    createRateLimiter,
+    getRateLimitKey,
+    hasAiRouteAccess,
+    isNonEmptyString,
+} from "@/lib/api/shared";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 15;
@@ -76,11 +81,18 @@ function isSafeExplanation(text: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-    const ip = getClientIp(request);
-    if (isRateLimited(ip)) {
+    const clientKey = getRateLimitKey(request);
+    if (await isRateLimited(clientKey)) {
         return NextResponse.json(
             { error: "Rate limit exceeded. Please try again shortly." },
             { status: 429 }
+        );
+    }
+
+    if (!hasAiRouteAccess(request)) {
+        return NextResponse.json(
+            { error: "Unauthorized request origin for AI endpoint." },
+            { status: 401 }
         );
     }
 
