@@ -1,6 +1,6 @@
 "use client";
 
-import { Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 
 interface ListenCardProps {
   isPlaying: boolean;
@@ -13,20 +13,21 @@ export function ListenCard({ isPlaying, ttsSupported, onPlayAudio }: ListenCardP
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300 text-center">
       <h2 className="text-2xl font-semibold text-slate-900 mb-6">Listen and Learn</h2>
 
-      {/* Audio play/pause control */}
       <div className="bg-white/80 rounded-2xl p-8 mb-6 flex flex-col items-center justify-center border border-slate-200">
-        <button
+        <Button
           onClick={onPlayAudio}
           disabled={!ttsSupported}
-          className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl shadow-[0_16px_30px_rgba(15,23,42,0.15)] transition-all transform ${
+          variant="primary"
+          size="lg"
+          className={`w-24 h-24 !rounded-full !px-0 !py-0 text-2xl shadow-[0_16px_30px_rgba(15,23,42,0.15)] transition-all transform ${
             isPlaying
-              ? "bg-rose-500 text-white animate-pulse scale-105"
-              : "bg-emerald-600 text-white hover:scale-110"
-          } ${!ttsSupported ? "opacity-50 cursor-not-allowed" : ""}`}
+              ? "!bg-rose-500 !text-white animate-pulse scale-105"
+              : "!bg-emerald-600 !text-white hover:scale-110"
+          }`}
           aria-disabled={!ttsSupported}
         >
           {isPlaying ? "Pause" : "Play"}
-        </button>
+        </Button>
         <p className="mt-4 text-slate-600 font-medium">
           {ttsSupported
             ? isPlaying

@@ -9,6 +9,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
+import {
+  createRateLimiter,
+  getClientIp,
+  isNonEmptyString,
+  parseJsonFromModel,
+} from "@/lib/api/shared";
 
 // Valid subjects for Standard 7
 const VALID_SUBJECTS = ["Science", "Maths"] as const;
@@ -45,75 +51,16 @@ Output strictly in this JSON format:
 // Input length limits.
 const MAX_ID_LENGTH = 120;
 
-// Rate limiting (simple in-memory)
+// Route-level rate limiting.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
-type RateLimitEntry = { count: number; windowStartMs: number };
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-/**
- * Get client IP from request headers
- */
-function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp;
-  return "unknown";
-}
-
-/**
- * Check if client is rate limited
- */
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitStore.get(ip);
-
-  if (!entry) {
-    rateLimitStore.set(ip, { count: 1, windowStartMs: now });
-    return false;
-  }
-
-  if (now - entry.windowStartMs > RATE_LIMIT_WINDOW_MS) {
-    rateLimitStore.set(ip, { count: 1, windowStartMs: now });
-    return false;
-  }
-
-  entry.count += 1;
-  rateLimitStore.set(ip, entry);
-  return entry.count > RATE_LIMIT_MAX_REQUESTS;
-}
+const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
 /**
  * Validate subject is Science or Maths
  */
 function isValidSubject(subject: string): subject is Subject {
   return VALID_SUBJECTS.includes(subject as Subject);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-// Strip markdown fences and parse JSON from the model response.
-function parseJsonFromModel(text: string): unknown {
-  if (!text) throw new Error("Empty response");
-
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-  }
-
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1) {
-    cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-  }
-
-  return JSON.parse(cleaned);
 }
 
 export async function POST(request: NextRequest) {

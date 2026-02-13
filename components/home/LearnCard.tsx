@@ -90,18 +90,19 @@ export function LearnCard({
         </div>
         <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 p-1 text-xs font-semibold text-slate-600">
           {(["simple", "standard", "deep"] as ExplainLevel[]).map((level) => (
-            <button
+            <Button
               key={level}
-              type="button"
               onClick={() => onExplainLevelChange(level)}
-              className={`rounded-full px-3 py-1 capitalize transition-colors ${
+              variant="ghost"
+              size="sm"
+              className={`!rounded-full !px-3 !py-1 capitalize ${
                 explainLevel === level
-                  ? "bg-emerald-100 text-emerald-900"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "!bg-emerald-100 !text-emerald-900"
+                  : "!text-slate-600 hover:!bg-slate-100"
               }`}
             >
               {level}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -116,18 +117,19 @@ export function LearnCard({
             {availableSubtopics.map((subtopic) => {
               const isActive = selectedSubtopic?.id === subtopic.id;
               return (
-                <button
+                <Button
                   key={subtopic.id}
-                  type="button"
                   onClick={() => onSubtopicChange(subtopic.id)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                  variant="ghost"
+                  size="sm"
+                  className={`!rounded-xl !border !px-3 !py-2 !text-sm !font-medium ${
                     isActive
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                      : "border-slate-200 bg-white/80 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/60"
+                      ? "!border-emerald-300 !bg-emerald-50 !text-emerald-900"
+                      : "!border-slate-200 !bg-white/80 !text-slate-700 hover:!border-emerald-200 hover:!bg-emerald-50/60"
                   }`}
                 >
                   {subtopic.title}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -146,14 +148,15 @@ export function LearnCard({
                 : "Academic-style deep dive with classification and applications."}
           </span>
           {explainLevel === "deep" && onGenerateDeep && (
-            <button
-              type="button"
+            <Button
               onClick={() => onGenerateDeep(deepHasAi)}
               disabled={!canGenerate}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+              variant="ghost"
+              size="sm"
+              className={`inline-flex items-center gap-2 !rounded-full !border !px-3 !py-1 !text-xs !font-semibold ${
                 !canGenerate
-                  ? "cursor-not-allowed border-slate-200 text-slate-400"
-                  : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  ? "!cursor-not-allowed !border-slate-200 !text-slate-400"
+                  : "!border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
               }`}
               aria-label="Generate deep explanation with AI"
               title="Generate a longer deep explanation with AI"
@@ -168,7 +171,7 @@ export function LearnCard({
                   : deepHasAi
                     ? "Regenerate"
                     : "Generate"}
-            </button>
+            </Button>
           )}
         </div>
         <div className="prose prose-base max-w-none text-slate-800 leading-relaxed">
@@ -177,7 +180,7 @@ export function LearnCard({
           ) : null}
         </div>
         {explainLevel === "deep" && deepLoading && (
-          <div className="mt-4 text-sm text-slate-600">Generating the deep explanation…</div>
+          <div className="mt-4 text-sm text-slate-600">Generating the deep explanation...</div>
         )}
 
         {explainLevel === "deep" && deepError && (
@@ -391,26 +394,30 @@ export function LearnCard({
           How do you feel about this subtopic?
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onSelfCheckChange("confident")}
-            className={`px-4 py-2 rounded-full text-sm font-semibold border ${
+            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${
               selfCheck === "confident"
-                ? "bg-emerald-200 border-emerald-300 text-emerald-900"
-                : "bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                ? "!bg-emerald-200 !border-emerald-300 !text-emerald-900"
+                : "!bg-white !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
             }`}
           >
             I can explain it
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onSelfCheckChange("unsure")}
-            className={`px-4 py-2 rounded-full text-sm font-semibold border ${
+            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${
               selfCheck === "unsure"
-                ? "bg-amber-200 border-amber-300 text-amber-900"
-                : "bg-white border-amber-200 text-amber-700 hover:bg-amber-50"
+                ? "!bg-amber-200 !border-amber-300 !text-amber-900"
+                : "!bg-white !border-amber-200 !text-amber-700 hover:!bg-amber-50"
             }`}
           >
             I need more help
-          </button>
+          </Button>
         </div>
 
         {selfCheck === "confident" && (
@@ -427,3 +434,5 @@ export function LearnCard({
     </Card>
   );
 }
+
+
