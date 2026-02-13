@@ -36,6 +36,11 @@ const NO_REACTION_PAIR = {
     chemicalB: "Sodium Hydroxide (NaOH)",
 };
 
+const NEW_REACTION_PAIR = {
+    chemicalA: "Calcium Carbonate (CaCO₃)",
+    chemicalB: "Vinegar (CH₃COOH)",
+};
+
 /* ── Tests ────────────────────────────────────────────────── */
 
 describe("/api/lab – Reaction Playground API", () => {
@@ -127,6 +132,19 @@ describe("/api/lab – Reaction Playground API", () => {
 
             const res = await POST(makeJsonRequest(VALID_PAIR));
             // Should pass validation — either 500 (no key) or 200 (if key exists)
+            expect(res.status).not.toBe(400);
+
+            if (prev !== undefined) {
+                process.env.GEMINI_API_KEY = prev;
+            }
+        });
+
+        it("validates a newly added reaction pair (Vinegar + CaCO3)", async () => {
+            const prev = process.env.GEMINI_API_KEY;
+            delete process.env.GEMINI_API_KEY;
+
+            const res = await POST(makeJsonRequest(NEW_REACTION_PAIR));
+            // Should find the reaction, get 500 from API key check (not 400 validation error)
             expect(res.status).not.toBe(400);
 
             if (prev !== undefined) {

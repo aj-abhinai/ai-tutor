@@ -43,6 +43,27 @@ const REACTIONS: Reaction[] = [
         category: "Neutralization",
     },
 
+    {
+        id: "hcl-koh",
+        reactantA: "Hydrochloric Acid (HCl)",
+        reactantB: "Potassium Hydroxide (KOH)",
+        equation: "HCl + KOH → KCl + H₂O",
+        products: "Potassium Chloride + Water",
+        visual: { color: "#eef2ff", heat: "exothermic" },
+        category: "Neutralization",
+    },
+    {
+        id: "h2so4-naoh",
+        reactantA: "Sulphuric Acid (H₂SO₄)",
+        reactantB: "Sodium Hydroxide (NaOH)",
+        equation: "H₂SO₄ + 2NaOH → Na₂SO₄ + 2H₂O",
+        products: "Sodium Sulphate + Water",
+        visual: { color: "#e0f2f1", heat: "exothermic" },
+        category: "Neutralization",
+    },
+
+    // ── Neutralization (Cross-Acid/Base) above ─────────────────────
+
     // ── Metal + Acid ───────────────────────────────────────────────
     {
         id: "zn-hcl",
@@ -63,12 +84,39 @@ const REACTIONS: Reaction[] = [
         category: "Metal–Acid",
     },
     {
+        id: "fe-hcl",
+        reactantA: "Iron (Fe)",
+        reactantB: "Hydrochloric Acid (HCl)",
+        equation: "Fe + 2HCl → FeCl₂ + H₂↑",
+        products: "Ferrous Chloride + Hydrogen gas",
+        visual: { color: "#dcedc8", gas: true, heat: "exothermic" },
+        category: "Metal–Acid",
+    },
+    {
         id: "fe-h2so4",
         reactantA: "Iron (Fe)",
         reactantB: "Sulphuric Acid (H₂SO₄)",
         equation: "Fe + H₂SO₄ → FeSO₄ + H₂↑",
         products: "Iron Sulphate + Hydrogen gas",
         visual: { color: "#c8e6c9", gas: true, heat: "exothermic" },
+        category: "Metal–Acid",
+    },
+    {
+        id: "zn-h2so4",
+        reactantA: "Zinc (Zn)",
+        reactantB: "Sulphuric Acid (H₂SO₄)",
+        equation: "Zn + H₂SO₄ → ZnSO₄ + H₂↑",
+        products: "Zinc Sulphate + Hydrogen gas",
+        visual: { color: "#e6ee9c", gas: true, heat: "exothermic" },
+        category: "Metal–Acid",
+    },
+    {
+        id: "mg-h2so4",
+        reactantA: "Magnesium (Mg)",
+        reactantB: "Sulphuric Acid (H₂SO₄)",
+        equation: "Mg + H₂SO₄ → MgSO₄ + H₂↑",
+        products: "Magnesium Sulphate + Hydrogen gas",
+        visual: { color: "#c5e1a5", gas: true, heat: "exothermic" },
         category: "Metal–Acid",
     },
 
@@ -92,12 +140,30 @@ const REACTIONS: Reaction[] = [
         category: "Carbonate–Acid",
     },
     {
+        id: "nahco3-h2so4",
+        reactantA: "Sodium Bicarbonate (NaHCO₃)",
+        reactantB: "Sulphuric Acid (H₂SO₄)",
+        equation: "2NaHCO₃ + H₂SO₄ → Na₂SO₄ + 2H₂O + 2CO₂↑",
+        products: "Sodium Sulphate + Water + Carbon Dioxide gas",
+        visual: { color: "#ffecb3", gas: true },
+        category: "Carbonate–Acid",
+    },
+    {
         id: "nahco3-vinegar",
         reactantA: "Baking Soda (NaHCO₃)",
         reactantB: "Vinegar (CH₃COOH)",
         equation: "NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂↑",
         products: "Sodium Acetate + Water + Carbon Dioxide gas",
         visual: { color: "#fff8e1", gas: true },
+        category: "Carbonate–Acid",
+    },
+    {
+        id: "caco3-vinegar",
+        reactantA: "Calcium Carbonate (CaCO₃)",
+        reactantB: "Vinegar (CH₃COOH)",
+        equation: "CaCO₃ + 2CH₃COOH → (CH₃COO)₂Ca + H₂O + CO₂↑",
+        products: "Calcium Acetate + Water + Carbon Dioxide gas",
+        visual: { color: "#fffde7", gas: true },
         category: "Carbonate–Acid",
     },
 
@@ -118,6 +184,15 @@ const REACTIONS: Reaction[] = [
         equation: "Zn + CuSO₄ → ZnSO₄ + Cu",
         products: "Zinc Sulphate + Copper (deposited)",
         visual: { color: "#b2dfdb", precipitate: true },
+        category: "Displacement",
+    },
+    {
+        id: "mg-cuso4",
+        reactantA: "Magnesium (Mg)",
+        reactantB: "Copper Sulphate Solution (CuSO₄)",
+        equation: "Mg + CuSO₄ → MgSO₄ + Cu",
+        products: "Magnesium Sulphate + Copper (deposited)",
+        visual: { color: "#80cbc4", precipitate: true, heat: "exothermic" },
         category: "Displacement",
     },
 
