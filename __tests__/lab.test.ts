@@ -41,6 +41,11 @@ const NEW_REACTION_PAIR = {
     chemicalB: "Vinegar (CH₃COOH)",
 };
 
+const LEAD_IODIDE_PAIR = {
+    chemicalA: "Lead Nitrate (Pb(NO₃)₂)",
+    chemicalB: "Potassium Iodide (KI)",
+};
+
 /* ── Tests ────────────────────────────────────────────────── */
 
 describe("/api/lab – Reaction Playground API", () => {
@@ -145,6 +150,19 @@ describe("/api/lab – Reaction Playground API", () => {
 
             const res = await POST(makeJsonRequest(NEW_REACTION_PAIR));
             // Should find the reaction, get 500 from API key check (not 400 validation error)
+            expect(res.status).not.toBe(400);
+
+            if (prev !== undefined) {
+                process.env.GEMINI_API_KEY = prev;
+            }
+        });
+
+        it("validates the new Lead Nitrate + KI reaction", async () => {
+            const prev = process.env.GEMINI_API_KEY;
+            delete process.env.GEMINI_API_KEY;
+
+            const res = await POST(makeJsonRequest(LEAD_IODIDE_PAIR));
+            // Should find the reaction
             expect(res.status).not.toBe(400);
 
             if (prev !== undefined) {

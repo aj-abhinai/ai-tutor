@@ -266,6 +266,68 @@ const REACTIONS: Reaction[] = [
         visual: { color: "#fff3e0", heat: "exothermic" },
         category: "Combination",
     },
+
+    // ── Indicators (New) ───────────────────────────────────────────
+    {
+        id: "ph-naoh",
+        reactantA: "Phenolphthalein Solution",
+        reactantB: "Sodium Hydroxide (NaOH)",
+        equation: "HIn + NaOH → NaIn + H₂O",
+        products: "Pink Solution (Basic medium)",
+        visual: { color: "#f48fb1" },
+        category: "Indicator Test",
+    },
+    {
+        id: "ph-koh",
+        reactantA: "Phenolphthalein Solution",
+        reactantB: "Potassium Hydroxide (KOH)",
+        equation: "HIn + KOH → KIn + H₂O",
+        products: "Pink Solution (Basic medium)",
+        visual: { color: "#f48fb1" },
+        category: "Indicator Test",
+    },
+    {
+        id: "lemon-baking-soda",
+        reactantA: "Lemon Juice (Citric Acid)",
+        reactantB: "Baking Soda (NaHCO₃)",
+        equation: "C₆H₈O₇ + 3NaHCO₃ → Na₃C₆H₅O₇ + 3H₂O + 3CO₂↑",
+        products: "Sodium Citrate + Water + Carbon Dioxide gas",
+        visual: { color: "#fff9c4", gas: true }, // Fizzy yellow
+        category: "Neutralization",
+    },
+
+    // ── More Displacement ──────────────────────────────────────────
+    {
+        id: "al-cuso4",
+        reactantA: "Aluminium (Al)",
+        reactantB: "Copper Sulphate Solution (CuSO₄)",
+        equation: "2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu",
+        products: "Aluminium Sulphate + Copper (deposited)",
+        visual: { color: "#e0f2f1", precipitate: true, heat: "exothermic" }, // Colour fades from blue
+        category: "Displacement",
+    },
+
+    // ── Double Displacement (New) ──────────────────────────────────
+    {
+        id: "pbn03-ki",
+        reactantA: "Lead Nitrate (Pb(NO₃)₂)",
+        reactantB: "Potassium Iodide (KI)",
+        equation: "Pb(NO₃)₂ + 2KI → PbI₂↓ + 2KNO₃",
+        products: "Lead Iodide (Yellow Precipitate) + Potassium Nitrate",
+        visual: { color: "#fff59d", precipitate: true }, // Bright yellow
+        category: "Double Displacement",
+    },
+
+    // ── Oxidation ──────────────────────────────────────────────────
+    {
+        id: "cu-o2",
+        reactantA: "Copper (Cu)",
+        reactantB: "Oxygen (O₂)",
+        equation: "2Cu + O₂ → 2CuO",
+        products: "Copper(II) Oxide (Black coating)",
+        visual: { color: "#424242", heat: "exothermic" },
+        category: "Oxidation",
+    },
 ];
 
 export default REACTIONS;

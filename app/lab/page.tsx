@@ -123,6 +123,8 @@ export default function LabPage() {
                         <ReactionResult
                             reaction={result.reaction}
                             explanation={result.explanation}
+                            chemicalA={chemicalA}
+                            chemicalB={chemicalB}
                         />
                         <div className="mt-6 text-center">
                             <Button variant="ghost" size="sm" onClick={handleReset}>
