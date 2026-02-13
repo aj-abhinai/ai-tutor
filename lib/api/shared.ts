@@ -185,12 +185,27 @@ export function hasAiRouteAccess(request: NextRequest): boolean {
   if (!enforceOrigin) return true;
 
   const origin = request.headers.get("origin");
-  if (!origin) return false;
+  const referer = request.headers.get("referer");
 
   try {
-    const originUrl = new URL(origin);
     const requestUrl = new URL(request.url);
-    return originUrl.protocol === requestUrl.protocol && originUrl.host === requestUrl.host;
+
+    if (origin) {
+      const originUrl = new URL(origin);
+      if (originUrl.protocol === requestUrl.protocol && originUrl.host === requestUrl.host) {
+        return true;
+      }
+    }
+
+    // Some same-origin requests may omit Origin; fall back to Referer origin.
+    if (referer) {
+      const refererUrl = new URL(referer);
+      if (refererUrl.protocol === requestUrl.protocol && refererUrl.host === requestUrl.host) {
+        return true;
+      }
+    }
+
+    return false;
   } catch {
     return false;
   }

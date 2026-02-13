@@ -103,8 +103,8 @@ describe("/api/lab – Reaction Playground API", () => {
         });
     });
 
-    /* ---------- API key guard ---------- */
-    describe("API key guard", () => {
+    /* ---------- API key fallback ---------- */
+    describe("API key fallback", () => {
         const originalEnv = process.env.GEMINI_API_KEY;
 
         afterEach(() => {
@@ -115,12 +115,13 @@ describe("/api/lab – Reaction Playground API", () => {
             }
         });
 
-        it("returns 500 when GEMINI_API_KEY is missing", async () => {
+        it("returns deterministic lab output when GEMINI_API_KEY is missing", async () => {
             delete process.env.GEMINI_API_KEY;
             const res = await POST(makeJsonRequest(VALID_PAIR));
-            expect(res.status).toBe(500);
+            expect(res.status).toBe(200);
             const data = await res.json();
-            expect(data.error).toContain("configuration");
+            expect(data.reaction).toBeTruthy();
+            expect(typeof data.explanation).toBe("string");
         });
     });
 
@@ -131,13 +132,12 @@ describe("/api/lab – Reaction Playground API", () => {
         // and check that unknown pairs still get validated.
 
         it("validates a known reaction pair without error (up to Gemini call)", async () => {
-            // If no API key, this should return 500 (config error), not 400
+            // If no API key, this should still return deterministic output.
             const prev = process.env.GEMINI_API_KEY;
             delete process.env.GEMINI_API_KEY;
 
             const res = await POST(makeJsonRequest(VALID_PAIR));
-            // Should pass validation — either 500 (no key) or 200 (if key exists)
-            expect(res.status).not.toBe(400);
+            expect(res.status).toBe(200);
 
             if (prev !== undefined) {
                 process.env.GEMINI_API_KEY = prev;
@@ -149,8 +149,7 @@ describe("/api/lab – Reaction Playground API", () => {
             delete process.env.GEMINI_API_KEY;
 
             const res = await POST(makeJsonRequest(NEW_REACTION_PAIR));
-            // Should find the reaction, get 500 from API key check (not 400 validation error)
-            expect(res.status).not.toBe(400);
+            expect(res.status).toBe(200);
 
             if (prev !== undefined) {
                 process.env.GEMINI_API_KEY = prev;
@@ -162,8 +161,7 @@ describe("/api/lab – Reaction Playground API", () => {
             delete process.env.GEMINI_API_KEY;
 
             const res = await POST(makeJsonRequest(LEAD_IODIDE_PAIR));
-            // Should find the reaction
-            expect(res.status).not.toBe(400);
+            expect(res.status).toBe(200);
 
             if (prev !== undefined) {
                 process.env.GEMINI_API_KEY = prev;
@@ -175,8 +173,7 @@ describe("/api/lab – Reaction Playground API", () => {
             delete process.env.GEMINI_API_KEY;
 
             const res = await POST(makeJsonRequest(NO_REACTION_PAIR));
-            // Should pass validation — 500 because no API key, not 400
-            expect(res.status).toBe(500);
+            expect(res.status).toBe(200);
 
             if (prev !== undefined) {
                 process.env.GEMINI_API_KEY = prev;

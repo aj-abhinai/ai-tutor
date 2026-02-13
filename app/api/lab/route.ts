@@ -12,7 +12,6 @@ import { findExampleReactionForChemical, findReaction } from "@/lib/reaction-eng
 import {
     createRateLimiter,
     getRateLimitKey,
-    hasAiRouteAccess,
     isNonEmptyString,
 } from "@/lib/api/shared";
 
@@ -89,13 +88,6 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    if (!hasAiRouteAccess(request)) {
-        return NextResponse.json(
-            { error: "Unauthorized request origin for AI endpoint." },
-            { status: 401 }
-        );
-    }
-
     let body: unknown;
     try {
         body = await request.json();
@@ -139,7 +131,10 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+        return NextResponse.json({
+            reaction: reaction ?? null,
+            explanation: deterministicSummary,
+        });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);

@@ -1,22 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Alert, Button, StatusCard } from "@/components/ui";
 import { LabHeader } from "@/components/lab/LabHeader";
 import { ChemicalPicker } from "@/components/lab/ChemicalPicker";
-import { getChemicalsList, getDefaultReactionPair } from "@/lib/reaction-engine";
+import { ReactionResult } from "@/components/lab/ReactionResult";
+import { findReaction, getChemicalsList, getDefaultReactionPair } from "@/lib/reaction-engine";
 import type { Reaction } from "@/lib/reactions";
-
-const ReactionResult = dynamic(
-    () => import("@/components/lab/ReactionResult").then((m) => m.ReactionResult)
-);
 
 interface LabAPIResponse {
     reaction: Reaction | null;
     explanation: string;
     error?: string;
+}
+
+function buildFallbackExplanation(chemicalA: string, chemicalB: string, reaction: Reaction | null): string {
+    if (reaction) {
+        return `${reaction.reactantA} reacts with ${reaction.reactantB}. Balanced equation: ${reaction.equation}. Products: ${reaction.products}.`;
+    }
+    return `${chemicalA} and ${chemicalB} do not show a clear reaction under normal class-lab conditions.`;
 }
 
 export default function LabPage() {
@@ -43,6 +46,8 @@ export default function LabPage() {
 
     const handleMix = async () => {
         if (!canMix || loading) return;
+        const left = chemicalA.trim();
+        const right = chemicalB.trim();
 
         setLoading(true);
         setError("");
@@ -53,14 +58,19 @@ export default function LabPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    chemicalA: chemicalA.trim(),
-                    chemicalB: chemicalB.trim(),
+                    chemicalA: left,
+                    chemicalB: right,
                 }),
             });
             const data: LabAPIResponse = await res.json();
 
             if (!res.ok) {
                 setError(data.error ?? "Something went wrong");
+                const fallbackReaction = findReaction(left, right);
+                setResult({
+                    reaction: fallbackReaction,
+                    explanation: buildFallbackExplanation(left, right, fallbackReaction),
+                });
             } else {
                 setResult({
                     reaction: data.reaction,
@@ -69,6 +79,11 @@ export default function LabPage() {
             }
         } catch {
             setError("Failed to connect to API");
+            const fallbackReaction = findReaction(left, right);
+            setResult({
+                reaction: fallbackReaction,
+                explanation: buildFallbackExplanation(left, right, fallbackReaction),
+            });
         } finally {
             setLoading(false);
         }

@@ -31,19 +31,13 @@ function phaseText(phase: MixPhase, reaction: Reaction | null): string {
 }
 
 export function ReactionResult({ reaction, explanation, chemicalA, chemicalB }: ReactionResultProps) {
-    const plan = useMemo(() => buildSimulationPlan(reaction), [reaction]);
+    // Stabilise on reaction id so that JSON-deserialised objects don't
+    // cause infinite re-renders (new object reference every render).
+    const reactionId = reaction?.id ?? null;
+    const plan = useMemo(() => buildSimulationPlan(reaction), [reactionId]);  // eslint-disable-line react-hooks/exhaustive-deps
     const [phase, setPhase] = useState<MixPhase>("pick-a");
     const [reactionReady, setReactionReady] = useState(false);
-    const [reduceMotion, setReduceMotion] = useState(false);
-
-    useEffect(() => {
-        if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-        const update = () => setReduceMotion(media.matches);
-        update();
-        media.addEventListener("change", update);
-        return () => media.removeEventListener("change", update);
-    }, []);
+    const reduceMotion = false;
 
     useEffect(() => {
         setPhase("pick-a");
@@ -66,7 +60,7 @@ export function ReactionResult({ reaction, explanation, chemicalA, chemicalB }: 
         ];
 
         return () => timers.forEach((timer) => window.clearTimeout(timer));
-    }, [chemicalA, chemicalB, plan, reduceMotion, reaction?.id]);
+    }, [chemicalA, chemicalB, reactionId, reduceMotion]);  // eslint-disable-line react-hooks/exhaustive-deps
 
     const leftActive = phase === "pick-a" || phase === "pour-a";
     const rightActive = phase === "pick-b" || phase === "pour-b";
