@@ -41,6 +41,20 @@ AI is used only in two places:
 - Deep explanation: triggered on demand; uses Gemini to expand intuition and analogies; constrained by topic keywords to avoid syllabus drift.
 - Explain-it-back: students explain the concept in their own words; AI evaluates understanding and gives gentle corrective feedback.
 
+## Lab Module (Chemistry Playground)
+The project also includes a virtual chemistry lab where students select two chemicals and run a simulated mix.
+
+### How Lab Works
+1. Students choose Chemical A and Chemical B from a curated Class 7-safe list.
+2. The local reaction engine resolves the outcome deterministically (reaction/no reaction).
+3. The UI shows animated reaction cues (colour change, bubbles, precipitate, heat effect) based on reaction metadata.
+4. A short explanation is returned for the observed outcome.
+
+### AI Boundary in Lab
+- Chemistry facts are always determined by the local reaction dataset and rule engine.
+- Gemini is used only to rewrite the deterministic summary into simpler student-friendly wording.
+- If AI is unavailable, the app still returns deterministic local output so learning and animations continue.
+
 ## Key Decisions and Rationale
 - Local curriculum and question bank: ensures accuracy, scope control, and predictable coverage.
 - Structured AI response shapes: keeps content consistent and prevents UI breakage.
