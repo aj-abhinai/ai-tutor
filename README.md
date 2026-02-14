@@ -5,6 +5,7 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths using a 
 - Learn card with quick explanations, level-based bullet points, and a curiosity question.
 - Listen card that reads the Learn content aloud using browser TTS.
 - Quiz card with MCQ and short-answer questions from the local question bank.
+- **Reaction Lab**: An interactive playground to mix chemicals and observe reactions (color change, gas, precipitate).
 - Explain-it-back and quiz feedback powered by Gemini (with fallback checks for short answers).
 - Deep explanation generator for extended reading (HTML-formatted sections).
 
@@ -40,3 +41,4 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths using a 
 - `POST /api/expand` returns an expanded explanation with analogy and misconceptions.
 - `POST /api/deep` returns a long-form, structured explanation.
 - `POST /api/feedback` returns feedback for explain-it-back and quiz answers.
+- `POST /api/lab` returns reaction results and a simplified AI explanation for a given pair of chemicals.
