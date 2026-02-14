@@ -678,7 +678,7 @@ export default function Home() {
         <div className="flex justify-center mb-4">
           <Link
             href="/lab"
-            className="inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(109,40,217,0.25)] hover:bg-violet-700 transition-colors"
+            className="chemistry-nav-btn"
           >
             Chemistry Playground
           </Link>
