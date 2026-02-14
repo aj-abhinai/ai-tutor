@@ -113,8 +113,10 @@ export function createRateLimiter(windowMs: number, maxRequests: number) {
   const backend = getRateLimitBackend();
 
   return async (key: string): Promise<boolean> => {
-    // Keep tests deterministic and avoid cross-test throttling.
-    if (process.env.NODE_ENV === "test") return false;
+    // Keep local/dev and tests free from throttling noise.
+    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+      return false;
+    }
 
     if (backend === "upstash") {
       return isRateLimitedWithUpstash(key, windowMs, maxRequests);

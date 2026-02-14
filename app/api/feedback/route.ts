@@ -1,528 +1,423 @@
 /**
  * /api/feedback - Explain-it-back + quiz feedback route
  *
- * Standard 7 NCERT Interactive Tutor
- * Input: { subject, chapterId, topicId, subtopicId, studentAnswer, mode?, question?, expectedAnswer?, answerExplanation?, lessonContext? }
- * Output: JSON with feedback
+ * Input:
+ * {
+ *   subject, chapterId, topicId, subtopicId,
+ *   studentAnswer,
+ *   lessonContext?,
+ *   mode?, question?, expectedAnswer?, answerExplanation?
+ * }
+ *
+ * Output:
+ * { feedback: { rating, praise, fix, rereadTip, isCorrect? } }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSubtopicById, formatSubtopicForFeedback } from "@/lib/curriculum";
+import { formatSubtopicForFeedback, getSubtopicById } from "@/lib/curriculum";
 import {
-    createGeminiModel,
-    createRateLimiter,
-    getRateLimitKey,
-    hasAiRouteAccess,
-    isNonEmptyString,
-    isValidSubject,
-    MAX_ID_LENGTH,
-    parseJsonFromModel,
+  createGeminiModel,
+  createRateLimiter,
+  getRateLimitKey,
+  hasAiRouteAccess,
+  isNonEmptyString,
+  isValidSubject,
+  MAX_ID_LENGTH,
+  parseJsonFromModel,
 } from "@/lib/api/shared";
 
+type FeedbackMode = "explain" | "quiz";
+type FeedbackRating = "great" | "good start" | "needs work";
 
 type TutorFeedbackResponse = {
-    rating: string;
-    praise: string;
-    fix: string;
-    rereadTip: string;
-    isCorrect?: boolean;
+  rating: FeedbackRating;
+  praise: string;
+  fix: string;
+  rereadTip: string;
+  isCorrect?: boolean;
 };
 
-type FeedbackMode = "explain" | "quiz";
-
-// Prompt for explain-it-back feedback.
-const FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
-
-Task:
-Given a student's "Explain it back" answer, check it against the lesson summary and checklist and give simple feedback.
-
-Rules:
-- Use simple words a 12-year-old understands
-- Be kind and encouraging
-- Never be harsh or shaming
-- Identify what is RIGHT (only if the student explicitly said it)
-- Identify what is MISSING or CONFUSED (correct it gently)
-- If unsure, say it's missing rather than guessing
-- Suggest what to re-read (mention a key idea from the lesson summary or checklist)
-- If the answer is gibberish or random letters, say you couldn't understand it and ask for 1-2 real sentences
-- If nothing is correct, do not praise correctness. You may still thank the student for trying.
-- Keep it short, no long paragraphs
-- Return only JSON, no markdown or code fences
-
-Output strictly in this JSON format:
-{
-  "rating": "great" | "good start" | "needs work",
-  "praise": "Right: ...",
-  "fix": "Wrong or missing: ...",
-  "rereadTip": "Re-read: ..."
-}
-`;
-
-// Prompt for descriptive quiz answer feedback.
-const QUIZ_FEEDBACK_PROMPT = `You are a friendly Class 7 tutor.
-
-Task:
-Grade a student's descriptive answer to a quiz question using the expected answer.
-
-Rules:
-- Use simple words a 12-year-old understands
-- Be kind and encouraging
-- Decide if the answer is correct based on the core idea
-- If partially correct, mark it as not correct but encourage it
-- Point out what is right and what is missing
-- Use the expected answer and explanation to guide your decision
-- Keep it short, no long paragraphs
-- Return only JSON, no markdown or code fences
-
-Output strictly in this JSON format:
-{
-  "isCorrect": true | false,
-  "rating": "correct" | "partially correct" | "incorrect",
-  "praise": "Right: ...",
-  "fix": "Missing or incorrect: ...",
-  "rereadTip": "Re-read: ..."
-}
-`;
-
-// Input length limits.
 const MAX_STUDENT_ANSWER_LENGTH = 600;
+const MAX_LESSON_CONTEXT_LENGTH = 1600;
+const MAX_QUESTION_LENGTH = 400;
+const MAX_EXPECTED_ANSWER_LENGTH = 400;
+const MAX_ANSWER_EXPLANATION_LENGTH = 700;
+const MAX_FIELD_LENGTH = 240;
 
-// Stopwords used for quick keyword overlap checks.
-const STOPWORDS = new Set([
-    "the",
-    "a",
-    "an",
-    "and",
-    "or",
-    "but",
-    "if",
-    "then",
-    "so",
-    "to",
-    "of",
-    "in",
-    "on",
-    "for",
-    "with",
-    "as",
-    "is",
-    "are",
-    "was",
-    "were",
-    "be",
-    "been",
-    "being",
-    "it",
-    "this",
-    "that",
-    "these",
-    "those",
-    "by",
-    "from",
-    "at",
-    "into",
-    "about",
-    "over",
-    "under",
-    "we",
-    "you",
-    "they",
-    "he",
-    "she",
-    "i",
-    "my",
-    "your",
-    "their",
-    "our",
-]);
 
-// Route-level rate limiting.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
+const BASE_PROMPT = `You are a warm, encouraging NCERT Class 7 teacher who loves helping students learn.
+
+Task:
+Evaluate the student's answer and give kind, helpful feedback.
+
+Your personality:
+- You are like a supportive older sibling helping with homework.
+- Never be harsh, sarcastic, or discouraging.
+- Use simple words that a 12-year-old understands.
+- Keep each field short (1-2 lines max).
+
+Rating guide:
+- "great" = the core idea is correct
+- "good start" = partially correct or on the right track
+- "needs work" = the idea is mostly wrong, but still encourage to try again
+
+Rules:
+- For "praise": Only mention something the student actually got RIGHT. If NOTHING is correct, just say "Good effort trying to answer!" — do NOT invent something correct that the student did not say.
+- For "fix": Clearly state what is wrong with the student's answer, then give the CORRECT answer in simple words.
+- For "rereadTip": Name the specific section or concept the student should revisit.
+- Do NOT praise an incorrect idea as correct.
+- Return strict JSON only. No markdown, no extra text.
+
+Return exactly:
+{
+  "isCorrect": true | false,
+  "rating": "great" | "good start" | "needs work",
+  "praise": "Appreciate the effort or what they got right",
+  "fix": "Gently explain what is wrong and give the correct answer",
+  "rereadTip": "Which specific topic or concept to re-read"
+}`;
 
 
-// Extract key words for a lightweight overlap check.
-function extractKeywords(text: string): string[] {
-    const words = text.toLowerCase().match(/[a-z]{3,}/g) ?? [];
-    const filtered = words.filter((word) => !STOPWORDS.has(word));
-    return Array.from(new Set(filtered));
-}
 
-// Heuristic to detect random or unreadable input.
-function isLikelyGibberish(answer: string): boolean {
-    const trimmed = answer.trim();
-    if (!trimmed) return true;
-    const totalChars = trimmed.length;
-    const letters = (trimmed.match(/[A-Za-z]/g) ?? []).length;
-    const digits = (trimmed.match(/[0-9]/g) ?? []).length;
-    const vowels = (trimmed.match(/[AEIOUaeiou]/g) ?? []).length;
-    const words = trimmed.match(/[A-Za-z]+/g) ?? [];
-    const wordCount = words.length;
-    const letterRatio = totalChars > 0 ? letters / totalChars : 0;
-    const digitRatio = totalChars > 0 ? digits / totalChars : 0;
-    const avgWordLen =
-        wordCount > 0 ? words.reduce((sum, word) => sum + word.length, 0) / wordCount : 0;
-    const vowelRatio = letters > 0 ? vowels / letters : 0;
-
-    if (totalChars >= 25 && (letterRatio < 0.6 || digitRatio > 0.25)) return true;
-    if (avgWordLen >= 8 && vowelRatio < 0.25) return true;
-    return false;
-}
-
-// Normalize strings for exact-match checks.
 function normalizeAnswer(text: string): string {
-    return text
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-// Quick exact-match fallback for short answers.
 function isExactMatch(a: string, b: string): boolean {
-    const normA = normalizeAnswer(a);
-    const normB = normalizeAnswer(b);
-    return normA.length > 0 && normA === normB;
+  const normA = normalizeAnswer(a);
+  const normB = normalizeAnswer(b);
+  return normA.length > 0 && normA === normB;
 }
 
-// Build rule-based feedback when the model output is invalid.
-function buildFallbackFeedback(
-    studentAnswer: string,
-    lessonText: string,
-    keyConcepts: string[],
-    subtopicTitle: string
-): TutorFeedbackResponse {
-    const cleaned = studentAnswer.trim();
-    const words = cleaned.match(/[A-Za-z]+/g) ?? [];
-    const wordCount = words.length;
-    const focusIdea = keyConcepts[0] || subtopicTitle;
+function isLikelyGibberish(answer: string): boolean {
+  const trimmed = answer.trim();
+  if (!trimmed) return true;
+  const totalChars = trimmed.length;
+  const letters = (trimmed.match(/[A-Za-z]/g) ?? []).length;
+  const digits = (trimmed.match(/[0-9]/g) ?? []).length;
+  const vowels = (trimmed.match(/[AEIOUaeiou]/g) ?? []).length;
+  const words = trimmed.match(/[A-Za-z]+/g) ?? [];
+  const wordCount = words.length;
+  const letterRatio = totalChars > 0 ? letters / totalChars : 0;
+  const digitRatio = totalChars > 0 ? digits / totalChars : 0;
+  const avgWordLen =
+    wordCount > 0 ? words.reduce((sum, word) => sum + word.length, 0) / wordCount : 0;
+  const vowelRatio = letters > 0 ? vowels / letters : 0;
 
-    if (wordCount < 4) {
-        return {
-            rating: "needs work",
-            praise: "Thanks for trying!",
-            fix: "Please write 1-2 full sentences so I can check your idea.",
-            rereadTip: `Re-read: ${focusIdea}`,
-        };
-    }
+  if (totalChars >= 25 && (letterRatio < 0.6 || digitRatio > 0.25)) return true;
+  if (avgWordLen >= 8 && vowelRatio < 0.25) return true;
+  return false;
+}
 
-    if (isLikelyGibberish(cleaned)) {
-        return {
-            rating: "needs work",
-            praise: "Thanks for trying!",
-            fix: "I couldn't understand the words. Please write 1-2 clear sentences.",
-            rereadTip: `Re-read: ${focusIdea}`,
-        };
-    }
+function trimField(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_FIELD_LENGTH);
+}
 
-    const keyWords = new Set(extractKeywords(`${lessonText} ${keyConcepts.join(" ")}`));
-    const answerWords = extractKeywords(cleaned);
-    const overlap = answerWords.filter((word) => keyWords.has(word));
+function normalizeRating(value: string): FeedbackRating | null {
+  const lowered = value.trim().toLowerCase();
+  if (lowered === "great" || lowered === "good start" || lowered === "needs work") {
+    return lowered;
+  }
+  if (lowered === "correct") return "great";
+  if (lowered === "partially correct") return "good start";
+  if (lowered === "incorrect") return "needs work";
+  return null;
+}
 
-    if (overlap.length === 0) {
-        return {
-            rating: "needs work",
-            praise: "Thanks for trying!",
-            fix: "I couldn't find the key idea yet. Try to mention the main concept from the lesson.",
-            rereadTip: `Re-read: ${focusIdea}`,
-        };
-    }
-
-    const highlighted = overlap.slice(0, 2).join(" and ");
-    return {
-        rating: overlap.length >= 2 ? "good start" : "needs work",
-        praise: `Right: You mentioned ${highlighted}.`,
-        fix: "Now add the main idea in a full sentence and connect it to the lesson.",
-        rereadTip: `Re-read: ${focusIdea}`,
-    };
+function parseBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const lowered = value.trim().toLowerCase();
+    if (["true", "yes", "correct"].includes(lowered)) return true;
+    if (["false", "no", "incorrect"].includes(lowered)) return false;
+  }
+  return undefined;
 }
 
 function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
-    for (const key of keys) {
-        const value = obj[key];
-        if (isNonEmptyString(value)) return value.trim();
-    }
-    return null;
+  for (const key of keys) {
+    const value = obj[key];
+    if (isNonEmptyString(value)) return value.trim();
+  }
+  return null;
 }
 
-// Normalize varied model response shapes into a single format.
 function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
-    if (!raw || typeof raw !== "object") return null;
-    let obj = raw as Record<string, unknown>;
+  if (!raw || typeof raw !== "object") return null;
+  let obj = raw as Record<string, unknown>;
+  if (obj.feedback && typeof obj.feedback === "object") {
+    obj = obj.feedback as Record<string, unknown>;
+  }
 
-    const nested = obj.feedback;
-    if (nested && typeof nested === "object") {
-        obj = nested as Record<string, unknown>;
-    }
+  const ratingRaw = pickString(obj, ["rating", "result", "score"]);
+  const praiseRaw = pickString(obj, ["praise", "positive", "strength", "right", "whatWasRight"]);
+  const fixRaw = pickString(obj, ["fix", "improve", "improvement", "missing", "wrong", "whatToFix"]);
+  const rereadRaw = pickString(obj, ["rereadTip", "reread", "review", "next", "reReadTip", "reread_tip"]);
+  const isCorrectRaw = obj.isCorrect ?? obj.correct ?? obj.is_correct;
 
-    const rating = pickString(obj, ["rating", "result", "score"]);
-    const praise = pickString(obj, ["praise", "positive", "strength", "right", "whatWasRight"]);
-    const fix = pickString(obj, ["fix", "improve", "improvement", "missing", "wrong", "whatToFix"]);
-    const rereadTip = pickString(obj, ["rereadTip", "reread", "review", "next", "reReadTip"]);
-    const rawCorrect = obj.isCorrect ?? obj.correct ?? obj.is_correct;
-    let isCorrect: boolean | undefined;
-    if (typeof rawCorrect === "boolean") {
-        isCorrect = rawCorrect;
-    } else if (typeof rawCorrect === "string") {
-        const lowered = rawCorrect.trim().toLowerCase();
-        if (["true", "yes", "correct"].includes(lowered)) isCorrect = true;
-        if (["false", "no", "incorrect"].includes(lowered)) isCorrect = false;
-    }
+  if (!ratingRaw || !praiseRaw || !fixRaw || !rereadRaw) {
+    return null;
+  }
 
-    if (!rating || !praise || !fix || !rereadTip) {
-        return null;
-    }
+  const rating = normalizeRating(ratingRaw);
+  if (!rating) return null;
 
+  return {
+    rating,
+    praise: trimField(praiseRaw),
+    fix: trimField(fixRaw),
+    rereadTip: trimField(rereadRaw),
+    isCorrect: parseBoolean(isCorrectRaw),
+  };
+}
+
+function forceStrictNeedsWork(
+  focusIdea: string,
+  reason: "gibberish" | "too_short" | "no_overlap"
+): TutorFeedbackResponse {
+  if (reason === "gibberish") {
     return {
-        rating,
-        praise,
-        fix,
-        rereadTip,
-        isCorrect,
+      rating: "needs work",
+      isCorrect: false,
+      praise: "I could not understand your explanation yet.",
+      fix: "Write 1-2 clear sentences with the correct concept.",
+      rereadTip: `Re-read: ${focusIdea}`,
     };
+  }
+
+  if (reason === "too_short") {
+    return {
+      rating: "needs work",
+      isCorrect: false,
+      praise: "Your answer is too short to check properly.",
+      fix: "Write at least one complete sentence with the main concept.",
+      rereadTip: `Re-read: ${focusIdea}`,
+    };
+  }
+
+  return {
+    rating: "needs work",
+    isCorrect: false,
+    praise: "I could not find the main idea in your answer yet.",
+    fix: "Correct the concept and explain it in one clear sentence.",
+    rereadTip: `Re-read: ${focusIdea}`,
+  };
+}
+
+async function generateStructuredFeedback(
+  promptParts: { text: string }[],
+  modelName = "gemini-2.5-flash-lite"
+): Promise<unknown> {
+  const model = createGeminiModel(modelName, {
+    responseMimeType: "application/json",
+    temperature: 0.1,
+  });
+  if (!model) throw new Error("missing_api_key");
+  const result = await model.generateContent(promptParts);
+  const text = result.response.text();
+  return parseJsonFromModel(text);
 }
 
 export async function POST(request: NextRequest) {
-    // Rate limit check
-    const clientKey = getRateLimitKey(request);
-    if (await isRateLimited(clientKey)) {
-        return NextResponse.json(
-            { error: "Rate limit exceeded. Please try again shortly." },
-            { status: 429 }
-        );
-    }
-
-    // Parse request body.
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    if (!body || typeof body !== "object") {
-        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    const {
-        subject,
-        chapterId,
-        topicId,
-        subtopicId,
-        studentAnswer,
-        lessonContext,
-        mode,
-        question,
-        expectedAnswer,
-        answerExplanation,
-    } = body as {
-        subject?: unknown;
-        chapterId?: unknown;
-        topicId?: unknown;
-        subtopicId?: unknown;
-        studentAnswer?: unknown;
-        lessonContext?: unknown;
-        mode?: unknown;
-        question?: unknown;
-        expectedAnswer?: unknown;
-        answerExplanation?: unknown;
-    };
-
-    // Validate subject and selection IDs.
-    if (!subject || typeof subject !== "string") {
-        return NextResponse.json(
-            { error: "Subject is required (Science or Maths)" },
-            { status: 400 }
-        );
-    }
-
-    if (!isValidSubject(subject)) {
-        return NextResponse.json(
-            { error: "Subject must be Science or Maths" },
-            { status: 400 }
-        );
-    }
-
-    if (!isNonEmptyString(chapterId)) {
-        return NextResponse.json(
-            { error: "Chapter is required" },
-            { status: 400 }
-        );
-    }
-
-    if (!isNonEmptyString(topicId)) {
-        return NextResponse.json(
-            { error: "Topic is required" },
-            { status: 400 }
-        );
-    }
-
-    if (!isNonEmptyString(subtopicId)) {
-        return NextResponse.json(
-            { error: "Subtopic is required" },
-            { status: 400 }
-        );
-    }
-
-    if (!isNonEmptyString(studentAnswer)) {
-        return NextResponse.json(
-            { error: "Student answer is required" },
-            { status: 400 }
-        );
-    }
-
-    if (!hasAiRouteAccess(request)) {
-        return NextResponse.json(
-            { error: "Unauthorized request origin for AI endpoint." },
-            { status: 401 }
-        );
-    }
-
-    if (
-        chapterId.trim().length > MAX_ID_LENGTH ||
-        topicId.trim().length > MAX_ID_LENGTH ||
-        subtopicId.trim().length > MAX_ID_LENGTH
-    ) {
-        return NextResponse.json(
-            { error: `IDs must be ${MAX_ID_LENGTH} characters or less` },
-            { status: 400 }
-        );
-    }
-
-    if (studentAnswer.trim().length > MAX_STUDENT_ANSWER_LENGTH) {
-        return NextResponse.json(
-            { error: `Answer must be ${MAX_STUDENT_ANSWER_LENGTH} characters or less` },
-            { status: 400 }
-        );
-    }
-
-    const selectedSubtopic = getSubtopicById(
-        subject,
-        chapterId.trim(),
-        topicId.trim(),
-        subtopicId.trim()
+  const clientKey = getRateLimitKey(request);
+  if (await isRateLimited(clientKey)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Please try again shortly." },
+      { status: 429 }
     );
+  }
 
-    if (!selectedSubtopic) {
-        return NextResponse.json(
-            { error: "Selected chapter/topic/subtopic was not found" },
-            { status: 400 }
-        );
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const {
+    subject,
+    chapterId,
+    topicId,
+    subtopicId,
+    studentAnswer,
+    lessonContext,
+    mode,
+    question,
+    expectedAnswer,
+    answerExplanation,
+  } = body as {
+    subject?: unknown;
+    chapterId?: unknown;
+    topicId?: unknown;
+    subtopicId?: unknown;
+    studentAnswer?: unknown;
+    lessonContext?: unknown;
+    mode?: unknown;
+    question?: unknown;
+    expectedAnswer?: unknown;
+    answerExplanation?: unknown;
+  };
+
+  if (!isNonEmptyString(subject) || !isValidSubject(subject)) {
+    return NextResponse.json({ error: "Subject must be Science or Maths" }, { status: 400 });
+  }
+  if (!isNonEmptyString(chapterId)) {
+    return NextResponse.json({ error: "Chapter is required" }, { status: 400 });
+  }
+  if (!isNonEmptyString(topicId)) {
+    return NextResponse.json({ error: "Topic is required" }, { status: 400 });
+  }
+  if (!isNonEmptyString(subtopicId)) {
+    return NextResponse.json({ error: "Subtopic is required" }, { status: 400 });
+  }
+  if (!isNonEmptyString(studentAnswer)) {
+    return NextResponse.json({ error: "Student answer is required" }, { status: 400 });
+  }
+  if (
+    chapterId.trim().length > MAX_ID_LENGTH ||
+    topicId.trim().length > MAX_ID_LENGTH ||
+    subtopicId.trim().length > MAX_ID_LENGTH
+  ) {
+    return NextResponse.json(
+      { error: `IDs must be ${MAX_ID_LENGTH} characters or less` },
+      { status: 400 }
+    );
+  }
+  if (!hasAiRouteAccess(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized request origin for AI endpoint." },
+      { status: 401 }
+    );
+  }
+
+  const trimmedAnswer = studentAnswer.trim();
+  if (trimmedAnswer.length > MAX_STUDENT_ANSWER_LENGTH) {
+    return NextResponse.json(
+      { error: `Answer must be ${MAX_STUDENT_ANSWER_LENGTH} characters or less` },
+      { status: 400 }
+    );
+  }
+
+  const selectedSubtopic = getSubtopicById(
+    subject,
+    chapterId.trim(),
+    topicId.trim(),
+    subtopicId.trim()
+  );
+  if (!selectedSubtopic) {
+    return NextResponse.json(
+      { error: "Selected chapter/topic/subtopic was not found" },
+      { status: 400 }
+    );
+  }
+
+  const feedbackMode: FeedbackMode = mode === "quiz" ? "quiz" : "explain";
+  if (feedbackMode === "quiz") {
+    if (!isNonEmptyString(question) || !isNonEmptyString(expectedAnswer)) {
+      return NextResponse.json(
+        { error: "Question and expected answer are required for quiz mode" },
+        { status: 400 }
+      );
     }
-
-    // Decide which prompt to use (explain vs quiz).
-    const feedbackMode: FeedbackMode = mode === "quiz" ? "quiz" : "explain";
-
-    if (feedbackMode === "quiz") {
-        if (!isNonEmptyString(question)) {
-            return NextResponse.json({ error: "Question is required" }, { status: 400 });
-        }
-        if (!isNonEmptyString(expectedAnswer)) {
-            return NextResponse.json({ error: "Expected answer is required" }, { status: 400 });
-        }
+    if (question.trim().length > MAX_QUESTION_LENGTH) {
+      return NextResponse.json(
+        { error: `Question must be ${MAX_QUESTION_LENGTH} characters or less` },
+        { status: 400 }
+      );
     }
-
-    const model = createGeminiModel("gemini-2.5-flash-lite", {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-    });
-    if (!model) {
-        return NextResponse.json(
-            { error: "Server configuration error" },
-            { status: 500 }
-        );
+    if (expectedAnswer.trim().length > MAX_EXPECTED_ANSWER_LENGTH) {
+      return NextResponse.json(
+        { error: `Expected answer must be ${MAX_EXPECTED_ANSWER_LENGTH} characters or less` },
+        { status: 400 }
+      );
     }
+  }
 
-    // Build a smaller prompt for feedback.
-    const lessonText =
-        typeof lessonContext === "string" && lessonContext.trim().length > 0
-            ? lessonContext.trim()
-            : "Lesson summary not provided.";
+  const lessonText =
+    typeof lessonContext === "string" && lessonContext.trim().length > 0
+      ? lessonContext.trim().slice(0, MAX_LESSON_CONTEXT_LENGTH)
+      : "Lesson summary not provided.";
+  const contextChecklist = formatSubtopicForFeedback(selectedSubtopic);
+  const focusIdea = selectedSubtopic.keyConcepts[0] || selectedSubtopic.title;
 
-    const promptParts: { text: string }[] =
-        feedbackMode === "quiz"
-            ? [
-                { text: QUIZ_FEEDBACK_PROMPT },
-                { text: `Question:\n${String(question).trim()}` },
-                { text: `Expected answer:\n${String(expectedAnswer).trim()}` },
-                {
-                    text: isNonEmptyString(answerExplanation)
-                        ? `Answer explanation:\n${String(answerExplanation).trim()}`
-                        : "Answer explanation not provided.",
-                },
-                { text: formatSubtopicForFeedback(selectedSubtopic) },
-                { text: `Student answer:\n${studentAnswer.trim()}` },
-            ]
-            : [
-                { text: FEEDBACK_PROMPT },
-                { text: "LESSON SUMMARY:\n" + lessonText },
-                { text: formatSubtopicForFeedback(selectedSubtopic) },
-                { text: `Subject: ${subject}\nStudent answer:\n${studentAnswer.trim()}` },
-            ];
+  const wordCount = (trimmedAnswer.match(/[A-Za-z]+/g) ?? []).length;
+  if (wordCount < 3) {
+    return NextResponse.json({ feedback: forceStrictNeedsWork(focusIdea, "too_short") });
+  }
+  if (isLikelyGibberish(trimmedAnswer)) {
+    return NextResponse.json({ feedback: forceStrictNeedsWork(focusIdea, "gibberish") });
+  }
 
-    let result;
+  // Check API key before attempting Gemini call.
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
+
+  const promptParts: { text: string }[] =
+    feedbackMode === "quiz"
+      ? [
+        { text: BASE_PROMPT },
+        { text: "Mode: quiz grading." },
+        { text: `Question:\n${String(question).trim().slice(0, MAX_QUESTION_LENGTH)}` },
+        {
+          text: `Expected answer:\n${String(expectedAnswer).trim().slice(0, MAX_EXPECTED_ANSWER_LENGTH)}`,
+        },
+        {
+          text: isNonEmptyString(answerExplanation)
+            ? `Answer explanation:\n${String(answerExplanation).trim().slice(0, MAX_ANSWER_EXPLANATION_LENGTH)}`
+            : "Answer explanation not provided.",
+        },
+        { text: contextChecklist },
+        { text: `Student answer:\n${trimmedAnswer}` },
+      ]
+      : [
+        { text: BASE_PROMPT },
+        { text: "Mode: explain-back quality check." },
+        { text: "Lesson summary:\n" + lessonText },
+        { text: contextChecklist },
+        { text: `Subject: ${subject}\nStudent answer:\n${trimmedAnswer}` },
+      ];
+
+  let parsed: unknown;
+  try {
+    parsed = await generateStructuredFeedback(promptParts);
+  } catch (err) {
+    console.error("Feedback generation failed:", err);
+    // Fall back to rule-based feedback so the student still sees something.
+    parsed = null;
+  }
+
+  let feedback = normalizeFeedbackResponse(parsed);
+  if (!feedback) {
+    // One repair attempt: force strict JSON conversion.
     try {
-        result = await model.generateContent(promptParts);
-    } catch (err) {
-        console.error("Gemini generateContent failed:", err);
-        const details = err instanceof Error ? err.message : String(err);
-        return NextResponse.json(
-            process.env.NODE_ENV !== "production"
-                ? { error: "Failed to generate response. Please try again.", details }
-                : { error: "Failed to generate response. Please try again." },
-            { status: 502 }
-        );
-    }
-
-    const response = result.response;
-    const text = response.text();
-
-    // Parse JSON; fall back to rules if the model fails.
-    let parsed: unknown;
-    try {
-        parsed = parseJsonFromModel(text);
+      const repairPrompt: { text: string }[] = [
+        {
+          text: `Convert this to strict JSON with keys isCorrect, rating, praise, fix, rereadTip.\nData:\n${JSON.stringify(parsed)}`,
+        },
+      ];
+      const repaired = await generateStructuredFeedback(repairPrompt);
+      feedback = normalizeFeedbackResponse(repaired);
     } catch {
-        const fallback = buildFallbackFeedback(
-            studentAnswer.trim(),
-            lessonText,
-            selectedSubtopic.keyConcepts,
-            selectedSubtopic.title
-        );
-        if (feedbackMode === "quiz" && isNonEmptyString(expectedAnswer)) {
-            return NextResponse.json({
-                feedback: {
-                    ...fallback,
-                    isCorrect: isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim()),
-                },
-            });
-        }
-        return NextResponse.json({ feedback: fallback });
+      feedback = null;
     }
+  }
 
-    const feedback = normalizeFeedbackResponse(parsed);
-    if (!feedback) {
-        const fallback = buildFallbackFeedback(
-            studentAnswer.trim(),
-            lessonText,
-            selectedSubtopic.keyConcepts,
-            selectedSubtopic.title
-        );
-        if (feedbackMode === "quiz" && isNonEmptyString(expectedAnswer)) {
-            return NextResponse.json({
-                feedback: {
-                    ...fallback,
-                    isCorrect: isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim()),
-                },
-            });
-        }
-        return NextResponse.json({ feedback: fallback });
-    }
+  if (!feedback) {
+    // All parsing failed — use rule-based fallback so the student still gets feedback.
+    feedback = forceStrictNeedsWork(focusIdea, "no_overlap");
+  }
 
-    if (feedbackMode === "quiz" && feedback.isCorrect === undefined && isNonEmptyString(expectedAnswer)) {
-        feedback.isCorrect = isExactMatch(studentAnswer.trim(), String(expectedAnswer).trim());
-    }
-
-    return NextResponse.json({ feedback });
+  return NextResponse.json({ feedback });
 }
