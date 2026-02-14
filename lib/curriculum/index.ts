@@ -30,6 +30,53 @@ const SUBJECT_MAP: Record<SubjectName, SubjectCurriculum> = {
     Maths: MATHS_CURRICULUM,
 };
 
+type TopicIndexEntry = {
+    chapterId: string;
+    topic: TopicKnowledge;
+};
+
+type SubtopicIndexEntry = {
+    chapterId: string;
+    topicId: string;
+    subtopic: SubtopicKnowledge;
+};
+
+// Precompute lookup tables for fast ID resolution in API routes.
+const CHAPTER_INDEX: Record<SubjectName, Map<string, ChapterKnowledge>> = {
+    Science: new Map(),
+    Maths: new Map(),
+};
+
+const TOPIC_INDEX: Record<SubjectName, Map<string, TopicIndexEntry>> = {
+    Science: new Map(),
+    Maths: new Map(),
+};
+
+const SUBTOPIC_INDEX: Record<SubjectName, Map<string, SubtopicIndexEntry>> = {
+    Science: new Map(),
+    Maths: new Map(),
+};
+
+for (const subject of Object.keys(SUBJECT_MAP) as SubjectName[]) {
+    const curriculum = SUBJECT_MAP[subject];
+    for (const chapter of curriculum.chapters) {
+        CHAPTER_INDEX[subject].set(chapter.id, chapter);
+        for (const topic of chapter.topics) {
+            TOPIC_INDEX[subject].set(topic.id, {
+                chapterId: chapter.id,
+                topic,
+            });
+            for (const subtopic of topic.subtopics) {
+                SUBTOPIC_INDEX[subject].set(subtopic.id, {
+                    chapterId: chapter.id,
+                    topicId: topic.id,
+                    subtopic,
+                });
+            }
+        }
+    }
+}
+
 export function getSubjectCurriculum(subject: SubjectName): SubjectCurriculum {
     return SUBJECT_MAP[subject];
 }
@@ -38,8 +85,7 @@ export function getChapterById(
     subject: SubjectName,
     chapterId: string
 ): ChapterKnowledge | null {
-    const curriculum = getSubjectCurriculum(subject);
-    return curriculum.chapters.find((chapter) => chapter.id === chapterId) || null;
+    return CHAPTER_INDEX[subject].get(chapterId) || null;
 }
 
 export function getTopicById(
@@ -47,9 +93,9 @@ export function getTopicById(
     chapterId: string,
     topicId: string
 ): TopicKnowledge | null {
-    const chapter = getChapterById(subject, chapterId);
-    if (!chapter) return null;
-    return chapter.topics.find((topic) => topic.id === topicId) || null;
+    const topicEntry = TOPIC_INDEX[subject].get(topicId);
+    if (!topicEntry || topicEntry.chapterId !== chapterId) return null;
+    return topicEntry.topic;
 }
 
 export function getSubtopicById(
@@ -58,9 +104,10 @@ export function getSubtopicById(
     topicId: string,
     subtopicId: string
 ): SubtopicKnowledge | null {
-    const topic = getTopicById(subject, chapterId, topicId);
-    if (!topic) return null;
-    return topic.subtopics.find((subtopic) => subtopic.id === subtopicId) || null;
+    const subtopicEntry = SUBTOPIC_INDEX[subject].get(subtopicId);
+    if (!subtopicEntry) return null;
+    if (subtopicEntry.chapterId !== chapterId || subtopicEntry.topicId !== topicId) return null;
+    return subtopicEntry.subtopic;
 }
 
 export function formatSubtopicForPrompt(subtopic: SubtopicKnowledge): string {

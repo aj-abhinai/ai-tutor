@@ -14,3 +14,4 @@ export { Badge, type BadgeProps } from "./Badge";
 export { Alert, type AlertProps } from "./Alert";
 export { SubjectButton, type SubjectButtonProps } from "./SubjectButton";
 export { OptionButton, type OptionButtonProps } from "./OptionButton";
+export { StatusCard } from "./StatusCard";

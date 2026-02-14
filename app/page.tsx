@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import "katex/dist/katex.min.css";
 import { getSubjectCurriculum } from "@/lib/curriculum";
 
-import { Alert, Card } from "@/components/ui";
+import { Alert, StatusCard } from "@/components/ui";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
-import { LearnCard } from "@/components/home/LearnCard";
-import { ListenCard } from "@/components/home/ListenCard";
 import { PageHeader } from "@/components/home/PageHeader";
-import { QuizCard } from "@/components/home/QuizCard";
 import { cleanTextForSpeech } from "@/components/home/lesson-utils";
 import {
   CardStep,
@@ -18,6 +17,16 @@ import {
   ExplainLevel,
   TutorLessonResponse,
 } from "@/components/home/types";
+
+const LearnCard = dynamic(
+  () => import("@/components/home/LearnCard").then((m) => m.LearnCard)
+);
+const ListenCard = dynamic(
+  () => import("@/components/home/ListenCard").then((m) => m.ListenCard)
+);
+const QuizCard = dynamic(
+  () => import("@/components/home/QuizCard").then((m) => m.QuizCard)
+);
 
 /**
  * Standard 7 AI Tutor - Main Page
@@ -148,8 +157,8 @@ export default function Home() {
 
   const selectedSubtopic = selectedTopic
     ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
-      selectedTopic.subtopics[0] ??
-      null
+    selectedTopic.subtopics[0] ??
+    null
     : null;
 
   // Load TTS voices and cleanup audio on unmount
@@ -664,6 +673,16 @@ export default function Home() {
         {/* Hero header + subject selectors */}
         <PageHeader />
 
+        {/* Lab link */}
+        <div className="flex justify-center mb-4">
+          <Link
+            href="/lab"
+            className="inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(109,40,217,0.25)] hover:bg-violet-700 transition-colors"
+          >
+            Chemisty Plaground
+          </Link>
+        </div>
+
         <InputPanel
           subject={subject}
           chapterTitle={chapterTitle}
@@ -695,14 +714,12 @@ export default function Home() {
         <div className="mt-6">
           {/* Empty state before a card is selected */}
           {!activeCard && (
-            <Card className="text-center text-gray-600">
-              Choose a card to start. The lesson loads only after you pick a card.
-            </Card>
+            <StatusCard message="Choose a card to start. The lesson loads only after you pick a card." />
           )}
 
           {/* Loading state for lesson fetch */}
           {activeCard && loading && (
-            <Card className="text-center text-gray-600">Preparing your lesson...</Card>
+            <StatusCard message="Preparing your lesson..." />
           )}
 
           {/* Learn card (text + activities) */}
@@ -770,3 +787,6 @@ export default function Home() {
     </main>
   );
 }
+
+
+
