@@ -6,20 +6,18 @@
  * Output: JSON with deepEssay
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 import {
+  createGeminiModel,
   createRateLimiter,
   getRateLimitKey,
   hasAiRouteAccess,
   isNonEmptyString,
+  isValidSubject,
+  MAX_ID_LENGTH,
   parseJsonFromModel,
 } from "@/lib/api/shared";
-
-// Valid subjects for Standard 7
-const VALID_SUBJECTS = ["Science", "Maths"] as const;
-type Subject = typeof VALID_SUBJECTS[number];
 
 // Prompt for deep, structured explanations.
 const DEEP_PROMPT = `You are a friendly tutor for Class 7 students.
@@ -49,20 +47,13 @@ Output strictly in this JSON format:
 }
 `;
 
-// Input length limits.
-const MAX_ID_LENGTH = 120;
 
 // Route-level rate limiting.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
-/**
- * Validate subject is Science or Maths
- */
-function isValidSubject(subject: string): subject is Subject {
-  return VALID_SUBJECTS.includes(subject as Subject);
-}
+
 
 export async function POST(request: NextRequest) {
   // Rate limit check
@@ -152,21 +143,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check API key before calling Gemini.
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const model = createGeminiModel("gemini-2.5-flash", {
+    responseMimeType: "application/json",
+    temperature: 0.3,
+  });
+  if (!model) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
-
-  // Call Gemini API for the deep explanation.
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.3,
-    },
-  });
 
   const promptParts: { text: string }[] = [
     { text: DEEP_PROMPT },

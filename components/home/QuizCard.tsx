@@ -1,6 +1,9 @@
 "use client";
 
-import { Button, Card, Input, OptionButton } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { OptionButton } from "@/components/ui/OptionButton";
 import { QuestionItem } from "@/lib/curriculum";
 import { ExplainFeedback } from "./types";
 import { renderHtml, renderWithKaTeX } from "./lesson-utils";
@@ -167,16 +170,14 @@ export function QuizCard({
       ) : currentQuestion ? (
         <div className="animate-in fade-in zoom-in duration-300">
           <div
-            className={`p-6 rounded-2xl mb-6 ${
-              isAnswerCorrect
+            className={`p-6 rounded-2xl mb-6 ${isAnswerCorrect
                 ? "bg-emerald-50/70 border border-emerald-200"
                 : "bg-amber-50/70 border border-amber-200"
-            }`}
+              }`}
           >
             <h3
-              className={`font-semibold text-xl mb-2 ${
-                isAnswerCorrect ? "text-emerald-800" : "text-amber-800"
-              }`}
+              className={`font-semibold text-xl mb-2 ${isAnswerCorrect ? "text-emerald-800" : "text-amber-800"
+                }`}
             >
               {isReasoning
                 ? isAnswerCorrect

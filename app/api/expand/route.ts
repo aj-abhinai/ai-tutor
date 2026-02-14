@@ -6,20 +6,19 @@
  * Output: JSON with expanded explanation
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
 import {
+  createGeminiModel,
   createRateLimiter,
   getRateLimitKey,
   hasAiRouteAccess,
   isNonEmptyString,
+  isValidSubject,
+  MAX_ID_LENGTH,
   parseJsonFromModel,
 } from "@/lib/api/shared";
 
-// Valid subjects for Standard 7
-const VALID_SUBJECTS = ["Science", "Maths"] as const;
-type Subject = typeof VALID_SUBJECTS[number];
 type ExplainLevel = "simple" | "standard" | "deep";
 const VALID_LEVELS: ExplainLevel[] = ["simple", "standard", "deep"];
 
@@ -63,20 +62,10 @@ Output strictly in this JSON format:
 }
 `;
 
-// Input length limits.
-const MAX_ID_LENGTH = 120;
-
 // Route-level rate limiting.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
-
-/**
- * Validate subject is Science or Maths
- */
-function isValidSubject(subject: string): subject is Subject {
-  return VALID_SUBJECTS.includes(subject as Subject);
-}
 
 function normalizeExpandResponse(raw: unknown): TutorExpandResponse | null {
   if (!raw || typeof raw !== "object") return null;
@@ -205,21 +194,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check API key before calling Gemini.
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const model = createGeminiModel("gemini-2.5-flash-lite", {
+    responseMimeType: "application/json",
+    temperature: 0.3,
+  });
+  if (!model) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
-
-  // Call Gemini API for the expanded explanation.
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.3,
-    },
-  });
 
   const promptParts: { text: string }[] = [
     { text: EXPAND_PROMPT },
@@ -251,9 +232,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       process.env.NODE_ENV !== "production"
         ? {
-            error: "Model returned an unexpected response. Please try again.",
-            details: text,
-          }
+          error: "Model returned an unexpected response. Please try again.",
+          details: text,
+        }
         : { error: "Model returned an unexpected response. Please try again." },
       { status: 502 }
     );
@@ -264,9 +245,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       process.env.NODE_ENV !== "production"
         ? {
-            error: "Model returned an unexpected response. Please try again.",
-            details: parsed,
-          }
+          error: "Model returned an unexpected response. Please try again.",
+          details: parsed,
+        }
         : { error: "Model returned an unexpected response. Please try again." },
       { status: 502 }
     );

@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import "katex/dist/katex.min.css";
+
 import { getSubjectCurriculum } from "@/lib/curriculum";
 
-import { Alert, StatusCard } from "@/components/ui";
+import { Alert } from "@/components/ui/Alert";
+import { StatusCard } from "@/components/ui/StatusCard";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
 import { PageHeader } from "@/components/home/PageHeader";
@@ -679,7 +680,7 @@ export default function Home() {
             href="/lab"
             className="inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(109,40,217,0.25)] hover:bg-violet-700 transition-colors"
           >
-            Chemisty Plaground
+            Chemistry Playground
           </Link>
         </div>
 

@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, TextArea } from "@/components/ui";
+import "katex/dist/katex.min.css";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { TextArea } from "@/components/ui/TextArea";
 import { SubtopicKnowledge, TopicKnowledge } from "@/lib/curriculum";
 import { renderHtml } from "./lesson-utils";
 import { ExplainFeedback, ExplainLevel, TutorLessonResponse } from "./types";
@@ -95,11 +99,10 @@ export function LearnCard({
               onClick={() => onExplainLevelChange(level)}
               variant="ghost"
               size="sm"
-              className={`!rounded-full !px-3 !py-1 capitalize ${
-                explainLevel === level
-                  ? "!bg-emerald-100 !text-emerald-900"
-                  : "!text-slate-600 hover:!bg-slate-100"
-              }`}
+              className={`!rounded-full !px-3 !py-1 capitalize ${explainLevel === level
+                ? "!bg-emerald-100 !text-emerald-900"
+                : "!text-slate-600 hover:!bg-slate-100"
+                }`}
             >
               {level}
             </Button>
@@ -122,11 +125,10 @@ export function LearnCard({
                   onClick={() => onSubtopicChange(subtopic.id)}
                   variant="ghost"
                   size="sm"
-                  className={`!rounded-xl !border !px-3 !py-2 !text-sm !font-medium ${
-                    isActive
-                      ? "!border-emerald-300 !bg-emerald-50 !text-emerald-900"
-                      : "!border-slate-200 !bg-white/80 !text-slate-700 hover:!border-emerald-200 hover:!bg-emerald-50/60"
-                  }`}
+                  className={`!rounded-xl !border !px-3 !py-2 !text-sm !font-medium ${isActive
+                    ? "!border-emerald-300 !bg-emerald-50 !text-emerald-900"
+                    : "!border-slate-200 !bg-white/80 !text-slate-700 hover:!border-emerald-200 hover:!bg-emerald-50/60"
+                    }`}
                 >
                   {subtopic.title}
                 </Button>
@@ -153,11 +155,10 @@ export function LearnCard({
               disabled={!canGenerate}
               variant="ghost"
               size="sm"
-              className={`inline-flex items-center gap-2 !rounded-full !border !px-3 !py-1 !text-xs !font-semibold ${
-                !canGenerate
-                  ? "!cursor-not-allowed !border-slate-200 !text-slate-400"
-                  : "!border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
-              }`}
+              className={`inline-flex items-center gap-2 !rounded-full !border !px-3 !py-1 !text-xs !font-semibold ${!canGenerate
+                ? "!cursor-not-allowed !border-slate-200 !text-slate-400"
+                : "!border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
+                }`}
               aria-label="Generate deep explanation with AI"
               title="Generate a longer deep explanation with AI"
             >
@@ -227,9 +228,8 @@ export function LearnCard({
             </div>
           </div>
           <div
-            className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition-transform duration-200 ${
-              isFlipping ? "[transform:rotateY(90deg)]" : "[transform:rotateY(0deg)]"
-            }`}
+            className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition-transform duration-200 ${isFlipping ? "[transform:rotateY(90deg)]" : "[transform:rotateY(0deg)]"
+              }`}
             style={{ transformStyle: "preserve-3d" }}
           >
             <img
@@ -398,11 +398,10 @@ export function LearnCard({
             variant="ghost"
             size="sm"
             onClick={() => onSelfCheckChange("confident")}
-            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${
-              selfCheck === "confident"
-                ? "!bg-emerald-200 !border-emerald-300 !text-emerald-900"
-                : "!bg-white !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
-            }`}
+            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${selfCheck === "confident"
+              ? "!bg-emerald-200 !border-emerald-300 !text-emerald-900"
+              : "!bg-white !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50"
+              }`}
           >
             I can explain it
           </Button>
@@ -410,11 +409,10 @@ export function LearnCard({
             variant="ghost"
             size="sm"
             onClick={() => onSelfCheckChange("unsure")}
-            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${
-              selfCheck === "unsure"
-                ? "!bg-amber-200 !border-amber-300 !text-amber-900"
-                : "!bg-white !border-amber-200 !text-amber-700 hover:!bg-amber-50"
-            }`}
+            className={`!px-4 !py-2 !rounded-full !text-sm !font-semibold !border ${selfCheck === "unsure"
+              ? "!bg-amber-200 !border-amber-300 !text-amber-900"
+              : "!bg-white !border-amber-200 !text-amber-700 hover:!bg-amber-50"
+              }`}
           >
             I need more help
           </Button>

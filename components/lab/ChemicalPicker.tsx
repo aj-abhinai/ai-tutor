@@ -1,6 +1,8 @@
 "use client";
 
-import { Card, Select, Button } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
+import { Button } from "@/components/ui/Button";
 
 interface ChemicalPickerProps {
     options: { value: string; label: string }[];

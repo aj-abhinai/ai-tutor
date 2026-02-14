@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI, type GenerationConfig } from "@google/generative-ai";
 import { NextRequest } from "next/server";
 
 type RateLimitEntry = { count: number; windowStartMs: number };
@@ -210,3 +211,34 @@ export function hasAiRouteAccess(request: NextRequest): boolean {
     return false;
   }
 }
+
+// ── Shared constants & types for curriculum API routes ──
+
+export const VALID_SUBJECTS = ["Science", "Maths"] as const;
+export type Subject = typeof VALID_SUBJECTS[number];
+
+/** Maximum length for chapter / topic / subtopic IDs. */
+export const MAX_ID_LENGTH = 120;
+
+/** Validate subject is Science or Maths. */
+export function isValidSubject(subject: string): subject is Subject {
+  return VALID_SUBJECTS.includes(subject as Subject);
+}
+
+/**
+ * Build a Gemini GenerativeModel with a single API-key lookup.
+ * Returns `null` when `GEMINI_API_KEY` is not set.
+ */
+export function createGeminiModel(
+  modelName: string,
+  generationConfig?: GenerationConfig,
+) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({
+    model: modelName,
+    ...(generationConfig ? { generationConfig } : {}),
+  });
+}
+

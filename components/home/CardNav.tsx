@@ -1,6 +1,6 @@
 "use client";
 
-import { NavCard } from "@/components/ui";
+import { NavCard } from "@/components/ui/NavCard";
 import { CardStep } from "./types";
 
 interface CardNavProps {

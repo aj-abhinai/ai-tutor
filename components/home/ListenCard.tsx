@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Card } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface ListenCardProps {
   isPlaying: boolean;
@@ -19,11 +20,10 @@ export function ListenCard({ isPlaying, ttsSupported, onPlayAudio }: ListenCardP
           disabled={!ttsSupported}
           variant="primary"
           size="lg"
-          className={`w-24 h-24 !rounded-full !px-0 !py-0 text-2xl shadow-[0_16px_30px_rgba(15,23,42,0.15)] transition-all transform ${
-            isPlaying
+          className={`w-24 h-24 !rounded-full !px-0 !py-0 text-2xl shadow-[0_16px_30px_rgba(15,23,42,0.15)] transition-all transform ${isPlaying
               ? "!bg-rose-500 !text-white animate-pulse scale-105"
               : "!bg-emerald-600 !text-white hover:scale-110"
-          }`}
+            }`}
           aria-disabled={!ttsSupported}
         >
           {isPlaying ? "Pause" : "Play"}

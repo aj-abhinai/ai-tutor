@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Alert, Button, StatusCard } from "@/components/ui";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { StatusCard } from "@/components/ui/StatusCard";
 import { LabHeader } from "@/components/lab/LabHeader";
 import { ChemicalPicker } from "@/components/lab/ChemicalPicker";
 import { ReactionResult } from "@/components/lab/ReactionResult";

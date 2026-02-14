@@ -6,20 +6,19 @@
  * Output: JSON with feedback
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicById, formatSubtopicForFeedback } from "@/lib/curriculum";
 import {
+    createGeminiModel,
     createRateLimiter,
     getRateLimitKey,
     hasAiRouteAccess,
     isNonEmptyString,
+    isValidSubject,
+    MAX_ID_LENGTH,
     parseJsonFromModel,
 } from "@/lib/api/shared";
 
-// Valid subjects for Standard 7
-const VALID_SUBJECTS = ["Science", "Maths"] as const;
-type Subject = typeof VALID_SUBJECTS[number];
 
 type TutorFeedbackResponse = {
     rating: string;
@@ -86,7 +85,6 @@ Output strictly in this JSON format:
 `;
 
 // Input length limits.
-const MAX_ID_LENGTH = 120;
 const MAX_STUDENT_ANSWER_LENGTH = 600;
 
 // Stopwords used for quick keyword overlap checks.
@@ -143,12 +141,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
-/**
- * Validate subject is Science or Maths
- */
-function isValidSubject(subject: string): subject is Subject {
-    return VALID_SUBJECTS.includes(subject as Subject);
-}
+
 
 // Extract key words for a lightweight overlap check.
 function extractKeywords(text: string): string[] {
@@ -431,24 +424,16 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    // Check API key before calling Gemini.
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const model = createGeminiModel("gemini-2.5-flash-lite", {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+    });
+    if (!model) {
         return NextResponse.json(
             { error: "Server configuration error" },
             { status: 500 }
         );
     }
-
-    // Call Gemini API for feedback.
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash-lite",
-        generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
-        },
-    });
 
     // Build a smaller prompt for feedback.
     const lessonText =
@@ -459,23 +444,23 @@ export async function POST(request: NextRequest) {
     const promptParts: { text: string }[] =
         feedbackMode === "quiz"
             ? [
-                  { text: QUIZ_FEEDBACK_PROMPT },
-                  { text: `Question:\n${String(question).trim()}` },
-                  { text: `Expected answer:\n${String(expectedAnswer).trim()}` },
-                  {
-                      text: isNonEmptyString(answerExplanation)
-                          ? `Answer explanation:\n${String(answerExplanation).trim()}`
-                          : "Answer explanation not provided.",
-                  },
-                  { text: formatSubtopicForFeedback(selectedSubtopic) },
-                  { text: `Student answer:\n${studentAnswer.trim()}` },
-              ]
+                { text: QUIZ_FEEDBACK_PROMPT },
+                { text: `Question:\n${String(question).trim()}` },
+                { text: `Expected answer:\n${String(expectedAnswer).trim()}` },
+                {
+                    text: isNonEmptyString(answerExplanation)
+                        ? `Answer explanation:\n${String(answerExplanation).trim()}`
+                        : "Answer explanation not provided.",
+                },
+                { text: formatSubtopicForFeedback(selectedSubtopic) },
+                { text: `Student answer:\n${studentAnswer.trim()}` },
+            ]
             : [
-                  { text: FEEDBACK_PROMPT },
-                  { text: "LESSON SUMMARY:\n" + lessonText },
-                  { text: formatSubtopicForFeedback(selectedSubtopic) },
-                  { text: `Subject: ${subject}\nStudent answer:\n${studentAnswer.trim()}` },
-              ];
+                { text: FEEDBACK_PROMPT },
+                { text: "LESSON SUMMARY:\n" + lessonText },
+                { text: formatSubtopicForFeedback(selectedSubtopic) },
+                { text: `Subject: ${subject}\nStudent answer:\n${studentAnswer.trim()}` },
+            ];
 
     let result;
     try {
