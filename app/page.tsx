@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 
 import { getSubjectCurriculum } from "@/lib/curriculum";
+import { hasLabExperiments } from "@/lib/circuit-experiments";
 
 import { Alert } from "@/components/ui/Alert";
 import { StatusCard } from "@/components/ui/StatusCard";
@@ -674,14 +675,22 @@ export default function Home() {
         {/* Hero header + subject selectors */}
         <PageHeader />
 
-        {/* Lab link */}
-        <div className="flex justify-center mb-4">
+        {/* Lab links */}
+        <div className="flex justify-center gap-3 mb-4">
           <Link
-            href="/lab"
-            className="inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(109,40,217,0.25)] hover:bg-violet-700 transition-colors"
+            href="/chemistry-lab"
+            className="chemistry-nav-btn"
           >
-            Chemistry Playground
+            Chemistry Lab
           </Link>
+          {selectedChapter && hasLabExperiments(selectedChapter.id) && (
+            <Link
+              href={`/physics-lab?chapter=${selectedChapter.id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-all shadow-sm"
+            >
+              ⚡ Try in Lab
+            </Link>
+          )}
         </div>
 
         <InputPanel

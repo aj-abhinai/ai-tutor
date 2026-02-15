@@ -1,0 +1,818 @@
+/* ───────────────────────────────────────────────────────────
+   Chemistry Lab — React Flow Styles
+   ─────────────────────────────────────────────────────────── */
+
+/* ── Nav button ──────────────────────────────────────────── */
+.chemistry-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+}
+
+.chemistry-nav-btn:hover {
+    color: #0ea5e9;
+    background: white;
+    border-color: #bae6fd;
+}
+
+/* ── Scene wrapper ───────────────────────────────────────── */
+.chem-scene {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+/* ── Chemical Tray ───────────────────────────────────────── */
+.chem-tray {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.chem-tray-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.chem-tray-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: 0.02em;
+}
+
+.chem-tray-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.chem-tray-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.chem-tray-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.chem-tray-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+/* ── Bottle in tray ──────────────────────────────────────── */
+.chem-tray-bottle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 68px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    background: rgba(248, 250, 252, 0.8);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.chem-tray-bottle:hover:not(.is-disabled) {
+    border-color: #38bdf8;
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+}
+
+.chem-tray-bottle.is-added {
+    opacity: 0.35;
+    cursor: default;
+    transform: scale(0.92);
+}
+
+.chem-tray-bottle.is-disabled:not(.is-added) {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.chem-tray-bottle.is-expected {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    animation: expectedPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes expectedPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+    }
+}
+
+.chem-tray-expected-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #38bdf8;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+/* Jar visual */
+.chem-tray-bottle-jar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.chem-tray-bottle-neck {
+    width: 14px;
+    height: 8px;
+    background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+    border-radius: 3px 3px 0 0;
+}
+
+.chem-tray-bottle-body {
+    width: 32px;
+    height: 38px;
+    border-radius: 4px 4px 8px 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1.5px solid rgba(148, 163, 184, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.chem-tray-bottle-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70%;
+    border-radius: 0 0 6px 6px;
+    opacity: 0.7;
+}
+
+.chem-tray-bottle-name {
+    font-size: 9px;
+    font-weight: 700;
+    color: #334155;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chem-tray-bottle-formula {
+    font-size: 8px;
+    font-weight: 500;
+    color: #64748b;
+    text-align: center;
+}
+
+.chem-tray-bottle-state {
+    font-size: 7px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ── Canvas wrapper ──────────────────────────────────────── */
+.chem-canvas-wrapper {
+    width: 100%;
+    height: 380px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid #e2e8f0;
+    background: linear-gradient(145deg, #eef2ff 0%, #f8fafc 55%, #fdf4e2 100%);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@media (min-width: 640px) {
+    .chem-canvas-wrapper {
+        height: 440px;
+    }
+}
+
+/* ── Controls bar ────────────────────────────────────────── */
+.chem-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.chem-reset-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chem-reset-btn:hover {
+    color: #0ea5e9;
+    background: white;
+    border-color: #bae6fd;
+}
+
+.chem-phase-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* ── Guided feedback ─────────────────────────────────────── */
+.chem-guided-feedback {
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    animation: feedbackSlide 0.3s ease-out;
+}
+
+.chem-guided-feedback.correct {
+    background: rgba(74, 222, 128, 0.15);
+    color: #166534;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.chem-guided-feedback.wrong {
+    background: rgba(248, 113, 113, 0.15);
+    color: #991b1b;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+@keyframes feedbackSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ────────────────────────────────────────────────────────────
+   REACT FLOW NODE STYLES
+   ──────────────────────────────────────────────────────────── */
+
+/* ── Chemical Node ───────────────────────────────────────── */
+.rf-chem-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px solid #e2e8f0;
+    min-width: 90px;
+    transition: all 0.2s;
+    cursor: grab;
+    position: relative;
+}
+
+.rf-chem-node:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
+}
+
+.rf-chem-node.selected {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
+}
+
+/* Bottle in node */
+.rf-chem-bottle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.rf-chem-bottle-neck {
+    width: 16px;
+    height: 10px;
+    background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+    border-radius: 4px 4px 0 0;
+}
+
+.rf-chem-bottle-body {
+    width: 40px;
+    height: 48px;
+    border-radius: 4px 4px 10px 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1.5px solid rgba(148, 163, 184, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.rf-chem-bottle-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 75%;
+    border-radius: 0 0 8px 8px;
+    opacity: 0.75;
+}
+
+.rf-chem-labels {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.rf-chem-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: center;
+}
+
+.rf-chem-formula {
+    font-size: 10px;
+    font-weight: 500;
+    color: #475569;
+}
+
+.rf-chem-state {
+    font-size: 8px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Tooltip */
+.rf-chem-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #f1f5f9;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    z-index: 50;
+    pointer-events: none;
+    animation: tooltipFade 0.2s ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.rf-chem-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #1e293b;
+}
+
+@keyframes tooltipFade {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Handle */
+.rf-chem-handle {
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    background: #0ea5e9 !important;
+    border: 2px solid white !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.15s;
+}
+
+.rf-chem-handle:hover {
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(14, 165, 233, 0.35) !important;
+}
+
+/* ── Beaker Node ─────────────────────────────────────────── */
+.rf-beaker-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 255, 0.92));
+    border: 2px solid #bae6fd;
+    min-width: 140px;
+    min-height: 160px;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.rf-beaker-node.beaker-exo {
+    border-color: #fbbf24;
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.25), 0 0 48px rgba(251, 191, 36, 0.1);
+}
+
+.rf-beaker-node.beaker-endo {
+    border-color: #818cf8;
+    box-shadow: 0 0 24px rgba(129, 140, 248, 0.25), 0 0 48px rgba(129, 140, 248, 0.1);
+}
+
+.rf-beaker-node.beaker-done {
+    border-color: #4ade80;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+}
+
+.rf-beaker-node.selected {
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.rf-beaker-handle-top,
+.rf-beaker-handle-bottom {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+/* Beaker body */
+.rf-beaker-body {
+    width: 100px;
+    height: 120px;
+    border-radius: 6px 6px 16px 16px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(148, 163, 184, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Measurement lines */
+.rf-beaker-lines {
+    position: absolute;
+    inset: 8px 0 8px auto;
+    width: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 1;
+}
+
+.rf-beaker-line {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.25);
+    width: 100%;
+}
+
+/* Liquid fill */
+.rf-beaker-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0 0 14px 14px;
+    transition: height 0.8s ease, background-color 0.5s ease, opacity 0.5s ease;
+}
+
+.rf-beaker-liquid.reacting {
+    animation: liquidPulse 1s ease-in-out infinite;
+}
+
+@keyframes liquidPulse {
+
+    0%,
+    100% {
+        opacity: 0.85;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Particles */
+.rf-beaker-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.rf-beaker-bubble {
+    position: absolute;
+    bottom: 30%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    animation: bubbleRise 2s ease-in-out infinite;
+}
+
+@keyframes bubbleRise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: translateY(-60px) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.rf-beaker-precipitate {
+    position: absolute;
+    top: 30%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(245, 245, 245, 0.8);
+    animation: precipFall 2.5s ease-in infinite;
+}
+
+@keyframes precipFall {
+    0% {
+        transform: translateY(0);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(50px);
+        opacity: 0.2;
+    }
+}
+
+.rf-beaker-smoke-zone {
+    top: -10px;
+}
+
+.rf-beaker-smoke {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.2);
+    animation: smokeRise 2s ease-out infinite;
+}
+
+@keyframes smokeRise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: translateY(-40px) scale(2);
+        opacity: 0;
+    }
+}
+
+/* Phase label */
+.rf-beaker-phase {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.8);
+}
+
+.rf-beaker-phase.reacting {
+    color: #0ea5e9;
+}
+
+.rf-beaker-phase.done {
+    color: #16a34a;
+}
+
+.rf-beaker-phase.pouring {
+    color: #d97706;
+}
+
+/* ── Product Node ────────────────────────────────────────── */
+.rf-product-node {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(240, 253, 244, 0.9));
+    border: 1.5px solid #86efac;
+    min-width: 160px;
+    max-width: 220px;
+    animation: productAppear 0.4s ease-out;
+    position: relative;
+}
+
+@keyframes productAppear {
+    from {
+        opacity: 0;
+        transform: translateX(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.rf-product-node.selected {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.rf-product-swatch {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    opacity: 0.8;
+}
+
+.rf-product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rf-product-title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.rf-product-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.rf-product-equation {
+    font-size: 11px;
+    font-weight: 500;
+    color: #475569;
+    font-family: "KaTeX_Math", serif;
+}
+
+.rf-product-category {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 999px;
+    align-self: flex-start;
+}
+
+/* Badges */
+.rf-product-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.rf-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.rf-badge-gas {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+
+.rf-badge-color {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.rf-badge-precip {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.rf-badge-heat {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.rf-badge-cold {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+/* ── React Flow overrides ────────────────────────────────── */
+.chem-canvas-wrapper .react-flow__node {
+    border-radius: 14px;
+}
+
+.chem-canvas-wrapper .react-flow__edge-path {
+    stroke-width: 2.5;
+}
+
+.chem-canvas-wrapper .react-flow__minimap {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chem-canvas-wrapper .react-flow__controls {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 639px) {
+    .chem-tray {
+        padding: 8px 10px;
+    }
+
+    .chem-tray-bottle {
+        min-width: 56px;
+        padding: 6px 4px;
+    }
+
+    .chem-tray-bottle-body {
+        width: 26px;
+        height: 32px;
+    }
+
+    .chem-tray-bottle-name {
+        font-size: 8px;
+        max-width: 50px;
+    }
+
+    .rf-beaker-body {
+        width: 80px;
+        height: 96px;
+    }
+
+    .rf-product-node {
+        min-width: 130px;
+        max-width: 180px;
+    }
+}
