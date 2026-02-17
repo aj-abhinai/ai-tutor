@@ -12,6 +12,7 @@ import {
     formatSubtopicForFeedback,
     getSubtopicById,
 } from "@/lib/curriculum";
+import { getSubtopicFromDB } from "@/lib/rag";
 import {
     createGeminiModel,
     createRateLimiter,
@@ -185,12 +186,10 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const selectedSubtopic = getSubtopicById(
-        subject,
-        chapterId.trim(),
-        topicId.trim(),
-        subtopicId.trim()
-    );
+    // Try Firestore first, fall back to static curriculum data.
+    const selectedSubtopic =
+        (await getSubtopicFromDB(subject, chapterId.trim(), topicId.trim(), subtopicId.trim()))
+        ?? getSubtopicById(subject, chapterId.trim(), topicId.trim(), subtopicId.trim());
 
     if (!selectedSubtopic) {
         return NextResponse.json(
