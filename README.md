@@ -1,44 +1,50 @@
-**AI Tutor (NCERT Class 7)**
-A Next.js app that helps Class 7 students learn NCERT Science and Maths using a simple Learn ? Listen ? Quiz flow with local curriculum data and Gemini-powered feedback.
+# AI Tutor (NCERT Class 7)
+**Project Overview:** [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)
 
-**Features**
-- Learn card with quick explanations, level-based bullet points, and a curiosity question.
-- Listen card that reads the Learn content aloud using browser TTS.
-- Quiz card with MCQ and short-answer questions from the local question bank.
-- **Reaction Lab**: An interactive playground to mix chemicals and observe reactions (color change, gas, precipitate).
-- Explain-it-back and quiz feedback powered by Gemini (with fallback checks for short answers).
-- Deep explanation generator for extended reading (HTML-formatted sections).
+A Next.js app that helps Class 7 students learn NCERT Science and Maths through a simple `Learn -> Listen -> Quiz` flow, with curriculum data served from Firestore and targeted Gemini-powered feedback.
 
-**Tech Stack**
+## Features
+- Learn card with structured explanation and level-based depth.
+- Listen card with browser text-to-speech.
+- Quiz card using `questionBank` from backend subtopic data.
+- Explain-it-back and short-answer feedback via Gemini.
+- Deep explanation generation via Gemini.
+- Chemistry and Physics lab modules with deterministic simulation behavior.
+
+## Current Architecture (V2)
+- Runtime curriculum source: Firestore (`curriculum_chunks`).
+- Catalog loading: `GET /api/catalog`.
+- Lesson loading: `POST /api/explain` (returns `content` and selected `subtopic`).
+- AI routes use DB-loaded subtopic context: `/api/expand`, `/api/deep`, `/api/feedback`.
+
+## Tech Stack
 - Next.js App Router, React 19, TypeScript, Tailwind CSS.
-- Gemini API via `@google/generative-ai` for expand, deep, and feedback routes.
+- Firestore Admin SDK for backend curriculum access.
+- Gemini API via `@google/generative-ai`.
 
-**Getting Started**
-1. Install dependencies: `npm install`.
-1. Add environment variables (see below).
-1. Run the dev server: `npm run dev`.
-1. Open `http://localhost:3000`.
+## Getting Started
+1. Install dependencies: `npm install`
+2. Set environment variables (see below).
+3. Run development server: `npm run dev`
+4. Open `http://localhost:3000`
 
-**Environment Variables**
-- `GEMINI_API_KEY` is required for `/api/expand`, `/api/deep`, and `/api/feedback`.
-- Create `.env.local` with `GEMINI_API_KEY=your_key_here`.
+## Environment Variables
+- `GEMINI_API_KEY` for AI routes (`/api/expand`, `/api/deep`, `/api/feedback`)
+- Firebase Admin credentials for Firestore access in API routes
+- Optional (recommended): `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` for shared rate limiting
 
-**Scripts**
-- `npm run dev` starts the development server.
-- `npm run build` creates a production build.
-- `npm run start` runs the production server.
-- `npm run lint` runs ESLint.
-- `npm run test` runs Jest.
+## Scripts
+- `npm run dev` start dev server
+- `npm run build` create production build
+- `npm run start` run production server
+- `npm run lint` run ESLint
+- `npm run test` run Jest tests
 
-**Project Structure**
-- `app/` contains the UI and API routes.
-- `components/` contains UI components and card layouts.
-- `lib/curriculum/` contains the NCERT-aligned curriculum, topics, subtopics, and question bank.
-- `__tests__/` contains Jest tests.
+## API Routes
+- `GET /api/catalog` return chapter/topic/subtopic catalog for a subject
+- `POST /api/explain` return base lesson content + selected subtopic payload
+- `POST /api/expand` return expanded explanation
+- `POST /api/deep` return long-form deep explanation
+- `POST /api/feedback` return explain-it-back and quiz feedback
+- `POST /api/lab` return lab simulation result + simplified explanation
 
-**API Routes**
-- `POST /api/explain` returns the base lesson content for a selected subtopic.
-- `POST /api/expand` returns an expanded explanation with analogy and misconceptions.
-- `POST /api/deep` returns a long-form, structured explanation.
-- `POST /api/feedback` returns feedback for explain-it-back and quiz answers.
-- `POST /api/lab` returns reaction results and a simplified AI explanation for a given pair of chemicals.

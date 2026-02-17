@@ -1,75 +1,82 @@
 # Project Overview: AI Tutor (NCERT Class 7)
 
 ## Why This Project
-Class 7 students need fast, clear explanations and immediate feedback while staying strictly within NCERT scope.
+Class 7 students need clear explanations and quick feedback while staying strictly inside NCERT scope.
 
 ## Design Principles
 1. One concept at a time to reduce cognitive load.
-2. Short, encouraging language for 12-year-old readers.
-3. Strict NCERT boundaries to prevent off-syllabus drift.
-4. Consistent output structure so the UI stays predictable.
-5. Practice immediately after learning to reinforce memory.
+2. Short, friendly language for 12-year-old learners.
+3. Strict NCERT boundaries to avoid off-syllabus drift.
+4. Consistent response structure so the UI stays stable.
+5. Practice right after learning to improve retention.
 
 ## Experience Flow (Learn -> Listen -> Quiz)
 The flow is intentionally simple:
-1. Learn: a short explanation plus level-based bullets so students can choose depth.
-2. Listen: browser TTS for students who learn better by hearing or need accessibility support.
-3. Quiz: immediate recall checks to lock in understanding and surface gaps.
+1. Learn: short explanation with level-based bullets (simple/standard/deep).
+2. Listen: browser text-to-speech for accessibility and audio learning.
+3. Quiz: quick recall checks to confirm understanding and reveal gaps.
 
-This keeps the interaction focused and avoids overwhelming students with long pages.
+This keeps the product focused and avoids overwhelming students.
 
 ## How It Works
-![How it works diagram](./docs/images/how-it-works.png)
+![How it works flow](./docs/images/workflow.png)
 
-### 1. Curriculum ingestion
-- NCERT textbook PDFs are parsed using Python.
-- Content is extracted into topic, subtopic, and keywords.
-- Data is stored as structured TypeScript files.
+### 1. Curriculum source and delivery
+- Firestore (`curriculum_chunks`) is the runtime source of truth.
+- The client loads chapter/topic/subtopic catalog from `GET /api/catalog`.
+- Lesson requests send `{ subject, chapterId, topicId, subtopicId }` to `POST /api/explain`.
+- The response returns:
+  - `content` for the Learn card
+  - `subtopic` payload (including `questionBank`) for Quiz and context-aware flows
 
 ### 2. Deterministic learning layer
-The following are hard-coded, not AI-generated:
-- Simple explanation
-- Standard explanation
-- Worked examples
-- MCQs with correct answers
-- Why wrong options fail
+The following are deterministic and controlled by project logic (not free-form AI):
+- Main lesson structure from `/api/explain`
+- Quiz question bank from `subtopic.questionBank`
+- Correct answers and explanations shown in Quiz feedback UI
 
-This ensures clarity, stability, and age-appropriate language.
+This keeps output stable, age-appropriate, and predictable.
 
 ### 3. Targeted AI usage (Gemini)
-AI is used only in two places:
-- Deep explanation: triggered on demand; uses Gemini to expand intuition and analogies; constrained by topic keywords to avoid syllabus drift.
-- Explain-it-back: students explain the concept in their own words; AI evaluates understanding and gives gentle corrective feedback.
+AI is used in focused places:
+- Deep explanation (`POST /api/deep`) for expanded depth.
+- Expanded explanation (`POST /api/expand`) for level-based clarity.
+- Explain-it-back and short-answer feedback (`POST /api/feedback`) for formative feedback.
 
-## Lab Module (Chemistry Playground)
-The project also includes a virtual chemistry lab where students select two chemicals and run a simulated mix.
+All AI routes use the selected subtopic context loaded from Firestore.
+
+## Lab Module (Chemistry Playground + Physics Lab)
+The project includes virtual lab experiences with deterministic simulation behavior.
 
 ### How Lab Works
-1. Students choose Chemical A and Chemical B from a curated Class 7-safe list.
-2. The local reaction engine resolves the outcome deterministically (reaction/no reaction).
-3. The UI shows animated reaction cues (colour change, bubbles, precipitate, heat effect) based on reaction metadata.
-4. A short explanation is returned for the observed outcome.
+1. Students select lab inputs from curated, class-appropriate options.
+2. Local simulation engines resolve outcomes deterministically.
+3. The UI shows visual effects based on simulation metadata.
+4. A short explanation is returned for the observed result.
 
 ### AI Boundary in Lab
-- Chemistry facts are always determined by the local reaction dataset and rule engine.
-- Gemini is used only to rewrite the deterministic summary into simpler student-friendly wording.
-- If AI is unavailable, the app still returns deterministic local output so learning and animations continue.
+- Scientific outcomes come from local simulation data and rule engines.
+- AI is used only to improve readability where enabled.
+- If AI is unavailable, deterministic lab behavior still works.
 
 ## Key Decisions and Rationale
-- Local curriculum and question bank: ensures accuracy, scope control, and predictable coverage.
-- Structured AI response shapes: keeps content consistent and prevents UI breakage.
-- Explain-it-back feedback: encourages active recall and helps students self-correct.
-- Short, friendly tone rules: reduces anxiety and keeps students engaged.
-- Single-page flow: minimizes navigation overhead and keeps attention on the topic.
+- Firestore-backed curriculum: centralized runtime control.
+- Deterministic lesson structure: stable output and UI safety.
+- Structured AI response shapes: consistent integration and lower break risk.
+- Explain-it-back feedback: supports active recall and self-correction.
+- Single-page flow: minimal navigation and better focus.
 
 ## What Success Looks Like
-Students can understand a topic in minutes, explain it back in their own words, and get gentle, specific feedback. Teachers or parents can trust the content stays within NCERT Class 7.
+Students can understand a topic in minutes, explain it back in their own words, and get helpful feedback. Parents and teachers can trust that content stays within NCERT Class 7.
 
-## Out of Scope (V1)
+## Out of Scope (Current Scope Guardrails)
 - Multi-page navigation or accounts
 - Progress tracking
 - Non-NCERT content
 - Malayalam output
 - Server-side TTS
-- Client-side Mermaid diagram rendering ***(Experimental)**
-    (API call -> generate Mermaid text -> client-side rendering)
+- Ungrounded AI teaching without curriculum context
+
+## Previous Version
+For the earlier overview (v0.1.0), see:
+- [PROJECT_OVERVIEW v0.1.0](./docs/project-overview/v0.1.0/PROJECT_OVERVIEW.md)
