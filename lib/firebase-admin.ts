@@ -1,5 +1,6 @@
 /**
  * Firebase Admin SDK — lazy singleton for Firestore access.
+ * Usage: getFirestoreClient() returns the shared DB instance.
  *
  * Reads credentials from GOOGLE_APPLICATION_CREDENTIALS env var
  * or falls back to ./service-account.json in project root.

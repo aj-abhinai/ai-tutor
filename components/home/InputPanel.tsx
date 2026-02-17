@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { SubjectButton } from "@/components/ui/SubjectButton";
-import { SubjectName } from "@/lib/curriculum";
+import type { SubjectName } from "@/lib/learning-types";
 
 interface InputPanelProps {
   subject: SubjectName;

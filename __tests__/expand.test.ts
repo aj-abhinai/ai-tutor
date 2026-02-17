@@ -4,8 +4,16 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/expand/route";
+import { getSubtopicFromDB } from "@/lib/rag";
+import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
 
 const generateContentMock = jest.fn();
+
+jest.mock("@/lib/rag", () => ({
+  getSubtopicFromDB: jest.fn(),
+}));
+
+const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
 
 jest.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
@@ -33,6 +41,8 @@ const makeJsonRequest = (body: unknown, headers: Record<string, string> = {}) =>
 describe("/api/expand - Expanded explanation API", () => {
   beforeEach(() => {
     generateContentMock.mockReset();
+    getSubtopicFromDBMock.mockReset();
+    getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
     process.env.GEMINI_API_KEY = "test-key";
   });
 

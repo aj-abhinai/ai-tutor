@@ -8,10 +8,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import {
-    buildLessonFromSubtopic,
-    formatSubtopicForFeedback,
-    getSubtopicById,
-} from "@/lib/curriculum";
+  buildLessonFromSubtopic,
+  formatSubtopicForFeedback,
+} from "@/lib/subtopic-content";
 import { getSubtopicFromDB } from "@/lib/rag";
 import {
     createGeminiModel,
@@ -186,10 +185,12 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Try Firestore first, fall back to static curriculum data.
-    const selectedSubtopic =
-        (await getSubtopicFromDB(subject, chapterId.trim(), topicId.trim(), subtopicId.trim()))
-        ?? getSubtopicById(subject, chapterId.trim(), topicId.trim(), subtopicId.trim());
+    const selectedSubtopic = await getSubtopicFromDB(
+      subject,
+      chapterId.trim(),
+      topicId.trim(),
+      subtopicId.trim()
+    );
 
     if (!selectedSubtopic) {
         return NextResponse.json(
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
     // Lesson mode returns static curriculum content.
     if (requestMode === "lesson") {
         const lesson: TutorLessonResponse = buildLessonFromSubtopic(selectedSubtopic);
-        return NextResponse.json({ content: lesson });
+        return NextResponse.json({ content: lesson, subtopic: selectedSubtopic });
     }
 
     // Feedback mode validates student input.

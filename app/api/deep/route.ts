@@ -7,7 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSubtopicById, formatSubtopicForPrompt } from "@/lib/curriculum";
+import { formatSubtopicForPrompt } from "@/lib/subtopic-content";
+import { getSubtopicFromDB } from "@/lib/rag";
 import {
   createGeminiModel,
   createRateLimiter,
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const selectedSubtopic = getSubtopicById(
+  const selectedSubtopic = await getSubtopicFromDB(
     subject,
     chapterId.trim(),
     topicId.trim(),

@@ -6,6 +6,14 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/explain/route";
+import { getSubtopicFromDB } from "@/lib/rag";
+import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
+
+jest.mock("@/lib/rag", () => ({
+  getSubtopicFromDB: jest.fn(),
+}));
+
+const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
 
 interface TutorResponse {
   content: {
@@ -16,6 +24,10 @@ interface TutorResponse {
       deep: string[];
     };
     curiosityQuestion?: string;
+  };
+  subtopic: {
+    id: string;
+    questionBank: unknown[];
   };
 }
 
@@ -41,6 +53,11 @@ const makeRawRequest = (rawBody: string, headers: Record<string, string> = {}) =
   });
 
 describe("/api/explain - Standard 7 Tutor API", () => {
+  beforeEach(() => {
+    getSubtopicFromDBMock.mockReset();
+    getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
+  });
+
   describe("Input validation", () => {
     it("rejects an invalid JSON body", async () => {
       const response = await POST(makeRawRequest("{"));
@@ -125,6 +142,8 @@ describe("/api/explain - Standard 7 Tutor API", () => {
     });
 
     it("rejects unknown chapter/topic/subtopic combo", async () => {
+      getSubtopicFromDBMock.mockResolvedValueOnce(null);
+
       const response = await POST(
         makeJsonRequest({
           ...VALID_BODY,
@@ -159,6 +178,8 @@ describe("/api/explain - Standard 7 Tutor API", () => {
       expect(Array.isArray(data.content.bulletPoints.standard)).toBe(true);
       expect(Array.isArray(data.content.bulletPoints.deep)).toBe(true);
       expect(data.content.bulletPoints.simple.length).toBeGreaterThan(0);
+      expect(data.subtopic.id).toBe(MOCK_SUBTOPIC.id);
+      expect(Array.isArray(data.subtopic.questionBank)).toBe(true);
     });
 
     it("allows curiosityQuestion in response", async () => {

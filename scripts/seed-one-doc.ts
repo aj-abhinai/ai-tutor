@@ -1,5 +1,6 @@
 /**
- * Seed one subtopic document into Firestore for MVP testing.
+ * Seeding Tool: Pushes a single test subtopic (closed-open-circuits) to Firestore.
+ * Run with: npx tsx scripts/seed-one-doc.ts
  *
  * Usage: npx tsx scripts/seed-one-doc.ts
  *

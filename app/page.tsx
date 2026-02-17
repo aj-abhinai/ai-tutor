@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-import { getSubjectCurriculum } from "@/lib/curriculum";
 import { hasLabExperiments } from "@/lib/circuit-experiments";
+import type { CurriculumCatalog, SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 
 import { Alert } from "@/components/ui/Alert";
 import { StatusCard } from "@/components/ui/StatusCard";
@@ -30,6 +30,11 @@ const QuizCard = dynamic(
   () => import("@/components/home/QuizCard").then((m) => m.QuizCard)
 );
 
+type LessonPayload = {
+  content: TutorLessonResponse;
+  subtopic: SubtopicKnowledge;
+};
+
 /**
  * Standard 7 AI Tutor - Main Page
  *
@@ -39,46 +44,15 @@ const QuizCard = dynamic(
  * - Interactive Quiz
  */
 
-// Local chapter lists for dropdown labels (mapped to curriculum data below).
-// NCERT Class 7 Science chapters (2024-25 "Curiosity" textbook)
-const SCIENCE_CHAPTERS = [
-  "The Ever-Evolving World of Science",
-  "Exploring Substances: Acidic, Basic, and Neutral",
-  "Electricity: Circuits and Their Components",
-  "The World of Metals and Non-metals",
-  "Changes Around Us: Physical and Chemical",
-  "Adolescence: A Stage of Growth and Change",
-  "Heat Transfer in Nature",
-  "Measurement of Time and Motion",
-  "Life Processes in Animals",
-  "Life Processes in Plants",
-  "Light: Shadows and Reflections",
-  "Earth, Moon, and the Sun",
-];
-
-// NCERT Class 7 Maths chapters (2024-25 rationalized syllabus)
-const MATHS_CHAPTERS = [
-  "Integers",
-  "Fractions and Decimals",
-  "Data Handling",
-  "Simple Equations",
-  "Lines and Angles",
-  "The Triangle and its Properties",
-  "Comparing Quantities",
-  "Rational Numbers",
-  "Perimeter and Area",
-  "Algebraic Expressions",
-  "Exponents and Powers",
-  "Symmetry",
-  "Visualising Solid Shapes",
-];
-
 export default function Home() {
   // App state for subject + lesson selection.
-  const [subject, setSubject] = useState<"Science" | "Maths">("Science");
+  const [subject, setSubject] = useState<SubjectName>("Science");
+  const [catalog, setCatalog] = useState<CurriculumCatalog | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [chapterTitle, setChapterTitle] = useState("");
   const [topicId, setTopicId] = useState("");
   const [subtopicId, setSubtopicId] = useState("");
+  const [selectedSubtopicData, setSelectedSubtopicData] = useState<SubtopicKnowledge | null>(null);
   // Lesson data + UI state for the active card.
   const [data, setData] = useState<TutorLessonResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,7 +72,7 @@ export default function Home() {
   const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
 
   // Lesson cache to prevent duplicate API calls.
-  const lessonCache = useRef<Map<string, TutorLessonResponse>>(new Map());
+  const lessonCache = useRef<Map<string, LessonPayload>>(new Map());
   const isFetching = useRef(false);
   // Cache + throttle for deep explanations.
   const deepCache = useRef<Map<string, string>>(new Map());
@@ -115,32 +89,19 @@ export default function Home() {
   const [ttsSupported, setTtsSupported] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  // Derived curriculum and dropdown options.
-  const curriculum = useMemo(() => getSubjectCurriculum(subject), [subject]);
-  const chapterTitles = useMemo(
-    () => (subject === "Science" ? SCIENCE_CHAPTERS : MATHS_CHAPTERS),
-    [subject]
-  );
-  const availableChaptersByTitle = useMemo(() => {
-    const map = new Map<string, typeof curriculum.chapters[number]>();
-    curriculum.chapters.forEach((chapter) => {
-      map.set(chapter.title, chapter);
-    });
-    return map;
-  }, [curriculum]);
-
+  // Derived DB catalog + dropdown options.
   const chapterOptions = useMemo(
     () =>
-      chapterTitles.map((title) => ({
-        value: title,
-        label: availableChaptersByTitle.has(title) ? title : `${title} (Coming soon)`,
+      (catalog?.chapters ?? []).map((chapter) => ({
+        value: chapter.id,
+        label: chapter.title,
       })),
-    [chapterTitles, availableChaptersByTitle]
+    [catalog]
   );
 
   // Resolve current selection chain.
   const selectedChapter = chapterTitle
-    ? availableChaptersByTitle.get(chapterTitle) ?? null
+    ? (catalog?.chapters.find((chapter) => chapter.id === chapterTitle) ?? null)
     : null;
 
   const topicOptions = useMemo(() => {
@@ -157,11 +118,13 @@ export default function Home() {
     ? selectedChapter.topics.find((topic) => topic.id === topicId) ?? null
     : null;
 
-  const selectedSubtopic = selectedTopic
+  const selectedSubtopicRef = selectedTopic
     ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
     selectedTopic.subtopics[0] ??
     null
     : null;
+
+  const selectedSubtopic = selectedSubtopicData;
 
   // Load TTS voices and cleanup audio on unmount
   useEffect(() => {
@@ -194,18 +157,52 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [deepCooldownUntil]);
 
-  // When subject changes, auto-select Chapter 3 as default (or first available)
+  // Load subject catalog from backend whenever subject changes.
   useEffect(() => {
-    // Prefer Chapter 3 (Electricity) as default, otherwise first available
-    const preferredTitle = "Electricity: Circuits and Their Components";
-    const defaultTitle = availableChaptersByTitle.has(preferredTitle)
-      ? preferredTitle
-      : chapterTitles.find((title) => availableChaptersByTitle.has(title));
-    if (defaultTitle && defaultTitle !== chapterTitle) {
-      setChapterTitle(defaultTitle);
+    let cancelled = false;
+
+    async function loadCatalog() {
+      setCatalogLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`/api/catalog?subject=${encodeURIComponent(subject)}`);
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load catalog");
+        }
+        if (!cancelled) {
+          setCatalog(data.catalog as CurriculumCatalog);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCatalog(null);
+          setError(err instanceof Error ? err.message : "Failed to load catalog");
+        }
+      } finally {
+        if (!cancelled) {
+          setCatalogLoading(false);
+        }
+      }
+    }
+
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [subject]);
+
+  // Pick first available chapter after catalog load.
+  useEffect(() => {
+    const chapters = catalog?.chapters ?? [];
+    if (chapters.length === 0) {
+      setChapterTitle("");
+      return;
+    }
+    if (!chapterTitle || !chapters.some((chapter) => chapter.id === chapterTitle)) {
+      setChapterTitle(chapters[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subject, chapterTitles, availableChaptersByTitle]);
+  }, [catalog]);
 
   // When chapter changes, set default topic and subtopic
   useEffect(() => {
@@ -214,7 +211,7 @@ export default function Home() {
       setSubtopicId("");
       return;
     }
-    const chapter = availableChaptersByTitle.get(chapterTitle);
+    const chapter = catalog?.chapters.find((item) => item.id === chapterTitle);
     if (!chapter) {
       setTopicId("");
       setSubtopicId("");
@@ -226,7 +223,7 @@ export default function Home() {
     setTopicId(firstTopicId);
     setSubtopicId(firstSubtopicId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterTitle, availableChaptersByTitle]);
+  }, [chapterTitle, catalog]);
 
   // When topic changes, set default subtopic
   useEffect(() => {
@@ -275,6 +272,7 @@ export default function Home() {
     setDeepLoading(false);
     setDeepError("");
     setDeepCooldownUntil(null);
+    setSelectedSubtopicData(null);
     stopAudio();
   };
 
@@ -288,7 +286,7 @@ export default function Home() {
   };
 
   // Selection handlers cascade resets to keep state consistent.
-  const handleSubjectChange = (newSubject: "Science" | "Maths") => {
+  const handleSubjectChange = (newSubject: SubjectName) => {
     setSubject(newSubject);
     setChapterTitle("");
     setTopicId("");
@@ -324,7 +322,7 @@ export default function Home() {
     const preserveExplainLevel = options?.preserveExplainLevel ?? false;
     const targetSubtopic = subtopicIdOverride
       ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicIdOverride) ?? null
-      : selectedSubtopic;
+      : selectedSubtopicRef;
     if (!targetSubtopic) return;
 
     // Prevent concurrent fetches (React StrictMode double-render protection)
@@ -334,7 +332,8 @@ export default function Home() {
     const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic.id}:${targetSubtopic.id}`;
     const cached = lessonCache.current.get(cacheKey);
     if (cached) {
-      setData(cached);
+      setData(cached.content);
+      setSelectedSubtopicData(cached.subtopic);
       setSelfCheck(null);
       setExplainBack("");
       setCuriosityResponse("");
@@ -366,12 +365,16 @@ export default function Home() {
       const resData = await res.json();
       if (!res.ok) {
         setError(resData.error || "Something went wrong");
-      } else if (!resData?.content) {
+      } else if (!resData?.content || !resData?.subtopic) {
         setError("Received an empty response. Please try again.");
       } else {
         // Store in cache
-        lessonCache.current.set(cacheKey, resData.content);
+        lessonCache.current.set(cacheKey, {
+          content: resData.content as TutorLessonResponse,
+          subtopic: resData.subtopic as SubtopicKnowledge,
+        });
         setData(resData.content);
+        setSelectedSubtopicData(resData.subtopic);
         setSelfCheck(null);
         setExplainBack("");
         setCuriosityResponse("");
@@ -395,7 +398,7 @@ export default function Home() {
       return;
     }
 
-    if (!selectedSubtopic) {
+    if (!selectedSubtopicRef) {
       setError("No subtopics are available for this topic yet.");
       return;
     }
@@ -463,7 +466,7 @@ export default function Home() {
   const handleCheckAnswer = async () => {
     if (!currentQuestion) return;
     if (isShortAnswer) {
-      if (!selectedChapter || !selectedSubtopic || checkingQuiz) return;
+      if (!selectedChapter || !selectedSubtopicRef || checkingQuiz) return;
       if (!shortAnswer.trim()) return;
       setCheckingQuiz(true);
       setQuizFeedback(null);
@@ -476,7 +479,7 @@ export default function Home() {
             subject,
             chapterId: selectedChapter.id,
             topicId: selectedTopic?.id,
-            subtopicId: selectedSubtopic.id,
+            subtopicId: selectedSubtopicRef.id,
             studentAnswer: shortAnswer.trim(),
             lessonContext: buildLessonContext(),
             mode: "quiz",
@@ -511,9 +514,9 @@ export default function Home() {
 
   // Fetch the deep essay and throttle regenerations.
   const fetchDeepEssay = async (force = false) => {
-    if (!selectedChapter || !selectedSubtopic || deepLoading) return;
+    if (!selectedChapter || !selectedSubtopicRef || deepLoading) return;
 
-    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopic.id}`;
+    const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopicRef.id}`;
     const cached = deepCache.current.get(cacheKey);
     if (cached && !force) {
       setDeepEssay(cached);
@@ -544,7 +547,7 @@ export default function Home() {
           subject,
           chapterId: selectedChapter.id,
           topicId: selectedTopic?.id,
-          subtopicId: selectedSubtopic.id,
+          subtopicId: selectedSubtopicRef.id,
         }),
       });
       const resData = await res.json();
@@ -580,7 +583,7 @@ export default function Home() {
 
   // Submit the "explain back" response for AI feedback.
   const handleExplainBackCheck = async () => {
-    if (!selectedChapter || !selectedSubtopic || !explainBack.trim() || checkingExplain) return;
+    if (!selectedChapter || !selectedSubtopicRef || !explainBack.trim() || checkingExplain) return;
     setCheckingExplain(true);
     setExplainFeedback(null);
     setError("");
@@ -593,7 +596,7 @@ export default function Home() {
           subject,
           chapterId: selectedChapter.id,
           topicId: selectedTopic?.id,
-          subtopicId: selectedSubtopic.id,
+          subtopicId: selectedSubtopicRef.id,
           studentAnswer: explainBack.trim(),
           lessonContext: buildLessonContext(),
         }),
@@ -635,9 +638,9 @@ export default function Home() {
   const aiCorrect = isShortAnswer ? quizFeedback?.isCorrect : undefined;
   const isAnswerCorrect = isShortAnswer ? (aiCorrect ?? isShortCorrect) : isMcqCorrect;
   const questionsLength = questions.length;
-  const cardDisabled = !selectedSubtopic || loading;
+  const cardDisabled = !selectedSubtopicRef || loading || catalogLoading;
   const isTopicDisabled = !selectedChapter;
-  const showChapterWarning = Boolean(chapterTitle && !selectedChapter);
+  const showChapterWarning = false;
 
   // Quiz navigation actions.
   const handleNextQuestion = () => {

@@ -6,13 +6,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { TextArea } from "@/components/ui/TextArea";
-import { SubtopicKnowledge, TopicKnowledge } from "@/lib/curriculum";
+import type { SubtopicKnowledge, TopicSummary } from "@/lib/learning-types";
 import { renderHtml } from "./lesson-utils";
 import { ExplainFeedback, ExplainLevel, TutorLessonResponse } from "./types";
 
 interface LearnCardProps {
   data: TutorLessonResponse;
-  selectedTopic: TopicKnowledge | null;
+  selectedTopic: TopicSummary | null;
   selectedSubtopic: SubtopicKnowledge | null;
   onSubtopicChange: (subtopicId: string) => void;
   explainLevel: ExplainLevel;

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { OptionButton } from "@/components/ui/OptionButton";
-import { QuestionItem } from "@/lib/curriculum";
+import type { QuestionItem } from "@/lib/learning-types";
 import { ExplainFeedback } from "./types";
 import { renderHtml, renderWithKaTeX } from "./lesson-utils";
 
