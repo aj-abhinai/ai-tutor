@@ -15,15 +15,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { formatSubtopicForFeedback } from "@/lib/subtopic-content";
-import { getSubtopicFromDB } from "@/lib/rag";
+import { parseCurriculumRequest } from "@/lib/api/middleware";
+import { FeedbackBodySchema } from "@/lib/api/validation";
 import {
   createGeminiModel,
-  createRateLimiter,
-  getRateLimitKey,
   hasAiRouteAccess,
   isNonEmptyString,
-  isValidSubject,
-  MAX_ID_LENGTH,
   parseJsonFromModel,
 } from "@/lib/api/shared";
 
@@ -38,17 +35,11 @@ type TutorFeedbackResponse = {
   isCorrect?: boolean;
 };
 
-const MAX_STUDENT_ANSWER_LENGTH = 600;
-const MAX_LESSON_CONTEXT_LENGTH = 1600;
 const MAX_QUESTION_LENGTH = 400;
 const MAX_EXPECTED_ANSWER_LENGTH = 400;
 const MAX_ANSWER_EXPLANATION_LENGTH = 700;
+const MAX_LESSON_CONTEXT_LENGTH = 1600;
 const MAX_FIELD_LENGTH = 240;
-
-
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 10;
-const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
 const BASE_PROMPT = `You are a warm, encouraging NCERT Class 7 teacher who loves helping students learn.
 
@@ -82,21 +73,7 @@ Return exactly:
   "rereadTip": "Which specific topic or concept to re-read"
 }`;
 
-
-
-function normalizeAnswer(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isExactMatch(a: string, b: string): boolean {
-  const normA = normalizeAnswer(a);
-  const normB = normalizeAnswer(b);
-  return normA.length > 0 && normA === normB;
-}
+// ── Helper functions for answer validation and normalization ──
 
 function isLikelyGibberish(answer: string): boolean {
   const trimmed = answer.trim();
@@ -113,6 +90,7 @@ function isLikelyGibberish(answer: string): boolean {
     wordCount > 0 ? words.reduce((sum, word) => sum + word.length, 0) / wordCount : 0;
   const vowelRatio = letters > 0 ? vowels / letters : 0;
 
+  // Heuristic: noisy symbol-heavy text or unrealistically consonant-heavy words is likely junk input.
   if (totalChars >= 25 && (letterRatio < 0.6 || digitRatio > 0.25)) return true;
   if (avgWordLen >= 8 && vowelRatio < 0.25) return true;
   return false;
@@ -158,6 +136,7 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     obj = obj.feedback as Record<string, unknown>;
   }
 
+  // Accept common alternative key names to make model output parsing more tolerant.
   const ratingRaw = pickString(obj, ["rating", "result", "score"]);
   const praiseRaw = pickString(obj, ["praise", "positive", "strength", "right", "whatWasRight"]);
   const fixRaw = pickString(obj, ["fix", "improve", "improvement", "missing", "wrong", "whatToFix"]);
@@ -182,7 +161,7 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
 
 function forceStrictNeedsWork(
   focusIdea: string,
-  reason: "gibberish" | "too_short" | "no_overlap"
+  reason: "gibberish" | "too_short" | "no_overlap",
 ): TutorFeedbackResponse {
   if (reason === "gibberish") {
     return {
@@ -215,7 +194,7 @@ function forceStrictNeedsWork(
 
 async function generateStructuredFeedback(
   promptParts: { text: string }[],
-  modelName = "gemini-2.5-flash-lite"
+  modelName = "gemini-2.5-flash-lite",
 ): Promise<unknown> {
   const model = createGeminiModel(modelName, {
     responseMimeType: "application/json",
@@ -227,131 +206,27 @@ async function generateStructuredFeedback(
   return parseJsonFromModel(text);
 }
 
+// ── Route handler ──
+
 export async function POST(request: NextRequest) {
-  const clientKey = getRateLimitKey(request);
-  if (await isRateLimited(clientKey)) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Please try again shortly." },
-      { status: 429 }
-    );
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const {
-    subject,
-    chapterId,
-    topicId,
-    subtopicId,
-    studentAnswer,
-    lessonContext,
-    mode,
-    question,
-    expectedAnswer,
-    answerExplanation,
-  } = body as {
-    subject?: unknown;
-    chapterId?: unknown;
-    topicId?: unknown;
-    subtopicId?: unknown;
-    studentAnswer?: unknown;
-    lessonContext?: unknown;
-    mode?: unknown;
-    question?: unknown;
-    expectedAnswer?: unknown;
-    answerExplanation?: unknown;
-  };
-
-  if (!isNonEmptyString(subject) || !isValidSubject(subject)) {
-    return NextResponse.json({ error: "Subject must be Science or Maths" }, { status: 400 });
-  }
-  if (!isNonEmptyString(chapterId)) {
-    return NextResponse.json({ error: "Chapter is required" }, { status: 400 });
-  }
-  if (!isNonEmptyString(topicId)) {
-    return NextResponse.json({ error: "Topic is required" }, { status: 400 });
-  }
-  if (!isNonEmptyString(subtopicId)) {
-    return NextResponse.json({ error: "Subtopic is required" }, { status: 400 });
-  }
-  if (!isNonEmptyString(studentAnswer)) {
-    return NextResponse.json({ error: "Student answer is required" }, { status: 400 });
-  }
-  if (
-    chapterId.trim().length > MAX_ID_LENGTH ||
-    topicId.trim().length > MAX_ID_LENGTH ||
-    subtopicId.trim().length > MAX_ID_LENGTH
-  ) {
-    return NextResponse.json(
-      { error: `IDs must be ${MAX_ID_LENGTH} characters or less` },
-      { status: 400 }
-    );
-  }
+  // Route-specific: AI access check.
   if (!hasAiRouteAccess(request)) {
     return NextResponse.json(
-      { error: "Unauthorized request origin for AI endpoint." },
-      { status: 401 }
+      { error: "Unauthorized request origin for AI endpoint.", code: "UNAUTHORIZED" },
+      { status: 401 },
     );
   }
 
-  const trimmedAnswer = studentAnswer.trim();
-  if (trimmedAnswer.length > MAX_STUDENT_ANSWER_LENGTH) {
-    return NextResponse.json(
-      { error: `Answer must be ${MAX_STUDENT_ANSWER_LENGTH} characters or less` },
-      { status: 400 }
-    );
-  }
+  // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
+  const result = await parseCurriculumRequest(request, FeedbackBodySchema);
+  if (!result.ok) return result.response;
+  const { subtopic, subject, body } = result.data;
 
-  const selectedSubtopic = await getSubtopicFromDB(
-    subject,
-    chapterId.trim(),
-    topicId.trim(),
-    subtopicId.trim()
-  );
-  if (!selectedSubtopic) {
-    return NextResponse.json(
-      { error: "Selected chapter/topic/subtopic was not found" },
-      { status: 400 }
-    );
-  }
+  const trimmedAnswer = body.studentAnswer.trim();
+  const contextChecklist = formatSubtopicForFeedback(subtopic);
+  const focusIdea = subtopic.keyConcepts[0] || subtopic.title;
 
-  const feedbackMode: FeedbackMode = mode === "quiz" ? "quiz" : "explain";
-  if (feedbackMode === "quiz") {
-    if (!isNonEmptyString(question) || !isNonEmptyString(expectedAnswer)) {
-      return NextResponse.json(
-        { error: "Question and expected answer are required for quiz mode" },
-        { status: 400 }
-      );
-    }
-    if (question.trim().length > MAX_QUESTION_LENGTH) {
-      return NextResponse.json(
-        { error: `Question must be ${MAX_QUESTION_LENGTH} characters or less` },
-        { status: 400 }
-      );
-    }
-    if (expectedAnswer.trim().length > MAX_EXPECTED_ANSWER_LENGTH) {
-      return NextResponse.json(
-        { error: `Expected answer must be ${MAX_EXPECTED_ANSWER_LENGTH} characters or less` },
-        { status: 400 }
-      );
-    }
-  }
-
-  const lessonText =
-    typeof lessonContext === "string" && lessonContext.trim().length > 0
-      ? lessonContext.trim().slice(0, MAX_LESSON_CONTEXT_LENGTH)
-      : "Lesson summary not provided.";
-  const contextChecklist = formatSubtopicForFeedback(selectedSubtopic);
-  const focusIdea = selectedSubtopic.keyConcepts[0] || selectedSubtopic.title;
-
+  // Quick reject: gibberish or too short.
   const wordCount = (trimmedAnswer.match(/[A-Za-z]+/g) ?? []).length;
   if (wordCount < 3) {
     return NextResponse.json({ feedback: forceStrictNeedsWork(focusIdea, "too_short") });
@@ -362,21 +237,53 @@ export async function POST(request: NextRequest) {
 
   // Check API key before attempting Gemini call.
   if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error", code: "AI_UNAVAILABLE" },
+      { status: 500 },
+    );
   }
 
+  // Route-specific: quiz mode extra validation.
+  const feedbackMode: FeedbackMode = body.mode === "quiz" ? "quiz" : "explain";
+  if (feedbackMode === "quiz") {
+    if (!isNonEmptyString(body.question) || !isNonEmptyString(body.expectedAnswer)) {
+      return NextResponse.json(
+        { error: "Question and expected answer are required for quiz mode", code: "VALIDATION" },
+        { status: 400 },
+      );
+    }
+    if (body.question.trim().length > MAX_QUESTION_LENGTH) {
+      return NextResponse.json(
+        { error: `Question must be ${MAX_QUESTION_LENGTH} characters or less`, code: "VALIDATION" },
+        { status: 400 },
+      );
+    }
+    if (body.expectedAnswer.trim().length > MAX_EXPECTED_ANSWER_LENGTH) {
+      return NextResponse.json(
+        { error: `Expected answer must be ${MAX_EXPECTED_ANSWER_LENGTH} characters or less`, code: "VALIDATION" },
+        { status: 400 },
+      );
+    }
+  }
+
+  const lessonText =
+    typeof body.lessonContext === "string" && body.lessonContext.trim().length > 0
+      ? body.lessonContext.trim().slice(0, MAX_LESSON_CONTEXT_LENGTH)
+      : "Lesson summary not provided.";
+
+  // Build prompt based on mode.
   const promptParts: { text: string }[] =
     feedbackMode === "quiz"
       ? [
         { text: BASE_PROMPT },
         { text: "Mode: quiz grading." },
-        { text: `Question:\n${String(question).trim().slice(0, MAX_QUESTION_LENGTH)}` },
+        { text: `Question:\n${String(body.question).trim().slice(0, MAX_QUESTION_LENGTH)}` },
         {
-          text: `Expected answer:\n${String(expectedAnswer).trim().slice(0, MAX_EXPECTED_ANSWER_LENGTH)}`,
+          text: `Expected answer:\n${String(body.expectedAnswer).trim().slice(0, MAX_EXPECTED_ANSWER_LENGTH)}`,
         },
         {
-          text: isNonEmptyString(answerExplanation)
-            ? `Answer explanation:\n${String(answerExplanation).trim().slice(0, MAX_ANSWER_EXPLANATION_LENGTH)}`
+          text: isNonEmptyString(body.answerExplanation)
+            ? `Answer explanation:\n${String(body.answerExplanation).trim().slice(0, MAX_ANSWER_EXPLANATION_LENGTH)}`
             : "Answer explanation not provided.",
         },
         { text: contextChecklist },
@@ -390,12 +297,12 @@ export async function POST(request: NextRequest) {
         { text: `Subject: ${subject}\nStudent answer:\n${trimmedAnswer}` },
       ];
 
+  // Generate AI feedback with repair fallback.
   let parsed: unknown;
   try {
     parsed = await generateStructuredFeedback(promptParts);
   } catch (err) {
     console.error("Feedback generation failed:", err);
-    // Fall back to rule-based feedback so the student still sees something.
     parsed = null;
   }
 
