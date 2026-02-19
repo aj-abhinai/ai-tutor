@@ -12,13 +12,13 @@
 import { useState, useCallback, useRef } from "react";
 import { ChemicalShelf } from "./ChemicalShelf";
 import { ReactionStage } from "./ReactionStage";
-import { getChemicalsList } from "@/lib/reaction-engine";
 import { type Reaction } from "@/lib/reactions";
 import { type Experiment } from "@/lib/experiments";
 import { type ChemPhase } from "./BeakerSVG";
 import { Button } from "@/components/ui/Button";
 
 export interface LabBenchProps {
+    chemicals: string[];
     onMix: (chemA: string, chemB: string) => void;
     reaction: Reaction | null;
     isLoading: boolean;
@@ -32,6 +32,7 @@ export interface LabBenchProps {
 }
 
 export function LabBench({
+    chemicals,
     onMix,
     reaction,
     isLoading,
@@ -42,7 +43,6 @@ export function LabBench({
     onGuidedCorrect,
     onGuidedWrong,
 }: LabBenchProps) {
-    const chemicals = getChemicalsList();
     const [addedNames, setAddedNames] = useState<string[]>([]);
     const [phase, setPhase] = useState<ChemPhase>("idle");
 

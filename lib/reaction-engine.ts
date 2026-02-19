@@ -1,10 +1,8 @@
 /**
- * Reaction Matching Engine
- *
- * Provides helpers to list chemicals and find reactions by pair.
+ * Reaction matching helpers over caller-provided datasets.
  */
 
-import REACTIONS, { type Reaction } from "./reactions";
+import type { Reaction } from "./reactions";
 
 function normalizeChemicalName(value: string): string {
     return value.trim().toLowerCase();
@@ -16,49 +14,75 @@ function makePairKey(a: string, b: string): string {
     return left < right ? `${left}||${right}` : `${right}||${left}`;
 }
 
-// Fast lookup tables for reaction matching and example retrieval.
-const REACTION_BY_PAIR = new Map<string, Reaction>();
-const REACTIONS_BY_CHEMICAL = new Map<string, Reaction[]>();
-const CHEMICALS = new Set<string>();
+interface ReactionIndex {
+    byPair: Map<string, Reaction>;
+    byChemical: Map<string, Reaction[]>;
+    chemicals: string[];
+}
 
-for (const reaction of REACTIONS) {
-    REACTION_BY_PAIR.set(makePairKey(reaction.reactantA, reaction.reactantB), reaction);
-    CHEMICALS.add(reaction.reactantA);
-    CHEMICALS.add(reaction.reactantB);
+const INDEX_CACHE = new WeakMap<Reaction[], ReactionIndex>();
 
-    const left = normalizeChemicalName(reaction.reactantA);
-    const right = normalizeChemicalName(reaction.reactantB);
+function buildIndex(reactions: Reaction[]): ReactionIndex {
+    const byPair = new Map<string, Reaction>();
+    const byChemical = new Map<string, Reaction[]>();
+    const chemicals = new Set<string>();
 
-    const leftList = REACTIONS_BY_CHEMICAL.get(left) ?? [];
-    leftList.push(reaction);
-    REACTIONS_BY_CHEMICAL.set(left, leftList);
+    for (const reaction of reactions) {
+        byPair.set(makePairKey(reaction.reactantA, reaction.reactantB), reaction);
+        chemicals.add(reaction.reactantA);
+        chemicals.add(reaction.reactantB);
 
-    const rightList = REACTIONS_BY_CHEMICAL.get(right) ?? [];
-    rightList.push(reaction);
-    REACTIONS_BY_CHEMICAL.set(right, rightList);
+        const left = normalizeChemicalName(reaction.reactantA);
+        const right = normalizeChemicalName(reaction.reactantB);
+
+        const leftList = byChemical.get(left) ?? [];
+        leftList.push(reaction);
+        byChemical.set(left, leftList);
+
+        const rightList = byChemical.get(right) ?? [];
+        rightList.push(reaction);
+        byChemical.set(right, rightList);
+    }
+
+    return {
+        byPair,
+        byChemical,
+        chemicals: Array.from(chemicals).sort((a, b) => a.localeCompare(b)),
+    };
+}
+
+function getIndex(reactions: Reaction[]): ReactionIndex {
+    const cached = INDEX_CACHE.get(reactions);
+    if (cached) return cached;
+
+    const index = buildIndex(reactions);
+    INDEX_CACHE.set(reactions, index);
+    return index;
 }
 
 /** Return a unique, sorted list of all chemical names from the dataset. */
-export function getChemicalsList(): string[] {
-    return Array.from(CHEMICALS).sort((a, b) => a.localeCompare(b));
+export function getChemicalsList(reactions: Reaction[] = []): string[] {
+    return getIndex(reactions).chemicals;
 }
 
 /**
  * Find a reaction for the given chemical pair (order-agnostic).
  * Returns the matching `Reaction` or `null` if none exists.
  */
-export function findReaction(a: string, b: string): Reaction | null {
-    return REACTION_BY_PAIR.get(makePairKey(a, b)) ?? null;
+export function findReaction(a: string, b: string, reactions: Reaction[] = []): Reaction | null {
+    return getIndex(reactions).byPair.get(makePairKey(a, b)) ?? null;
 }
 
 /** Find a known reaction that includes a given chemical for safe no-reaction guidance. */
 export function findExampleReactionForChemical(
     chemical: string,
-    excluding?: string
+    excluding?: string,
+    reactions: Reaction[] = []
 ): Reaction | null {
     const key = normalizeChemicalName(chemical);
     const blocked = excluding ? normalizeChemicalName(excluding) : "";
-    const candidates = REACTIONS_BY_CHEMICAL.get(key) ?? [];
+    const candidates = getIndex(reactions).byChemical.get(key) ?? [];
+
     for (const reaction of candidates) {
         const a = normalizeChemicalName(reaction.reactantA);
         const b = normalizeChemicalName(reaction.reactantB);
@@ -66,13 +90,17 @@ export function findExampleReactionForChemical(
             return reaction;
         }
     }
+
     return null;
 }
 
 /** Return a stable default reacting pair for initial lab selections. */
-export function getDefaultReactionPair(): { chemicalA: string; chemicalB: string } | null {
-    const first = REACTIONS[0];
+export function getDefaultReactionPair(
+    reactions: Reaction[] = []
+): { chemicalA: string; chemicalB: string } | null {
+    const first = reactions[0];
     if (!first) return null;
+
     return {
         chemicalA: first.reactantA,
         chemicalB: first.reactantB,

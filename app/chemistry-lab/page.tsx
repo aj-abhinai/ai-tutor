@@ -2,7 +2,7 @@
 
 import "./chem-effects.css";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Card } from "@/components/ui/Card";
 import { OptionButton } from "@/components/ui/OptionButton";
@@ -12,8 +12,6 @@ import { ReactionResult } from "@/components/lab/ReactionResult";
 import { LabNotebook, type LogEntry } from "@/components/lab/LabNotebook";
 import { LabBench } from "@/components/chem-lab/LabBench";
 import { MobileDisclaimer } from "@/components/chem-lab/MobileDisclaimer";
-import { findReaction } from "@/lib/reaction-engine";
-import EXPERIMENTS from "@/lib/experiments";
 import type { Experiment } from "@/lib/experiments";
 import type { Reaction } from "@/lib/reactions";
 
@@ -25,6 +23,16 @@ interface LabAPIResponse {
   concept?: string;
   whyItHappens?: string;
   realLifeExample?: string;
+  error?: string;
+}
+
+interface ExperimentsAPIResponse {
+  experiments?: Experiment[];
+  error?: string;
+}
+
+interface ChemicalsAPIResponse {
+  chemicals?: string[];
   error?: string;
 }
 
@@ -76,6 +84,11 @@ export default function ChemistryLabPage() {
   const [guidedStep, setGuidedStep] = useState(0);
   const [guidedFeedback, setGuidedFeedback] = useState<{ type: "correct" | "wrong"; message: string } | null>(null);
 
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [chemicals, setChemicals] = useState<string[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ReactionState | null>(null);
@@ -83,9 +96,62 @@ export default function ChemistryLabPage() {
   const [showFreeQuiz, setShowFreeQuiz] = useState(false);
   const [freeQuizChoice, setFreeQuizChoice] = useState<number | null>(null);
 
-  // Lab Notebook — session state only (not persisted)
   const [sessionLog, setSessionLog] = useState<LogEntry[]>([]);
   const [showNotebook, setShowNotebook] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChemistryData() {
+      setDataLoading(true);
+      setDataError("");
+
+      try {
+        const [experimentsRes, chemicalsRes] = await Promise.all([
+          fetch("/api/chemistry/experiments"),
+          fetch("/api/chemistry/chemicals"),
+        ]);
+
+        const experimentsData: ExperimentsAPIResponse = await experimentsRes.json();
+        const chemicalsData: ChemicalsAPIResponse = await chemicalsRes.json();
+
+        if (!experimentsRes.ok) {
+          throw new Error(experimentsData.error ?? "Failed to load experiments");
+        }
+        if (!chemicalsRes.ok) {
+          throw new Error(chemicalsData.error ?? "Failed to load chemicals");
+        }
+
+        if (cancelled) return;
+        setExperiments(experimentsData.experiments ?? []);
+        setChemicals(chemicalsData.chemicals ?? []);
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Failed to load chemistry data";
+        setDataError(message);
+      } finally {
+        if (!cancelled) {
+          setDataLoading(false);
+        }
+      }
+    }
+
+    void loadChemistryData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeExperiment) return;
+    const stillExists = experiments.some((experiment) => experiment.id === activeExperiment.id);
+    if (!stillExists) {
+      setActiveExperiment(null);
+      setGuidedStep(0);
+      setGuidedFeedback(null);
+    }
+  }, [activeExperiment, experiments]);
 
   const handleMix = useCallback(async (chemicalA: string, chemicalB: string) => {
     setLoading(true);
@@ -105,8 +171,7 @@ export default function ChemistryLabPage() {
 
       if (!res.ok) {
         setError(data.error ?? "Something went wrong");
-        const fallbackReaction = findReaction(chemicalA, chemicalB);
-        const state = buildFallback(chemicalA, chemicalB, fallbackReaction);
+        const state = buildFallback(chemicalA, chemicalB, null);
         setResult(state);
         addToLog(chemicalA, chemicalB, state.reaction, state.concept);
       } else {
@@ -122,8 +187,7 @@ export default function ChemistryLabPage() {
       }
     } catch {
       setError("Failed to connect to API");
-      const fallbackReaction = findReaction(chemicalA, chemicalB);
-      const state = buildFallback(chemicalA, chemicalB, fallbackReaction);
+      const state = buildFallback(chemicalA, chemicalB, null);
       setResult(state);
       addToLog(chemicalA, chemicalB, state.reaction, state.concept);
     } finally {
@@ -182,7 +246,6 @@ export default function ChemistryLabPage() {
     handleReset();
   }, [handleReset]);
 
-  // Guided: correct answer — advance step, clear feedback
   const onGuidedCorrect = useCallback(() => {
     setGuidedFeedback({ type: "correct", message: "Correct! Well done." });
     window.setTimeout(() => {
@@ -191,13 +254,12 @@ export default function ChemistryLabPage() {
     }, 1200);
   }, []);
 
-  // Guided: wrong answer — show persistent feedback (cleared only on next correct action)
   const onGuidedWrong = useCallback((droppedChemical?: string) => {
     setGuidedFeedback({
       type: "wrong",
       message: droppedChemical
-        ? `That's ${droppedChemical.replace(/ \(.+\)$/, "")} — not what's needed here. Check the hint!`
-        : "Not quite — try again.",
+        ? `That's ${droppedChemical.replace(/ \(.+\)$/, "")} - not what's needed here. Check the hint!`
+        : "Not quite - try again.",
     });
   }, []);
 
@@ -213,7 +275,6 @@ export default function ChemistryLabPage() {
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff4e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf4e2_55%,#eef6ff)] px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
-      {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
         <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
@@ -221,24 +282,21 @@ export default function ChemistryLabPage() {
       </div>
 
       <div className="relative w-full max-w-6xl">
-        {/* Nav */}
         <div className="mb-4 flex items-center justify-between">
           <Link href="/" className="chemistry-nav-btn">
-            ← Back to AI Tutor
+            Back to AI Tutor
           </Link>
           <button
             onClick={() => setShowNotebook((p) => !p)}
             className="chemistry-nav-btn"
             aria-label="Toggle lab notebook"
           >
-            📓 {sessionLog.length > 0 ? `Notebook (${sessionLog.length})` : "Notebook"}
+            {sessionLog.length > 0 ? `Notebook (${sessionLog.length})` : "Notebook"}
           </button>
         </div>
 
-        {/* Mobile disclaimer */}
         <MobileDisclaimer />
 
-        {/* Heading */}
         <div className="text-center mb-3">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
             Chemistry Reaction Lab
@@ -248,14 +306,12 @@ export default function ChemistryLabPage() {
           </p>
         </div>
 
-        {/* Lab Notebook panel */}
         {showNotebook && (
           <div className="mb-4">
             <LabNotebook entries={sessionLog} />
           </div>
         )}
 
-        {/* Mode toggle */}
         <div className="mb-3 flex justify-center">
           <div className="flex rounded-full border border-slate-200 bg-white/80 p-0.5 shadow-sm backdrop-blur-sm">
             <button
@@ -275,16 +331,22 @@ export default function ChemistryLabPage() {
           </div>
         </div>
 
-        {/* Guided: experiment picker */}
         {mode === "guided" && !activeExperiment && (
-          <ExperimentPicker
-            experiments={EXPERIMENTS}
-            onSelect={handleSelectExperiment}
-            onBackToFree={handleSwitchToFree}
-          />
+          dataLoading ? (
+            <Card variant="subtle" padding="md" className="text-sm text-slate-500 text-center">
+              Loading experiments from Firestore...
+            </Card>
+          ) : experiments.length > 0 ? (
+            <ExperimentPicker
+              experiments={experiments}
+              onSelect={handleSelectExperiment}
+              onBackToFree={handleSwitchToFree}
+            />
+          ) : (
+            <Alert variant="warning">No experiments found in Firestore.</Alert>
+          )
         )}
 
-        {/* Guided mode: guide + bench side-by-side on desktop to reduce vertical scrolling */}
         {isGuidedActive && activeExperiment && (
           <div className="mt-2 grid gap-3 lg:items-stretch lg:grid-cols-[minmax(290px,330px)_minmax(0,1fr)]">
             <div className="lg:sticky lg:top-3">
@@ -299,6 +361,7 @@ export default function ChemistryLabPage() {
             </div>
             <div className="h-full">
               <LabBench
+                chemicals={chemicals}
                 onMix={handleMix}
                 reaction={result?.reaction ?? null}
                 isLoading={loading}
@@ -313,10 +376,10 @@ export default function ChemistryLabPage() {
           </div>
         )}
 
-        {/* Free mode: full-width bench */}
         {mode === "free" && (
           <div className="mt-2">
             <LabBench
+              chemicals={chemicals}
               onMix={handleMix}
               reaction={result?.reaction ?? null}
               isLoading={loading}
@@ -330,14 +393,18 @@ export default function ChemistryLabPage() {
           </div>
         )}
 
-        {/* Error banner */}
+        {dataError && (
+          <Alert variant="error" className="mt-4">
+            {dataError}
+          </Alert>
+        )}
+
         {error && (
           <Alert variant="error" className="mt-4">
             {error}
           </Alert>
         )}
 
-        {/* Reaction result */}
         {result && !loading && (
           <div className="mt-4">
             <ReactionResult

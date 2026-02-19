@@ -2,12 +2,13 @@
  * /api/lab - Chemistry Reaction API
  *
  * Returns reaction data + richer AI explanation (concept, why it happens, real-life example).
- * Chemistry facts always resolved by local engine; AI only enriches the explanation.
+ * Chemistry facts are resolved from Firestore reaction data; AI only enriches explanation text.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
-import { type Reaction } from "@/lib/reactions";
+import type { Reaction } from "@/lib/reactions";
+import { getReactionsFromFirestore } from "@/lib/firestore-lab";
 import { findExampleReactionForChemical, findReaction } from "@/lib/reaction-engine";
 import {
     createRateLimiter,
@@ -20,7 +21,6 @@ const RATE_LIMIT_MAX_REQUESTS = 15;
 const MAX_CHEMICAL_LENGTH = 200;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
-// Richer prompt returning structured JSON with concept + why + example
 const LAB_EXPLANATION_PROMPT = `You are a friendly Class 7 science tutor helping a student aged 10-14.
 
 A student just mixed two chemicals in a virtual lab. Explain the result in JSON.
@@ -66,15 +66,14 @@ function buildReactionFactsSummary(reaction: Reaction): string {
     ].join(" ");
 }
 
-function buildNoReactionSummary(chemicalA: string, chemicalB: string): string {
-    const example = findExampleReactionForChemical(chemicalA, chemicalB);
+function buildNoReactionSummary(chemicalA: string, chemicalB: string, reactions: Reaction[]): string {
+    const example = findExampleReactionForChemical(chemicalA, chemicalB, reactions);
     const base = `${chemicalA} and ${chemicalB} do not react under normal class-lab conditions.`;
     return example
-        ? `${base} However, ${chemicalA} does react in another setup: ${example.reactantA} + ${example.reactantB} → ${example.products}.`
+        ? `${base} However, ${chemicalA} does react in another setup: ${example.reactantA} + ${example.reactantB} -> ${example.products}.`
         : `${base} This pair is not chemically compatible in our lab.`;
 }
 
-// Fallback structured response when AI is unavailable
 function buildFallbackResponse(reaction: Reaction | null, chemA: string, chemB: string): LabAIResponse {
     if (reaction) {
         return {
@@ -88,12 +87,11 @@ function buildFallbackResponse(reaction: Reaction | null, chemA: string, chemB: 
         concept: "No Reaction",
         explanation: `${chemA} and ${chemB} do not react under normal lab conditions.`,
         whyItHappens: "These two substances are not chemically compatible at room temperature.",
-        realLifeExample: "Not every chemical pair reacts — compatibility depends on reactivity.",
+        realLifeExample: "Not every chemical pair reacts - compatibility depends on reactivity.",
     };
 }
 
 function parseSafeJSON(text: string): LabAIResponse | null {
-    // Strip potential markdown fences if model disobeys
     const cleaned = text.replace(/```json|```/g, "").trim();
     try {
         const parsed = JSON.parse(cleaned);
@@ -153,15 +151,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Please choose two different chemicals" }, { status: 400 });
     }
 
-    // Chemistry outcome resolved by local engine — never AI
-    const reaction = findReaction(left, right);
+    let reactions: Reaction[] = [];
+    try {
+        reactions = await getReactionsFromFirestore();
+    } catch (err) {
+        console.error("Failed to load chemistry reactions from Firestore:", err);
+    }
+
+    const reaction = findReaction(left, right, reactions);
     const factsSummary = reaction
         ? buildReactionFactsSummary(reaction)
-        : buildNoReactionSummary(left, right);
+        : buildNoReactionSummary(left, right, reactions);
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        // No API key — return deterministic structured response
         return NextResponse.json({
             reaction: reaction ?? null,
             ...buildFallbackResponse(reaction, left, right),
@@ -180,7 +183,6 @@ export async function POST(request: NextRequest) {
         if (parsed) aiResponse = parsed;
     } catch (err) {
         console.error("Gemini lab explanation failed:", err);
-        // Keep fallback — chemistry result remains correct
     }
 
     return NextResponse.json({
