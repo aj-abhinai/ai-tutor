@@ -1,11 +1,12 @@
 /**
- * Guided Experiments — Step-by-step lab activities
- * tied to existing reactions in reactions.ts.
+ * Guided Experiments — Step-by-step lab activities.
+ * Now includes richer educational metadata (ageMin/Max, concept, whyItHappens, chapterId).
+ * Used as local fallback when Firestore is unavailable.
  */
 
 export interface ExperimentStep {
     instruction: string;
-    expectedChemical: string;   // must match getChemicalsList() entry exactly
+    expectedChemical: string; // must match getChemicalsList() entry exactly
     hint?: string;
 }
 
@@ -21,9 +22,16 @@ export interface Experiment {
     description: string;
     difficulty: "easy" | "medium" | "hard";
     category: string;
-    reactionId: string;        // links to reaction.id
+    reactionId: string;         // links to reaction.id
     steps: ExperimentStep[];
     observation?: ObservationQuestion;
+    // — richer educational metadata —
+    ageMin: number;             // minimum target age
+    ageMax: number;             // maximum target age
+    concept: string;            // core concept this experiment teaches
+    whyItHappens: string;       // plain-language explanation of the mechanism
+    chapterId?: string;         // NCERT chapter ID in Firestore (if applicable)
+    chapterName?: string;       // human-readable chapter name
 }
 
 const EXPERIMENTS: Experiment[] = [
@@ -34,6 +42,12 @@ const EXPERIMENTS: Experiment[] = [
         difficulty: "easy",
         category: "Carbonate–Acid",
         reactionId: "nahco3-vinegar",
+        ageMin: 8,
+        ageMax: 12,
+        concept: "Acid-Carbonate Reaction & CO₂ Gas Production",
+        whyItHappens: "Vinegar (acetic acid) donates a hydrogen ion (H⁺) to baking soda (NaHCO₃). This breaks the carbonate group, releasing carbon dioxide gas (CO₂) — the fizz you see. It's the same reaction that makes bread rise!",
+        chapterId: "science-7-ch5",
+        chapterName: "Acids, Bases and Salts",
         steps: [
             {
                 instruction: "Drag **Vinegar** into the beaker",
@@ -59,6 +73,12 @@ const EXPERIMENTS: Experiment[] = [
         difficulty: "easy",
         category: "Metal–Acid",
         reactionId: "zn-hcl",
+        ageMin: 10,
+        ageMax: 14,
+        concept: "Metal–Acid Displacement & Hydrogen Gas",
+        whyItHappens: "Zinc is higher in the reactivity series than hydrogen. When zinc meets HCl, it pushes hydrogen out of the acid compound. The released hydrogen bubbles up as gas, and zinc chloride stays in solution.",
+        chapterId: "science-7-ch5",
+        chapterName: "Acids, Bases and Salts",
         steps: [
             {
                 instruction: "Add **Hydrochloric Acid** to the beaker",
@@ -84,6 +104,12 @@ const EXPERIMENTS: Experiment[] = [
         difficulty: "medium",
         category: "Neutralization",
         reactionId: "hcl-naoh",
+        ageMin: 11,
+        ageMax: 15,
+        concept: "Acid-Base Neutralization & Salt Formation",
+        whyItHappens: "HCl releases H⁺ ions; NaOH releases OH⁻ ions. When they meet, H⁺ and OH⁻ combine to form water (H₂O). The leftover Na⁺ and Cl⁻ ions form sodium chloride (table salt). Energy is released as heat — this is called an exothermic reaction.",
+        chapterId: "science-7-ch5",
+        chapterName: "Acids, Bases and Salts",
         steps: [
             {
                 instruction: "Add **Hydrochloric Acid** to the beaker",
@@ -109,6 +135,12 @@ const EXPERIMENTS: Experiment[] = [
         difficulty: "medium",
         category: "Displacement",
         reactionId: "fe-cuso4",
+        ageMin: 11,
+        ageMax: 15,
+        concept: "Single Displacement & Reactivity Series",
+        whyItHappens: "Iron is higher in the reactivity series than copper. Iron atoms give electrons to Cu²⁺ ions in solution, turning them into neutral copper metal (you see brown coating). Iron dissolves as Fe²⁺, making the blue solution turn pale green.",
+        chapterId: "science-7-ch6",
+        chapterName: "Physical and Chemical Changes",
         steps: [
             {
                 instruction: "Add **Copper Sulphate Solution** to the beaker",
@@ -139,6 +171,12 @@ const EXPERIMENTS: Experiment[] = [
         difficulty: "hard",
         category: "Double Displacement",
         reactionId: "pbn03-ki",
+        ageMin: 13,
+        ageMax: 15,
+        concept: "Double Displacement & Precipitate Formation",
+        whyItHappens: "When two solutions are mixed, the ions swap partners. Pb²⁺ ions from lead nitrate pair with I⁻ ions from potassium iodide to form PbI₂ — a compound that is insoluble in water. It falls out as a bright yellow solid called a precipitate.",
+        chapterId: "science-7-ch6",
+        chapterName: "Physical and Chemical Changes",
         steps: [
             {
                 instruction: "Add **Lead Nitrate** to the beaker",

@@ -1,75 +1,121 @@
 "use client";
 
-import type { Experiment } from "@/lib/experiments";
+/**
+ * ExperimentPicker.tsx
+ * App-store-style card grid for selecting a guided experiment.
+ * Layer: lab-shared. Uses global Card, Badge, Button.
+ */
+
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { type Experiment } from "@/lib/experiments";
 
 interface ExperimentPickerProps {
     experiments: Experiment[];
-    onSelect: (experiment: Experiment) => void;
+    onSelect: (exp: Experiment) => void;
     onBackToFree: () => void;
 }
 
-const difficultyStyles = {
-    easy: "bg-emerald-100 text-emerald-700",
-    medium: "bg-amber-100 text-amber-700",
-    hard: "bg-rose-100 text-rose-700",
+const CATEGORY_COLORS: Record<string, string> = {
+    "Carbonate–Acid": "bg-orange-100 text-orange-800",
+    "Metal–Acid": "bg-blue-100 text-blue-800",
+    "Neutralization": "bg-teal-100 text-teal-800",
+    "Displacement": "bg-indigo-100 text-indigo-800",
+    "Double Displacement": "bg-purple-100 text-purple-800",
 };
 
-const categoryIcons: Record<string, string> = {
-    "Carbonate–Acid": "🌋",
-    "Metal–Acid": "⚗️",
-    "Neutralization": "🧪",
-    "Displacement": "🔄",
-    "Double Displacement": "✨",
-};
+function difficultyVariant(d: Experiment["difficulty"]) {
+    if (d === "easy") return "sky" as const;
+    if (d === "hard") return "rose" as const;
+    return "amber" as const;
+}
+
+function difficultyLabel(d: Experiment["difficulty"]) {
+    return d === "easy" ? "⭐ Easy" : d === "hard" ? "🔥 Hard" : "⚡ Medium";
+}
 
 export function ExperimentPicker({ experiments, onSelect, onBackToFree }: ExperimentPickerProps) {
     return (
-        <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-800">
-                    Choose an Experiment
-                </h2>
-                <button
-                    onClick={onBackToFree}
-                    className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm hover:bg-white hover:text-sky-600 transition-colors"
-                >
-                    ← Free Mix
-                </button>
+        <div className="exp-picker">
+            {/* Header */}
+            <div className="exp-picker-header">
+                <div>
+                    <h2 className="exp-picker-title">🔬 Choose an Experiment</h2>
+                    <p className="exp-picker-subtitle">
+                        Step-by-step guided activities from your NCERT textbook
+                    </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={onBackToFree}>
+                    Free Mix →
+                </Button>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {experiments.map((exp) => (
-                    <button
-                        key={exp.id}
-                        onClick={() => onSelect(exp)}
-                        className="group relative flex flex-col items-start rounded-xl border border-slate-200/80 bg-white/80 p-4 text-left shadow-sm backdrop-blur-sm transition-all hover:border-sky-300 hover:shadow-md hover:bg-white/95"
-                    >
-                        {/* Category icon + badge */}
-                        <div className="flex w-full items-center justify-between mb-2">
-                            <span className="text-xl">
-                                {categoryIcons[exp.category] ?? "🔬"}
-                            </span>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${difficultyStyles[exp.difficulty]}`}>
-                                {exp.difficulty}
-                            </span>
-                        </div>
+            {/* Card grid */}
+            <div className="exp-picker-grid">
+                {experiments.map((exp) => {
+                    const catColor = CATEGORY_COLORS[exp.category] ?? "bg-slate-100 text-slate-700";
+                    return (
+                        <Card
+                            key={exp.id}
+                            variant="default"
+                            padding="none"
+                            className="exp-card"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Start experiment: ${exp.title}`}
+                            onClick={() => onSelect(exp)}
+                            onKeyDown={(e) => e.key === "Enter" && onSelect(exp)}
+                        >
+                            {/* Category banner */}
+                            <div className={`exp-card-banner ${catColor}`}>
+                                {exp.category}
+                            </div>
 
-                        {/* Title */}
-                        <h3 className="text-sm font-semibold text-slate-800 group-hover:text-sky-700 transition-colors">
-                            {exp.title}
-                        </h3>
+                            <div className="exp-card-body">
+                                {/* Title + badges */}
+                                <div className="exp-card-top">
+                                    <h3 className="exp-card-title">{exp.title}</h3>
+                                    <div className="exp-card-badges">
+                                        <Badge variant={difficultyVariant(exp.difficulty)}>
+                                            {difficultyLabel(exp.difficulty)}
+                                        </Badge>
+                                        <Badge variant="gray">
+                                            Age {exp.ageMin}–{exp.ageMax}
+                                        </Badge>
+                                    </div>
+                                </div>
 
-                        {/* Description */}
-                        <p className="mt-1 text-xs text-slate-500 leading-relaxed line-clamp-2">
-                            {exp.description}
-                        </p>
+                                {/* Description */}
+                                <p className="exp-card-desc">{exp.description}</p>
 
-                        {/* Category tag */}
-                        <span className="mt-3 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                            {exp.category}
-                        </span>
-                    </button>
-                ))}
+                                {/* Concept tag */}
+                                <div className="exp-card-concept">
+                                    <span className="exp-card-concept-label">Concept:</span>
+                                    {exp.concept}
+                                </div>
+
+                                {/* Chapter link */}
+                                {exp.chapterName && (
+                                    <div className="exp-card-chapter">
+                                        📖 {exp.chapterName}
+                                    </div>
+                                )}
+
+                                {/* CTA */}
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    fullWidth
+                                    className="exp-card-cta"
+                                    onClick={(e) => { e.stopPropagation(); onSelect(exp); }}
+                                >
+                                    Start Experiment →
+                                </Button>
+                            </div>
+                        </Card>
+                    );
+                })}
             </div>
         </div>
     );

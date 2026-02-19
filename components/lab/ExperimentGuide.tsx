@@ -1,6 +1,21 @@
 ﻿"use client";
 
+/**
+ * ExperimentGuide.tsx — Guided experiment sidebar panel.
+ * Layer: lab-shared. Uses global Alert, Button, OptionButton.
+ *
+ * Key improvements vs the old version:
+ * - No dangerouslySetInnerHTML (instruction bold replaced with React spans)
+ * - Wrong-answer feedback persists until next action (no auto-dismiss)
+ * - OptionButton used for quiz choices
+ * - Alert used for feedback messages
+ * - Button used for Quit / Hint
+ */
+
 import { useEffect, useState } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { OptionButton } from "@/components/ui/OptionButton";
 import type { Experiment, ExperimentStep, ObservationQuestion } from "@/lib/experiments";
 
 interface ExperimentGuideProps {
@@ -26,104 +41,98 @@ export function ExperimentGuide({
 
     useEffect(() => {
         setShowHint(false);
-    }, [currentStep]);
+    }, [currentStep, experiment.id]);
 
     return (
-        <div className="mt-4 rounded-xl border border-sky-200/80 bg-gradient-to-b from-white/95 to-sky-50/80 p-4 shadow-sm backdrop-blur-sm">
+        <div className="guide-panel">
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-lg">??</span>
-                    <h3 className="text-sm font-semibold text-slate-800">
-                        {experiment.title}
-                    </h3>
+            <div className="guide-panel-header">
+                <div>
+                    <p className="guide-panel-label">🔬 Guided Experiment</p>
+                    <h3 className="guide-panel-title">{experiment.title}</h3>
                 </div>
-                <button
-                    onClick={onQuit}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-                >
-                    ? Quit
-                </button>
+                <Button variant="ghost" size="sm" onClick={onQuit} aria-label="Quit experiment">
+                    Quit ✕
+                </Button>
             </div>
 
-            {/* Progress dots */}
-            <div className="flex items-center gap-1.5 mb-3">
-                {Array.from({ length: totalSteps }, (_, i) => (
-                    <div
-                        key={i}
-                        className={`h-2 rounded-full transition-all duration-300 ${i < currentStep
-                                ? "w-6 bg-emerald-400"
-                                : i === currentStep && !reactionDone
-                                    ? "w-6 bg-sky-400 animate-pulse"
-                                    : i === currentStep && reactionDone
-                                        ? "w-6 bg-emerald-400"
-                                        : "w-2 bg-slate-200"
-                            }`}
-                    />
-                ))}
-                {/* Reaction step dot */}
-                <div
-                    className={`h-2 rounded-full transition-all duration-300 ${reactionDone ? "w-6 bg-emerald-400" : "w-2 bg-slate-200"
-                        }`}
-                />
+            {/* Concept tag */}
+            <div className="guide-panel-concept">
+                {experiment.concept}
             </div>
 
-            {/* Current instruction */}
+            {/* Progress bar */}
+            <div className="guide-panel-progress" role="progressbar"
+                aria-valuenow={currentStep} aria-valuemax={totalSteps}>
+                {Array.from({ length: totalSteps + 1 }, (_, i) => {
+                    const done = i < currentStep || (reactionDone && i === currentStep);
+                    const active = i === currentStep && !reactionDone;
+                    return (
+                        <div
+                            key={i}
+                            className={`guide-progress-dot ${done ? "done" : active ? "active" : "pending"}`}
+                        />
+                    );
+                })}
+            </div>
+
+            {/* Current step instruction */}
             {!reactionDone && step && (
-                <div className="space-y-2">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                        Step {currentStep + 1} of {totalSteps}
+                <div className="guide-step">
+                    <p className="guide-step-label">Step {currentStep + 1} of {totalSteps}</p>
+                    <p className="guide-step-instruction">
+                        <InstructionText text={step.instruction} />
                     </p>
-                    <p
-                        className="text-sm text-slate-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: formatInstruction(step.instruction) }}
-                    />
 
                     {/* Hint */}
                     {step.hint && (
-                        <div>
+                        <div className="guide-hint-zone">
                             {!showHint ? (
                                 <button
                                     onClick={() => setShowHint(true)}
-                                    className="text-[11px] font-medium text-sky-500 hover:text-sky-700 transition-colors"
+                                    className="guide-hint-link"
                                 >
-                                    ?? Need a hint?
+                                    💡 Need a hint?
                                 </button>
                             ) : (
-                                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200/60">
-                                    ?? {step.hint}
-                                </p>
+                                <Alert variant="warning">
+                                    💡 {step.hint}
+                                </Alert>
                             )}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Waiting for reaction */}
+            {/* Waiting for reaction to resolve */}
             {currentStep >= totalSteps && !reactionDone && (
-                <p className="text-sm text-sky-600 font-medium animate-pulse">
-                    ?? Reaction in progress...
-                </p>
+                <p className="guide-waiting">⚗️ Reaction in progress…</p>
             )}
 
-            {/* Feedback flash */}
+            {/* Feedback — persists until next interaction */}
             {feedback && (
-                <div
-                    className={`mt-2 rounded-lg px-3 py-2 text-xs font-medium border ${feedback.type === "correct"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-rose-50 text-rose-700 border-rose-200"
-                        } animate-[fadeIn_0.2s_ease-out]`}
-                >
-                    {feedback.type === "correct" ? "?" : "?"} {feedback.message}
-                </div>
+                <Alert variant={feedback.type === "correct" ? "success" : "error"}>
+                    {feedback.type === "correct" ? "✓ " : "✗ "}{feedback.message}
+                </Alert>
             )}
 
-            {/* Completion (no quiz) */}
+            {/* Completion (no quiz variant) */}
             {isComplete && (
-                <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-3 text-center">
-                    <p className="text-sm font-semibold text-emerald-700">?? Experiment Complete!</p>
-                    <p className="text-xs text-emerald-600 mt-1">Check the results below.</p>
-                </div>
+                <Alert variant="success">
+                    🎉 Experiment complete! Check the reaction result below.
+                </Alert>
+            )}
+
+            {/* "Study in Tutor" deep-link */}
+            {reactionDone && experiment.chapterId && (
+                <a
+                    href={`/?chapter=${experiment.chapterId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="guide-chapter-link"
+                >
+                    📖 Study "{experiment.chapterName}" in the Tutor →
+                </a>
             )}
 
             {/* Observation quiz */}
@@ -134,56 +143,52 @@ export function ExperimentGuide({
     );
 }
 
+/* ── Observation quiz ─────────────────────────────────────── */
+
 function ObservationQuiz({ question }: { question: ObservationQuestion }) {
     const [selected, setSelected] = useState<number | null>(null);
     const answered = selected !== null;
     const isCorrect = selected === question.correctIndex;
 
     return (
-        <div className="mt-3 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                ?? Quick Check
-            </p>
-            <p className="text-sm font-medium text-slate-700">{question.question}</p>
-
-            <div className="grid gap-1.5">
-                {question.options.map((opt, i) => {
-                    let style = "border-slate-200 bg-white/80 text-slate-700 hover:border-sky-300";
-                    if (answered) {
-                        if (i === question.correctIndex) {
-                            style = "border-emerald-300 bg-emerald-50 text-emerald-700";
-                        } else if (i === selected && !isCorrect) {
-                            style = "border-rose-300 bg-rose-50 text-rose-600";
-                        } else {
-                            style = "border-slate-200 bg-slate-50 text-slate-400";
-                        }
-                    }
-
-                    return (
-                        <button
-                            key={i}
-                            onClick={() => !answered && setSelected(i)}
-                            disabled={answered}
-                            className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors ${style}`}
-                        >
-                            {opt}
-                        </button>
-                    );
-                })}
+        <div className="guide-quiz">
+            <p className="guide-quiz-label">🧠 Quick Check</p>
+            <p className="guide-quiz-question">{question.question}</p>
+            <div className="guide-quiz-options">
+                {question.options.map((opt, i) => (
+                    <OptionButton
+                        key={i}
+                        label={String.fromCharCode(65 + i)}
+                        text={opt}
+                        isSelected={selected === i}
+                        isCorrect={i === question.correctIndex}
+                        showResult={answered}
+                        onClick={() => !answered && setSelected(i)}
+                        disabled={answered}
+                    />
+                ))}
             </div>
-
             {answered && (
-                <p className={`text-xs font-medium ${isCorrect ? "text-emerald-600" : "text-rose-600"}`}>
+                <Alert variant={isCorrect ? "success" : "error"}>
                     {isCorrect
-                        ? "? Correct! Great observation."
-                        : `? Not quite — the answer is: ${question.options[question.correctIndex]}`}
-                </p>
+                        ? "✓ Correct! Great observation."
+                        : `✗ The answer is: ${question.options[question.correctIndex]}`}
+                </Alert>
             )}
         </div>
     );
 }
 
-function formatInstruction(text: string): string {
-    return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-}
+/* ── Instruction text parser ─────────────────────────────── */
+// Replaces **bold** with <strong> without dangerouslySetInnerHTML
 
+function InstructionText({ text }: { text: string }) {
+    const parts = text.split(/\*\*(.+?)\*\*/g);
+    return (
+        <>
+            {parts.map((part, i) =>
+                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+            )}
+        </>
+    );
+}

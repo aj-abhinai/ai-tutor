@@ -1,7 +1,7 @@
 import { HTMLAttributes, forwardRef } from "react";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-    variant?: "amber" | "teal" | "indigo" | "emerald" | "gray";
+    variant?: "amber" | "teal" | "indigo" | "emerald" | "gray" | "rose" | "sky";
 }
 
 const variantStyles: Record<string, string> = {
@@ -10,6 +10,8 @@ const variantStyles: Record<string, string> = {
     indigo: "bg-sky-50 text-sky-700 border-sky-200",
     emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
     gray: "bg-slate-100 text-slate-700 border-slate-200",
+    rose: "bg-rose-50 text-rose-700 border-rose-200",   // Hard difficulty
+    sky: "bg-sky-50 text-sky-600 border-sky-200",       // Easy difficulty
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(

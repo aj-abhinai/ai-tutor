@@ -816,3 +816,880 @@
         max-width: 180px;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   NEW LAB BENCH LAYOUT  (no React Flow)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Lab Bench wrapper ───────────────────────────────────────── */
+.lab-bench {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+    min-height: clamp(360px, 58vh, 430px);
+}
+
+@media (max-width: 767px) {
+    .lab-bench {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+    }
+}
+
+.lab-bench-shelf {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.lab-bench-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(145deg, #eef2ff 0%, #f8fafc 55%, #fdf4e2 100%);
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 18px 14px;
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.lab-bench-controls {
+    margin-top: 8px;
+}
+
+/* ── Chemical Shelf (grid) ───────────────────────────────────── */
+.chem-shelf {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    padding: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.chem-shelf.is-guided .chem-shelf-grid {
+    gap: 6px;
+}
+
+.chem-shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.chem-shelf-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: 0.02em;
+}
+
+.chem-shelf-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.chem-shelf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+/* ── Bottle in shelf ─────────────────────────────────────────── */
+.chem-shelf-bottle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    background: rgba(248, 250, 252, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    width: 100%;
+    text-align: center;
+}
+
+.chem-shelf-bottle:hover:not(:disabled) {
+    border-color: #38bdf8;
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+}
+
+.chem-shelf-bottle:disabled {
+    cursor: not-allowed;
+}
+
+.chem-shelf-bottle.is-added {
+    opacity: 0.35;
+    transform: scale(0.94);
+}
+
+.chem-shelf-bottle.is-disabled:not(.is-added) {
+    opacity: 0.55;
+}
+
+.chem-shelf-bottle.is-expected {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    animation: shelfExpectedPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes shelfExpectedPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+    }
+}
+
+.shelf-expected-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #38bdf8;
+    color: white;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+/* Bottle shape */
+.shelf-bottle-jar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.shelf-bottle-neck {
+    width: 12px;
+    height: 7px;
+    border-radius: 3px 3px 0 0;
+    opacity: 0.85;
+}
+
+.shelf-bottle-body {
+    width: 28px;
+    height: 36px;
+    border-radius: 4px 4px 8px 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.shelf-bottle-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70%;
+    border-radius: 0 0 6px 6px;
+    opacity: 0.65;
+}
+
+.shelf-bottle-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shelf-bottle-formula {
+    font-size: 9px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* ── BeakerSVG styles ────────────────────────────────────────── */
+.beaker-svg-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    padding-top: 32px;
+    /* space for smoke */
+}
+
+.beaker-smoke-zone {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 32px;
+    pointer-events: none;
+}
+
+.beaker-body {
+    width: 120px;
+    height: 150px;
+    border-radius: 8px 8px 20px 20px;
+    background: rgba(255, 255, 255, 0.45);
+    border: 2.5px solid #bae6fd;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.beaker-ticks {
+    position: absolute;
+    inset: 8px 0 8px auto;
+    width: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.beaker-tick {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.3);
+    width: 100%;
+}
+
+.beaker-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0 0 18px 18px;
+    transition: background-color 0.5s ease;
+}
+
+.beaker-liquid.reacting {
+    animation: beakerPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes beakerPulse {
+
+    0%,
+    100% {
+        opacity: 0.85;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+
+.beaker-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.beaker-bubble {
+    position: absolute;
+    bottom: 25%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    animation: beakerBubbleRise 2s ease-in-out infinite;
+}
+
+@keyframes beakerBubbleRise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: translateY(-70px) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.beaker-precipitate {
+    position: absolute;
+    top: 25%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(241, 245, 249, 0.85);
+    animation: beakerPrecipFall 2.5s ease-in infinite;
+}
+
+@keyframes beakerPrecipFall {
+    0% {
+        transform: translateY(0);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(60px);
+        opacity: 0.15;
+    }
+}
+
+.beaker-smoke {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.22);
+    animation: beakerSmokeRise 2s ease-out infinite;
+}
+
+@keyframes beakerSmokeRise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.35;
+    }
+
+    100% {
+        transform: translateY(-30px) scale(2);
+        opacity: 0;
+    }
+}
+
+.beaker-spout {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 6px;
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 4px 4px 0 0;
+}
+
+.beaker-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.85);
+    min-width: 120px;
+}
+
+.beaker-label--reacting {
+    color: #0ea5e9;
+}
+
+.beaker-label--done {
+    color: #16a34a;
+}
+
+.beaker-label--pouring {
+    color: #d97706;
+}
+
+/* ── Reaction Stage ──────────────────────────────────────────── */
+.reaction-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.reaction-stage-beaker {
+    display: flex;
+    justify-content: center;
+}
+
+.reaction-stage-loading {
+    width: 100%;
+    max-width: 220px;
+}
+
+.reaction-stage-added-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.reaction-stage-added-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #0369a1;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PHASE 5 – Lab Shared Components
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── ExperimentPicker ────────────────────────────────────────── */
+.exp-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.exp-picker-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.exp-picker-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.exp-picker-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.exp-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+/* ExperimentCard */
+.exp-card {
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    outline: none;
+}
+
+.exp-card:hover,
+.exp-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+}
+
+.exp-card-banner {
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 12px 12px 0 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.exp-card-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.exp-card-top {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.exp-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.exp-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.exp-card-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.exp-card-concept {
+    font-size: 11px;
+    color: #475569;
+}
+
+.exp-card-concept-label {
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.exp-card-chapter {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.exp-card-cta {
+    margin-top: 4px;
+}
+
+/* ── ExperimentGuide ─────────────────────────────────────────── */
+.guide-panel {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.96), rgba(240, 249, 255, 0.88));
+    border: 1.5px solid rgba(186, 230, 253, 0.6);
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.06);
+}
+
+.guide-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.guide-panel-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #0ea5e9;
+    margin-bottom: 2px;
+}
+
+.guide-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.guide-panel-concept {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.07);
+    border-radius: 8px;
+    padding: 4px 10px;
+    width: fit-content;
+}
+
+/* Progress dots */
+.guide-panel-progress {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.guide-progress-dot {
+    height: 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.guide-progress-dot.done {
+    width: 20px;
+    background: #4ade80;
+}
+
+.guide-progress-dot.active {
+    width: 20px;
+    background: #38bdf8;
+    animation: pulseWidth 1.2s ease-in-out infinite;
+}
+
+.guide-progress-dot.pending {
+    width: 8px;
+    background: #e2e8f0;
+}
+
+@keyframes pulseWidth {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Step instruction */
+.guide-step {}
+
+.guide-step-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.guide-step-instruction {
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.6;
+}
+
+.guide-hint-zone {
+    margin-top: 6px;
+}
+
+.guide-hint-link {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0ea5e9;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.guide-hint-link:hover {
+    color: #0369a1;
+}
+
+.guide-waiting {
+    font-size: 13px;
+    color: #0ea5e9;
+    font-weight: 600;
+    animation: pulseWidth 1s ease-in-out infinite;
+}
+
+.guide-chapter-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7c3aed;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.guide-chapter-link:hover {
+    color: #5b21b6;
+}
+
+/* Observation quiz */
+.guide-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    margin-top: 4px;
+}
+
+.guide-quiz-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.guide-quiz-question {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.guide-quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ── ReactionResult ──────────────────────────────────────────── */
+.reaction-result {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reaction-result-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.reaction-result-category {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.reaction-result-none {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reaction-result-explain {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reaction-result-concept {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7c3aed;
+}
+
+.reaction-result-explanation {
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.65;
+}
+
+.reaction-result-why,
+.reaction-result-example {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.5;
+    border-left: 3px solid #e2e8f0;
+    padding-left: 10px;
+}
+
+.reaction-result-why-label,
+.reaction-result-example-label {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+    color: #334155;
+}
+
+.reaction-result-equation-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.reaction-result-equation-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+}
+
+.reaction-result-equation-katex,
+.reaction-result-equation-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    font-family: "Georgia", serif;
+}
+
+.reaction-result-products {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.reaction-result-chapter-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7c3aed;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    display: block;
+}
+
+.reaction-result-chapter-link:hover {
+    color: #5b21b6;
+}
+
+/* ── LabNotebook ─────────────────────────────────────────────── */
+.lab-notebook {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lab-notebook-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.lab-notebook-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lab-notebook-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lab-notebook-entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lab-notebook-chemicals {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.lab-notebook-time {
+    font-size: 10px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-notebook-entry-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.lab-notebook-concept {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+}

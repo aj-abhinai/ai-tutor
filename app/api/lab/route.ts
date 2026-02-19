@@ -1,8 +1,8 @@
 /**
- * /api/lab - Reaction Playground API Route
+ * /api/lab - Chemistry Reaction API
  *
- * Rule: chemistry facts come only from the local reaction engine.
- * AI is used only to rephrase a fixed, deterministic explanation.
+ * Returns reaction data + richer AI explanation (concept, why it happens, real-life example).
+ * Chemistry facts always resolved by local engine; AI only enriches the explanation.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -18,20 +18,33 @@ import {
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 15;
 const MAX_CHEMICAL_LENGTH = 200;
-const MAX_EXPLANATION_LENGTH = 700;
 const isRateLimited = createRateLimiter(RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS);
 
-// The model can only rewrite the given summary, not add chemistry facts.
-const EXPLANATION_REWRITE_PROMPT = `You are a friendly Class 7 science tutor.
+// Richer prompt returning structured JSON with concept + why + example
+const LAB_EXPLANATION_PROMPT = `You are a friendly Class 7 science tutor helping a student aged 10-14.
 
-Rewrite the provided summary in 3-5 short sentences.
+A student just mixed two chemicals in a virtual lab. Explain the result in JSON.
 
 Rules:
-- Keep all chemistry facts exactly the same
-- Do not add or remove any chemicals, products, equations, or reaction type
-- Do not add new experiments, comparisons, or "reacts with" claims
-- Use simple words for a 12-year-old
-- Return plain text only (no markdown, no JSON)`;
+- Use simple, short sentences (max 15 words each)
+- Stay within NCERT Class 7 scope
+- Do NOT add chemicals, products, or equations not in the fixed summary
+- Return ONLY valid JSON, no markdown, no code fences
+
+Return this exact shape:
+{
+  "concept": "2-4 word concept name (e.g. Acid-Base Neutralization)",
+  "explanation": "2-3 sentences describing what happened in plain language",
+  "whyItHappens": "1-2 sentences explaining the scientific reason simply",
+  "realLifeExample": "One sentence: where does this appear in daily life?"
+}`;
+
+export interface LabAIResponse {
+    concept: string;
+    explanation: string;
+    whyItHappens: string;
+    realLifeExample: string;
+}
 
 function buildReactionFactsSummary(reaction: Reaction): string {
     const observations = [
@@ -47,36 +60,55 @@ function buildReactionFactsSummary(reaction: Reaction): string {
     return [
         `${reaction.reactantA} reacts with ${reaction.reactantB}.`,
         `This is a ${reaction.category} reaction.`,
-        `The balanced equation is ${reaction.equation}.`,
-        `The products are ${reaction.products}.`,
-        observations ? `In the lab, ${observations}.` : "The observed change matches this reaction.",
+        `Equation: ${reaction.equation}.`,
+        `Products: ${reaction.products}.`,
+        observations ? `Lab observation: ${observations}.` : "No dramatic visible change.",
     ].join(" ");
 }
 
 function buildNoReactionSummary(chemicalA: string, chemicalB: string): string {
     const example = findExampleReactionForChemical(chemicalA, chemicalB);
-    if (example) {
-        return [
-            `${chemicalA} and ${chemicalB} do not react under normal class-lab conditions.`,
-            "No clear product is formed in this pair.",
-            `${chemicalA} does react in another known setup: ${example.reactantA} + ${example.reactantB} -> ${example.products}.`,
-            "So, reaction depends on choosing a compatible pair of chemicals.",
-        ].join(" ");
-    }
-
-    return [
-        `${chemicalA} and ${chemicalB} do not react under normal class-lab conditions.`,
-        "No clear product is formed in this pair.",
-        "This means the pair is not a compatible reaction in our lab dataset.",
-    ].join(" ");
+    const base = `${chemicalA} and ${chemicalB} do not react under normal class-lab conditions.`;
+    return example
+        ? `${base} However, ${chemicalA} does react in another setup: ${example.reactantA} + ${example.reactantB} → ${example.products}.`
+        : `${base} This pair is not chemically compatible in our lab.`;
 }
 
-function isSafeExplanation(text: string): boolean {
-    const trimmed = text.trim();
-    if (!trimmed || trimmed.length > MAX_EXPLANATION_LENGTH) return false;
-    if (/```|<[^>]+>/.test(trimmed)) return false;
-    if (/[{}\[\]]/.test(trimmed)) return false;
-    return true;
+// Fallback structured response when AI is unavailable
+function buildFallbackResponse(reaction: Reaction | null, chemA: string, chemB: string): LabAIResponse {
+    if (reaction) {
+        return {
+            concept: reaction.category,
+            explanation: `${reaction.reactantA} reacts with ${reaction.reactantB} to form ${reaction.products}.`,
+            whyItHappens: `This is a ${reaction.category} reaction. Equation: ${reaction.equation}.`,
+            realLifeExample: "This type of reaction happens in many everyday chemical processes.",
+        };
+    }
+    return {
+        concept: "No Reaction",
+        explanation: `${chemA} and ${chemB} do not react under normal lab conditions.`,
+        whyItHappens: "These two substances are not chemically compatible at room temperature.",
+        realLifeExample: "Not every chemical pair reacts — compatibility depends on reactivity.",
+    };
+}
+
+function parseSafeJSON(text: string): LabAIResponse | null {
+    // Strip potential markdown fences if model disobeys
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    try {
+        const parsed = JSON.parse(cleaned);
+        if (
+            typeof parsed.concept === "string" &&
+            typeof parsed.explanation === "string" &&
+            typeof parsed.whyItHappens === "string" &&
+            typeof parsed.realLifeExample === "string"
+        ) {
+            return parsed as LabAIResponse;
+        }
+        return null;
+    } catch {
+        return null;
+    }
 }
 
 export async function POST(request: NextRequest) {
@@ -99,10 +131,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { chemicalA, chemicalB } = body as {
-        chemicalA?: unknown;
-        chemicalB?: unknown;
-    };
+    const { chemicalA, chemicalB } = body as { chemicalA?: unknown; chemicalB?: unknown };
 
     if (!isNonEmptyString(chemicalA)) {
         return NextResponse.json({ error: "Chemical A is required" }, { status: 400 });
@@ -113,6 +142,7 @@ export async function POST(request: NextRequest) {
 
     const left = chemicalA.trim();
     const right = chemicalB.trim();
+
     if (left.length > MAX_CHEMICAL_LENGTH || right.length > MAX_CHEMICAL_LENGTH) {
         return NextResponse.json(
             { error: `Chemical names must be ${MAX_CHEMICAL_LENGTH} characters or less` },
@@ -123,41 +153,38 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Please choose two different chemicals" }, { status: 400 });
     }
 
-    // Chemistry outcome is always resolved by local engine.
+    // Chemistry outcome resolved by local engine — never AI
     const reaction = findReaction(left, right);
-    const deterministicSummary = reaction
+    const factsSummary = reaction
         ? buildReactionFactsSummary(reaction)
         : buildNoReactionSummary(left, right);
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+        // No API key — return deterministic structured response
         return NextResponse.json({
             reaction: reaction ?? null,
-            explanation: deterministicSummary,
+            ...buildFallbackResponse(reaction, left, right),
         });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
-    let explanation = deterministicSummary;
+    let aiResponse = buildFallbackResponse(reaction, left, right);
     try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const result = await model.generateContent([
-            { text: EXPLANATION_REWRITE_PROMPT },
-            { text: `Fixed summary:\n${deterministicSummary}` },
+            { text: LAB_EXPLANATION_PROMPT },
+            { text: `Fixed chemistry summary:\n${factsSummary}` },
         ]);
-        const candidate = result.response.text().trim();
-        if (isSafeExplanation(candidate)) {
-            explanation = candidate;
-        }
+        const parsed = parseSafeJSON(result.response.text());
+        if (parsed) aiResponse = parsed;
     } catch (err) {
-        console.error("Gemini generateContent failed:", err);
-        // Keep chemistry result available even if AI rewrite fails.
-        explanation = deterministicSummary;
+        console.error("Gemini lab explanation failed:", err);
+        // Keep fallback — chemistry result remains correct
     }
 
     return NextResponse.json({
         reaction: reaction ?? null,
-        explanation,
+        ...aiResponse,
     });
 }
