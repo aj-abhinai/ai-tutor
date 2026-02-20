@@ -5,6 +5,7 @@ module.exports = {
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
     testMatch: ['**/__tests__/**/*.test.ts'],
     moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/$1'
+        '^@/(.*)$': '<rootDir>/$1',
+        '^server-only$': '<rootDir>/__mocks__/server-only.js'
     }
 };
