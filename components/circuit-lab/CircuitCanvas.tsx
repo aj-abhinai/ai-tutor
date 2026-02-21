@@ -24,7 +24,7 @@ import {
     COMPONENT_CATALOG,
     TRAY_ORDER,
 } from "@/lib/circuit-components";
-import type { CircuitExperiment } from "@/lib/circuit-experiments";
+import type { CircuitExperiment } from "@/lib/physics-lab-types";
 
 import { nodeTypes } from "./nodes";
 import { useCircuitFlow } from "./useCircuitFlow";

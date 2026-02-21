@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-import { hasLabExperiments } from "@/lib/circuit-experiments";
 import type { CurriculumCatalog, SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 
 import { Alert } from "@/components/ui/Alert";
@@ -76,6 +75,7 @@ export default function ClientPage({
   const [deepLoading, setDeepLoading] = useState(false);
   const [deepError, setDeepError] = useState("");
   const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
+  const [physicsLabChapterIds, setPhysicsLabChapterIds] = useState<string[]>([]);
 
   // Lesson cache to prevent duplicate API calls.
   const lessonCache = useRef<Map<string, LessonPayload>>(new Map());
@@ -198,6 +198,40 @@ export default function ClientPage({
     }
 
     void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [subject]);
+
+  // Load physics chapter availability from backend for lab-link rendering.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPhysicsLabChapterIds() {
+      if (subject !== "Science") {
+        setPhysicsLabChapterIds([]);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/physics/lab-chapters");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to load physics lab chapters");
+
+        if (!cancelled) {
+          const chapterIds = Array.isArray(data?.chapterIds)
+            ? data.chapterIds.filter((id: unknown) => typeof id === "string")
+            : [];
+          setPhysicsLabChapterIds(chapterIds);
+        }
+      } catch {
+        if (!cancelled) {
+          setPhysicsLabChapterIds([]);
+        }
+      }
+    }
+
+    void loadPhysicsLabChapterIds();
     return () => {
       cancelled = true;
     };
@@ -653,6 +687,9 @@ export default function ClientPage({
   const cardDisabled = !selectedSubtopicRef || loading || catalogLoading;
   const isTopicDisabled = !selectedChapter;
   const showChapterWarning = false;
+  const hasPhysicsLabForChapter = Boolean(
+    selectedChapter && physicsLabChapterIds.includes(selectedChapter.id)
+  );
 
   // Quiz navigation actions.
   const handleNextQuestion = () => {
@@ -698,9 +735,9 @@ export default function ClientPage({
           >
             Chemistry Lab
           </Link>
-          {selectedChapter && hasLabExperiments(selectedChapter.id) && (
+          {hasPhysicsLabForChapter && (
             <Link
-              href={`/physics-lab?chapter=${selectedChapter.id}`}
+              href={selectedChapter ? `/physics-lab?chapter=${selectedChapter.id}` : "/physics-lab"}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-all shadow-sm"
             >
               ⚡ Try in Lab

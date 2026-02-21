@@ -27,7 +27,7 @@ import {
     type PlacedComponent,
 } from "@/lib/circuit-components";
 import { CircuitEngine, type Connection, type SimulationResult } from "@/lib/circuit-engine";
-import type { CircuitExperiment } from "@/lib/circuit-experiments";
+import type { CircuitExperiment } from "@/lib/physics-lab-types";
 
 // ── Terminal ID contract ──────────────────────────────────
 // Handle IDs: `${instanceId}-t0`, `${instanceId}-t1`

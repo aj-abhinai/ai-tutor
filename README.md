@@ -47,4 +47,6 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths through 
 - `POST /api/deep` return long-form deep explanation
 - `POST /api/feedback` return explain-it-back and quiz feedback
 - `POST /api/lab` return lab simulation result + simplified explanation
+- `GET /api/physics/chapter-lab` return physics chapter lab data from Firestore
+- `GET /api/physics/lab-chapters` return chapter IDs that currently have Physics Lab data
 

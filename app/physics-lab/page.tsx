@@ -11,11 +11,11 @@ import "./circuit-effects.css";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
-    getChapterLab,
+    type ChapterLab,
     type CircuitExperiment,
-} from "@/lib/circuit-experiments";
+} from "@/lib/physics-lab-types";
 
 type LabMode = "free" | "guided";
 
@@ -34,16 +34,78 @@ const CircuitCanvas = dynamic(
 function PhysicsLabInner() {
     const searchParams = useSearchParams();
     const chapterId = searchParams.get("chapter") ?? "";
-    const chapterLab = useMemo(() => getChapterLab(chapterId), [chapterId]);
+
+    const [chapterLab, setChapterLab] = useState<ChapterLab | null>(null);
+    const [labLoading, setLabLoading] = useState(true);
+    const [labError, setLabError] = useState("");
 
     const [mode, setMode] = useState<LabMode>("guided");
     const [activeExperiment, setActiveExperiment] =
         useState<CircuitExperiment | null>(null);
 
+    // Load chapter lab data from API (Firestore-backed with fallback).
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadChapterLab() {
+            if (!chapterId) {
+                setChapterLab(null);
+                setLabError("");
+                setLabLoading(false);
+                return;
+            }
+
+            setLabLoading(true);
+            setLabError("");
+
+            try {
+                const res = await fetch(
+                    `/api/physics/chapter-lab?chapterId=${encodeURIComponent(chapterId)}`
+                );
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data?.error || "Failed to load physics lab");
+                }
+
+                if (!cancelled) {
+                    setChapterLab((data.chapterLab as ChapterLab) ?? null);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setChapterLab(null);
+                    setLabError(
+                        err instanceof Error
+                            ? err.message
+                            : "Failed to load physics lab"
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setLabLoading(false);
+                }
+            }
+        }
+
+        void loadChapterLab();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [chapterId]);
+
     // Auto-select first experiment in guided mode
     const experiments = chapterLab?.experiments ?? [];
     const currentExperiment =
         mode === "guided" ? activeExperiment ?? experiments[0] ?? null : null;
+
+    if (labLoading) {
+        return (
+            <main className="flex items-center justify-center min-h-screen p-8 text-center">
+                <p className="text-slate-500">Loading physics lab...</p>
+            </main>
+        );
+    }
 
     if (!chapterLab) {
         return (
@@ -52,7 +114,7 @@ function PhysicsLabInner() {
                     No Lab Available
                 </h1>
                 <p className="text-slate-500 mb-6">
-                    This chapter doesn&apos;t have lab experiments yet.
+                    {labError || "This chapter doesn&apos;t have lab experiments yet."}
                 </p>
                 <Link
                     href="/"
