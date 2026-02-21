@@ -9,10 +9,12 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
+import type { ChemicalInfo } from "@/lib/chemical-facts-types";
 import { type Experiment } from "@/lib/experiments";
 
 interface ChemicalShelfProps {
     chemicals: string[];
+    chemicalFacts?: Record<string, ChemicalInfo>;
     addedNames: string[];
     onAdd: (name: string) => void;
     isDisabled: boolean;               // true while reacting / done
@@ -41,6 +43,7 @@ function stableHash(input: string): number {
 
 function ChemicalShelfComponent({
     chemicals,
+    chemicalFacts = {},
     addedNames,
     onAdd,
     isDisabled,
@@ -96,6 +99,7 @@ function ChemicalShelfComponent({
                     const isExpected = name === expectedChemical;
                     const disabled = isAdded || isDisabled;
                     const color = getBottleColor(idx);
+                    const info = chemicalFacts[name];
 
                     return (
                         <button
@@ -139,6 +143,11 @@ function ChemicalShelfComponent({
                             <span className="shelf-bottle-formula">
                                 {name.match(/\(([^)]+)\)/)?.at(1) ?? ""}
                             </span>
+                            {info?.fact && (
+                                <span className="shelf-bottle-fact" title={info.fact}>
+                                    {info.fact}
+                                </span>
+                            )}
                         </button>
                     );
                 })}

@@ -45,6 +45,8 @@ agent.md
 system.md
 explain.md
 security_best_practices_report.md
+
+# planning / discussion docs
 /discuss
 
 # agent skills
@@ -60,5 +62,4 @@ service-account.json
 v2.md
 vercel-launch-checklist.md
 
-# planning / discussion docs
-chemistry-discuss.md
+

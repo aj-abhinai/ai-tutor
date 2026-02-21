@@ -12,6 +12,7 @@ import { ReactionResult } from "@/components/lab/ReactionResult";
 import { LabNotebook, type LogEntry } from "@/components/lab/LabNotebook";
 import { LabBench } from "@/components/chem-lab/LabBench";
 import { MobileDisclaimer } from "@/components/chem-lab/MobileDisclaimer";
+import type { ChemicalInfo } from "@/lib/chemical-facts-types";
 import type { Experiment } from "@/lib/experiments";
 import type { Reaction } from "@/lib/reactions";
 
@@ -33,6 +34,11 @@ interface ExperimentsAPIResponse {
 
 interface ChemicalsAPIResponse {
   chemicals?: string[];
+  error?: string;
+}
+
+interface FactsAPIResponse {
+  facts?: Record<string, ChemicalInfo>;
   error?: string;
 }
 
@@ -86,6 +92,7 @@ export default function ChemistryLabPage() {
 
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [chemicals, setChemicals] = useState<string[]>([]);
+  const [chemicalFacts, setChemicalFacts] = useState<Record<string, ChemicalInfo>>({});
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState("");
 
@@ -107,13 +114,15 @@ export default function ChemistryLabPage() {
       setDataError("");
 
       try {
-        const [experimentsRes, chemicalsRes] = await Promise.all([
+        const [experimentsRes, chemicalsRes, factsRes] = await Promise.all([
           fetch("/api/chemistry/experiments"),
           fetch("/api/chemistry/chemicals"),
+          fetch("/api/chemistry/facts"),
         ]);
 
         const experimentsData: ExperimentsAPIResponse = await experimentsRes.json();
         const chemicalsData: ChemicalsAPIResponse = await chemicalsRes.json();
+        const factsData: FactsAPIResponse = await factsRes.json();
 
         if (!experimentsRes.ok) {
           throw new Error(experimentsData.error ?? "Failed to load experiments");
@@ -121,10 +130,10 @@ export default function ChemistryLabPage() {
         if (!chemicalsRes.ok) {
           throw new Error(chemicalsData.error ?? "Failed to load chemicals");
         }
-
         if (cancelled) return;
         setExperiments(experimentsData.experiments ?? []);
         setChemicals(chemicalsData.chemicals ?? []);
+        setChemicalFacts(factsRes.ok ? (factsData.facts ?? {}) : {});
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "Failed to load chemistry data";
@@ -362,6 +371,7 @@ export default function ChemistryLabPage() {
             <div className="h-full">
               <LabBench
                 chemicals={chemicals}
+                chemicalFacts={chemicalFacts}
                 onMix={handleMix}
                 reaction={result?.reaction ?? null}
                 isLoading={loading}
@@ -380,6 +390,7 @@ export default function ChemistryLabPage() {
           <div className="mt-2">
             <LabBench
               chemicals={chemicals}
+              chemicalFacts={chemicalFacts}
               onMix={handleMix}
               reaction={result?.reaction ?? null}
               isLoading={loading}

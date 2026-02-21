@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
+import type { ChemicalInfo } from "@/lib/chemical-facts-types";
 import { ChemicalShelf } from "./ChemicalShelf";
 import { ReactionStage } from "./ReactionStage";
 import { type Reaction } from "@/lib/reactions";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 
 export interface LabBenchProps {
     chemicals: string[];
+    chemicalFacts?: Record<string, ChemicalInfo>;
     onMix: (chemA: string, chemB: string) => void;
     reaction: Reaction | null;
     isLoading: boolean;
@@ -33,6 +35,7 @@ export interface LabBenchProps {
 
 export function LabBench({
     chemicals,
+    chemicalFacts = {},
     onMix,
     reaction,
     isLoading,
@@ -115,6 +118,7 @@ export function LabBench({
             <div className="lab-bench-shelf">
                 <ChemicalShelf
                     chemicals={chemicals}
+                    chemicalFacts={chemicalFacts}
                     addedNames={addedNames}
                     onAdd={handleAddChemical}
                     isDisabled={isDisabled}

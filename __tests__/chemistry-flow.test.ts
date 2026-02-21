@@ -2,13 +2,11 @@
  * Chemistry Flow tests - Validates:
  *  1. Reaction engine pair matching (order-agnostic)
  *  2. SimulationPlan effect mapping
- *  3. Chemical facts lookup
  */
 
 import type { Reaction } from "@/lib/reactions";
 import { findReaction, getChemicalsList, getDefaultReactionPair } from "@/lib/reaction-engine";
 import { buildSimulationPlan } from "@/lib/simulation-engine";
-import { getChemicalInfo } from "@/lib/chemical-facts";
 
 const TEST_REACTIONS: Reaction[] = [
     {
@@ -113,16 +111,3 @@ describe("Simulation plan from reaction", () => {
     });
 });
 
-describe("Chemical facts lookup", () => {
-    it("returns fact for known chemical", () => {
-        const info = getChemicalInfo("Hydrochloric Acid (HCl)");
-        expect(info.fact).toContain("stomach");
-        expect(info.state).toBe("Liquid");
-    });
-
-    it("returns fallback for unknown chemical", () => {
-        const info = getChemicalInfo("Unknown XYZ");
-        expect(info.fact).toBeTruthy();
-        expect(info.state).toBe("Unknown");
-    });
-});
