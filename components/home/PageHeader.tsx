@@ -30,9 +30,13 @@ export function PageHeader() {
         <div className="flex items-center gap-2">
           {!loading && user ? (
             <>
-              <div className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700">
+              <Link
+                href="/profile"
+                className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-white"
+                title="Open student profile"
+              >
                 {user.displayName || "Student"}
-              </div>
+              </Link>
               <button
                 onClick={() => void handleLogout()}
                 className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-white"
