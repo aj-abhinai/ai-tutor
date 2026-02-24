@@ -6,6 +6,9 @@ import { ensureStudentProfile, updateStudentProfileName } from "@/lib/profile";
 import type { ProfileView } from "@/lib/profile-types";
 
 const updateLimiter = createRateLimiter(60_000, 20);
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, private",
+};
 
 const UpdateProfileSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(80, "Name must be 80 characters or less"),
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
       nameHint: identity.name ?? null,
     });
     const view: ProfileView = { name: profile.name, email: profile.email };
-    return NextResponse.json({ profile: view });
+    return NextResponse.json({ profile: view }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     const details = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
@@ -95,7 +98,7 @@ export async function PUT(request: NextRequest) {
     });
     const updated = await updateStudentProfileName(ensured.uid, parsed.data.name);
     const view: ProfileView = { name: updated.name, email: updated.email };
-    return NextResponse.json({ profile: view });
+    return NextResponse.json({ profile: view }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     const details = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
