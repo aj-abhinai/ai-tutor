@@ -118,6 +118,12 @@ const FIELD_LABELS: Record<string, string> = {
     mode: "Mode",
     question: "Question",
     expectedAnswer: "Expected answer",
+    title: "Title",
+    sourceName: "Source name",
+    pdfBase64: "PDF payload",
+    topK: "TopK",
+    lane: "Lane",
+    limit: "Limit",
 };
 
 /** Format a Zod issue into a user-friendly error message with field name. */
