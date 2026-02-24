@@ -22,6 +22,7 @@ interface QuizCardProps {
   canCheckAnswer: boolean;
   isAnswerCorrect: boolean;
   checkingQuiz: boolean;
+  quizFeedbackPreview?: string;
   quizFeedback: ExplainFeedback | null;
   onCheckAnswer: () => void;
   onResetQuiz: () => void;
@@ -45,6 +46,7 @@ export function QuizCard({
   canCheckAnswer,
   isAnswerCorrect,
   checkingQuiz,
+  quizFeedbackPreview = "",
   quizFeedback,
   onCheckAnswer,
   onResetQuiz,
@@ -158,15 +160,22 @@ export function QuizCard({
 
       {/* Check answer button or result panel */}
       {currentQuestion && !showAnswer ? (
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onCheckAnswer}
-          disabled={!canCheckAnswer || checkingQuiz}
-        >
-          {checkingQuiz ? "Checking..." : "Check Answer"}
-        </Button>
+        <>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={onCheckAnswer}
+            disabled={!canCheckAnswer || checkingQuiz}
+          >
+            {checkingQuiz ? "Checking..." : "Check Answer"}
+          </Button>
+          {isShortAnswer && checkingQuiz && quizFeedbackPreview && (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700 whitespace-pre-wrap">
+              {quizFeedbackPreview}
+            </div>
+          )}
+        </>
       ) : currentQuestion ? (
         <div className="animate-in fade-in zoom-in duration-300">
           <div

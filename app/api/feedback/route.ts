@@ -13,6 +13,7 @@
  * { feedback: { rating, praise, fix, rereadTip, isCorrect? } }
  */
 
+import { type GenerativeModel } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { formatSubtopicForFeedback } from "@/lib/subtopic-content";
 import { parseCurriculumRequest } from "@/lib/api/middleware";
@@ -41,7 +42,7 @@ const MAX_ANSWER_EXPLANATION_LENGTH = 700;
 const MAX_LESSON_CONTEXT_LENGTH = 1600;
 const MAX_FIELD_LENGTH = 240;
 
-const BASE_PROMPT = `You are a warm, encouraging NCERT Class 7 teacher who loves helping students learn.
+const BASE_PROMPT_JSON = `You are a warm, encouraging NCERT Class 7 teacher who loves helping students learn.
 
 Task:
 Evaluate the student's answer and give kind, helpful feedback.
@@ -58,7 +59,7 @@ Rating guide:
 - "needs work" = the idea is mostly wrong, but still encourage to try again
 
 Rules:
-- For "praise": Only mention something the student actually got RIGHT. If NOTHING is correct, just say "Good effort trying to answer!" — do NOT invent something correct that the student did not say.
+- For "praise": Only mention something the student actually got RIGHT. If NOTHING is correct, just say "Good effort trying to answer!" and do NOT invent correct points.
 - For "fix": Clearly state what is wrong with the student's answer, then give the CORRECT answer in simple words.
 - For "rereadTip": Name the specific section or concept the student should revisit.
 - Do NOT praise an incorrect idea as correct.
@@ -73,7 +74,40 @@ Return exactly:
   "rereadTip": "Which specific topic or concept to re-read"
 }`;
 
-// ── Helper functions for answer validation and normalization ──
+const BASE_PROMPT_STREAM = `You are a warm, encouraging NCERT Class 7 teacher who loves helping students learn.
+
+Task:
+Evaluate the student's answer and give kind, helpful feedback.
+
+Rules:
+- Use simple words that a 12-year-old understands
+- Keep output concise
+- Do not use markdown
+- Output exactly these labels, one per line
+
+Output format:
+RATING: great | good start | needs work
+ISCORRECT: true | false
+PRAISE: one short line
+FIX: one short line
+REREADTIP: one short line`;
+
+const STREAM_HEADERS = {
+  "Content-Type": "application/x-ndjson; charset=utf-8",
+  "Cache-Control": "no-cache, no-transform",
+  Connection: "keep-alive",
+};
+
+function shouldStreamResponse(request: NextRequest): boolean {
+  const streamHeader = request.headers.get("x-ai-stream");
+  if (streamHeader === "1" || streamHeader === "true") return true;
+  const accept = request.headers.get("accept") ?? "";
+  return accept.includes("application/x-ndjson");
+}
+
+function createNdjsonLine(payload: Record<string, unknown>): Uint8Array {
+  return new TextEncoder().encode(`${JSON.stringify(payload)}\n`);
+}
 
 function isLikelyGibberish(answer: string): boolean {
   const trimmed = answer.trim();
@@ -90,7 +124,7 @@ function isLikelyGibberish(answer: string): boolean {
     wordCount > 0 ? words.reduce((sum, word) => sum + word.length, 0) / wordCount : 0;
   const vowelRatio = letters > 0 ? vowels / letters : 0;
 
-  // Heuristic: noisy symbol-heavy text or unrealistically consonant-heavy words is likely junk input.
+  // Heuristic: symbol-heavy text or extremely consonant-heavy words are likely junk.
   if (totalChars >= 25 && (letterRatio < 0.6 || digitRatio > 0.25)) return true;
   if (avgWordLen >= 8 && vowelRatio < 0.25) return true;
   return false;
@@ -136,7 +170,7 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     obj = obj.feedback as Record<string, unknown>;
   }
 
-  // Accept common alternative key names to make model output parsing more tolerant.
+  // Accept common alternative key names to make model parsing tolerant.
   const ratingRaw = pickString(obj, ["rating", "result", "score"]);
   const praiseRaw = pickString(obj, ["praise", "positive", "strength", "right", "whatWasRight"]);
   const fixRaw = pickString(obj, ["fix", "improve", "improvement", "missing", "wrong", "whatToFix"]);
@@ -157,6 +191,39 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
     rereadTip: trimField(rereadRaw),
     isCorrect: parseBoolean(isCorrectRaw),
   };
+}
+
+function normalizeStreamFeedbackResponse(rawText: string): TutorFeedbackResponse | null {
+  const text = rawText
+    .replace(/^```(?:text|markdown)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  if (!text) return null;
+
+  const labelPattern = /(RATING|ISCORRECT|PRAISE|FIX|REREADTIP)\s*:/gi;
+  const matches = [...text.matchAll(labelPattern)];
+  if (matches.length === 0) return null;
+
+  const values: Record<string, string> = {};
+  for (let index = 0; index < matches.length; index += 1) {
+    const current = matches[index];
+    const next = matches[index + 1];
+    if (current.index === undefined) continue;
+    const label = current[1]?.toUpperCase();
+    if (!label) continue;
+    const valueStart = current.index + current[0].length;
+    const valueEnd = next?.index ?? text.length;
+    values[label] = text.slice(valueStart, valueEnd).trim();
+  }
+
+  const rating = normalizeRating(values.RATING ?? "");
+  const praise = values.PRAISE ? trimField(values.PRAISE) : null;
+  const fix = values.FIX ? trimField(values.FIX) : null;
+  const rereadTip = values.REREADTIP ? trimField(values.REREADTIP) : null;
+  const isCorrect = parseBoolean(values.ISCORRECT ?? "");
+
+  if (!rating || !praise || !fix || !rereadTip) return null;
+  return { rating, praise, fix, rereadTip, isCorrect };
 }
 
 function forceStrictNeedsWork(
@@ -206,7 +273,52 @@ async function generateStructuredFeedback(
   return parseJsonFromModel(text);
 }
 
-// ── Route handler ──
+function streamStructuredFeedback(
+  model: GenerativeModel,
+  promptParts: { text: string }[],
+  focusIdea: string,
+): NextResponse {
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (payload: Record<string, unknown>) => {
+        controller.enqueue(createNdjsonLine(payload));
+      };
+
+      let generatedText = "";
+      try {
+        const result = await model.generateContentStream(promptParts);
+        for await (const chunk of result.stream) {
+          const delta = chunk.text();
+          if (!isNonEmptyString(delta)) continue;
+          generatedText += delta;
+          send({ type: "chunk", delta });
+        }
+
+        const normalized =
+          normalizeStreamFeedbackResponse(generatedText) ??
+          normalizeFeedbackResponse(
+            (() => {
+              try {
+                return parseJsonFromModel(generatedText);
+              } catch {
+                return null;
+              }
+            })(),
+          ) ??
+          forceStrictNeedsWork(focusIdea, "no_overlap");
+
+        send({ type: "done", feedback: normalized });
+      } catch (err) {
+        console.error("Feedback generateContentStream failed:", err);
+        send({ type: "done", feedback: forceStrictNeedsWork(focusIdea, "no_overlap"), degraded: true });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new NextResponse(stream, { headers: STREAM_HEADERS });
+}
 
 export async function POST(request: NextRequest) {
   // Route-specific: AI access check.
@@ -216,6 +328,8 @@ export async function POST(request: NextRequest) {
       { status: 401 },
     );
   }
+
+  const wantsStream = shouldStreamResponse(request);
 
   // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
   const result = await parseCurriculumRequest(request, FeedbackBodySchema);
@@ -272,10 +386,11 @@ export async function POST(request: NextRequest) {
       : "Lesson summary not provided.";
 
   // Build prompt based on mode.
+  const basePrompt = wantsStream ? BASE_PROMPT_STREAM : BASE_PROMPT_JSON;
   const promptParts: { text: string }[] =
     feedbackMode === "quiz"
       ? [
-        { text: BASE_PROMPT },
+        { text: basePrompt },
         { text: "Mode: quiz grading." },
         { text: `Question:\n${String(body.question).trim().slice(0, MAX_QUESTION_LENGTH)}` },
         {
@@ -290,12 +405,25 @@ export async function POST(request: NextRequest) {
         { text: `Student answer:\n${trimmedAnswer}` },
       ]
       : [
-        { text: BASE_PROMPT },
+        { text: basePrompt },
         { text: "Mode: explain-back quality check." },
         { text: "Lesson summary:\n" + lessonText },
         { text: contextChecklist },
         { text: `Subject: ${subject}\nStudent answer:\n${trimmedAnswer}` },
       ];
+
+  if (wantsStream) {
+    const streamModel = createGeminiModel("gemini-2.5-flash-lite", {
+      temperature: 0.1,
+    });
+    if (!streamModel) {
+      return NextResponse.json(
+        { error: "Server configuration error", code: "AI_UNAVAILABLE" },
+        { status: 500 },
+      );
+    }
+    return streamStructuredFeedback(streamModel, promptParts, focusIdea);
+  }
 
   // Generate AI feedback with repair fallback.
   let parsed: unknown;
@@ -323,7 +451,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!feedback) {
-    // All parsing failed — use rule-based fallback so the student still gets feedback.
+    // All parsing failed: use rule-based fallback so the student still gets feedback.
     feedback = forceStrictNeedsWork(focusIdea, "no_overlap");
   }
 

@@ -28,6 +28,7 @@ interface LearnCardProps {
   onExplainBackChange: (value: string) => void;
   onExplainBackCheck: () => void;
   checkingExplain: boolean;
+  explainFeedbackPreview?: string;
   explainFeedback: ExplainFeedback | null;
   selfCheck: "confident" | "unsure" | null;
   onSelfCheckChange: (value: "confident" | "unsure") => void;
@@ -51,6 +52,7 @@ export function LearnCard({
   onExplainBackChange,
   onExplainBackCheck,
   checkingExplain,
+  explainFeedbackPreview = "",
   explainFeedback,
   selfCheck,
   onSelfCheckChange,
@@ -370,6 +372,12 @@ export function LearnCard({
             {checkingExplain ? "Checking..." : "Check My Explanation"}
           </Button>
         </div>
+
+        {checkingExplain && explainFeedbackPreview && (
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700 whitespace-pre-wrap">
+            {explainFeedbackPreview}
+          </div>
+        )}
 
         {explainFeedback && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">

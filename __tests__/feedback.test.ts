@@ -10,6 +10,7 @@ import { getSubtopicFromDB } from "@/lib/rag";
 import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
 
 const generateContentMock = jest.fn();
+const generateContentStreamMock = jest.fn();
 
 jest.mock("@/lib/rag", () => ({
   getSubtopicFromDB: jest.fn(),
@@ -21,6 +22,7 @@ jest.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: jest.fn().mockReturnValue({
       generateContent: generateContentMock,
+      generateContentStream: generateContentStreamMock,
     }),
   })),
 }));
@@ -43,6 +45,7 @@ const makeJsonRequest = (body: unknown, headers: Record<string, string> = {}) =>
 describe("/api/feedback - Explain-it-back API", () => {
   beforeEach(() => {
     generateContentMock.mockReset();
+    generateContentStreamMock.mockReset();
     getSubtopicFromDBMock.mockReset();
     getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
     process.env.GEMINI_API_KEY = "test-key";
@@ -208,6 +211,30 @@ describe("/api/feedback - Explain-it-back API", () => {
       expect(typeof data.feedback.fix).toBe("string");
       expect(typeof data.feedback.rereadTip).toBe("string");
       expect(typeof data.feedback.isCorrect).toBe("boolean");
+    });
+
+    it("streams NDJSON feedback events when x-ai-stream is enabled", async () => {
+      generateContentStreamMock.mockResolvedValue({
+        stream: (async function* () {
+          yield { text: () => "RATING: great\nISCORRECT: true\n" };
+          yield { text: () => "PRAISE: Good effort.\nFIX: Add open-circuit detail.\nREREADTIP: closed and open circuits\n" };
+        })(),
+      });
+
+      const response = await POST(makeJsonRequest(VALID_BODY, { "x-ai-stream": "1" }));
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+
+      const body = await response.text();
+      const events = body
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as { type: string; feedback?: { rating?: string } });
+
+      expect(events.some((event) => event.type === "chunk")).toBe(true);
+      const done = events.find((event) => event.type === "done");
+      expect(done?.feedback?.rating).toBe("great");
     });
   });
 });

@@ -18,6 +18,7 @@ import {
   ExplainLevel,
   TutorLessonResponse,
 } from "@/components/home/types";
+import { requestDeepEssay, requestFeedback } from "@/components/home/client-api";
 
 const LearnCard = dynamic(
   () => import("@/components/home/LearnCard").then((m) => m.LearnCard)
@@ -68,8 +69,10 @@ export default function ClientPage({
   const [curiosityResponse, setCuriosityResponse] = useState("");
   const [explainFeedback, setExplainFeedback] = useState<ExplainFeedback | null>(null);
   const [checkingExplain, setCheckingExplain] = useState(false);
+  const [explainFeedbackPreview, setExplainFeedbackPreview] = useState("");
   const [quizFeedback, setQuizFeedback] = useState<ExplainFeedback | null>(null);
   const [checkingQuiz, setCheckingQuiz] = useState(false);
+  const [quizFeedbackPreview, setQuizFeedbackPreview] = useState("");
   const [explainLevel, setExplainLevel] = useState<ExplainLevel>("simple");
   const [deepEssay, setDeepEssay] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
@@ -308,8 +311,10 @@ export default function ClientPage({
     setExplainBack("");
     setCuriosityResponse("");
     setExplainFeedback(null);
+    setExplainFeedbackPreview("");
     setCheckingExplain(false);
     setQuizFeedback(null);
+    setQuizFeedbackPreview("");
     setCheckingQuiz(false);
     if (!preserveExplainLevel) {
       setExplainLevel("simple");
@@ -328,6 +333,7 @@ export default function ClientPage({
     setShortAnswer("");
     setShowAnswer(false);
     setQuizFeedback(null);
+    setQuizFeedbackPreview("");
     setCheckingQuiz(false);
   };
 
@@ -384,6 +390,7 @@ export default function ClientPage({
       setExplainBack("");
       setCuriosityResponse("");
       setExplainFeedback(null);
+      setExplainFeedbackPreview("");
       if (!preserveExplainLevel) {
         setExplainLevel("simple");
       }
@@ -425,6 +432,7 @@ export default function ClientPage({
         setExplainBack("");
         setCuriosityResponse("");
         setExplainFeedback(null);
+        setExplainFeedbackPreview("");
         if (!preserveExplainLevel) {
           setExplainLevel("simple");
         }
@@ -516,12 +524,12 @@ export default function ClientPage({
       if (!shortAnswer.trim()) return;
       setCheckingQuiz(true);
       setQuizFeedback(null);
+      setQuizFeedbackPreview("");
       setError("");
       try {
-        const res = await fetch("/api/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        let streamedPreview = "";
+        const { feedback, error: feedbackError } = await requestFeedback(
+          {
             subject,
             chapterId: selectedChapter.id,
             topicId: selectedTopic?.id,
@@ -532,13 +540,18 @@ export default function ClientPage({
             question: currentQuestion.question,
             expectedAnswer: currentQuestion.answer.correct,
             answerExplanation: currentQuestion.answer.explanation,
-          }),
-        });
-        const resData = await res.json();
-        if (!res.ok) {
-          setError(resData.error || "Unable to check your answer right now.");
-        } else if (resData?.feedback) {
-          setQuizFeedback(resData.feedback);
+          },
+          (delta) => {
+            streamedPreview += delta;
+            setQuizFeedbackPreview(streamedPreview);
+          },
+        );
+
+        if (feedbackError) {
+          setError(feedbackError);
+        } else if (feedback) {
+          setQuizFeedback(feedback);
+          setQuizFeedbackPreview("");
         } else {
           setError("No feedback returned. Please try again.");
         }
@@ -584,24 +597,30 @@ export default function ClientPage({
 
     setDeepLoading(true);
     setDeepError("");
+    setDeepEssay("");
 
     try {
-      const res = await fetch("/api/deep", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let streamedEssay = "";
+      const { deepEssay: generatedEssay, error: deepRequestError } = await requestDeepEssay(
+        {
           subject,
           chapterId: selectedChapter.id,
           topicId: selectedTopic?.id,
           subtopicId: selectedSubtopicRef.id,
-        }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        setDeepError(resData.error || "Unable to generate the deep explanation right now.");
-      } else if (resData?.deepEssay) {
-        deepCache.current.set(cacheKey, resData.deepEssay);
-        setDeepEssay(resData.deepEssay);
+        },
+        (delta) => {
+          // Render partial deep essay while response is streaming.
+          streamedEssay += delta;
+          setDeepEssay(streamedEssay);
+        },
+      );
+
+      if (deepRequestError) {
+        setDeepError(deepRequestError);
+        setDeepEssay(null);
+      } else if (generatedEssay) {
+        deepCache.current.set(cacheKey, generatedEssay);
+        setDeepEssay(generatedEssay);
         const updated = [...recent, now];
         deepGenerateLog.current.set(cacheKey, updated);
         if (updated.length >= 2) {
@@ -612,9 +631,11 @@ export default function ClientPage({
         }
       } else {
         setDeepError("No deep explanation returned. Please try again.");
+        setDeepEssay(null);
       }
     } catch {
       setDeepError("Failed to connect to API");
+      setDeepEssay(null);
     } finally {
       setDeepLoading(false);
     }
@@ -632,26 +653,32 @@ export default function ClientPage({
     if (!selectedChapter || !selectedSubtopicRef || !explainBack.trim() || checkingExplain) return;
     setCheckingExplain(true);
     setExplainFeedback(null);
+    setExplainFeedbackPreview("");
     setError("");
 
     try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let streamed = "";
+      const { feedback, error: feedbackError } = await requestFeedback(
+        {
           subject,
           chapterId: selectedChapter.id,
           topicId: selectedTopic?.id,
           subtopicId: selectedSubtopicRef.id,
           studentAnswer: explainBack.trim(),
           lessonContext: buildLessonContext(),
-        }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        setError(resData.error || "Unable to check your explanation right now.");
-      } else if (resData?.feedback) {
-        setExplainFeedback(resData.feedback);
+        },
+        (delta) => {
+          // Show progressive feedback while model response is in flight.
+          streamed += delta;
+          setExplainFeedbackPreview(streamed);
+        },
+      );
+
+      if (feedbackError) {
+        setError(feedbackError);
+      } else if (feedback) {
+        setExplainFeedback(feedback);
+        setExplainFeedbackPreview("");
       } else {
         setError("No feedback returned. Please try again.");
       }
@@ -804,6 +831,7 @@ export default function ClientPage({
               onExplainBackChange={(value) => setExplainBack(value)}
               onExplainBackCheck={handleExplainBackCheck}
               checkingExplain={checkingExplain}
+              explainFeedbackPreview={explainFeedbackPreview}
               explainFeedback={explainFeedback}
               selfCheck={selfCheck}
               onSelfCheckChange={(value) => setSelfCheck(value)}
@@ -835,6 +863,7 @@ export default function ClientPage({
               canCheckAnswer={canCheckAnswer}
               isAnswerCorrect={isAnswerCorrect}
               checkingQuiz={checkingQuiz}
+              quizFeedbackPreview={quizFeedbackPreview}
               quizFeedback={quizFeedback}
               onCheckAnswer={handleCheckAnswer}
               onResetQuiz={resetQuizState}
