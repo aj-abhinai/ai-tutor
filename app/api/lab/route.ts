@@ -12,7 +12,7 @@ import { getReactionsFromFirestore } from "@/lib/firestore-lab";
 import { findExampleReactionForChemical, findReaction } from "@/lib/reaction-engine";
 import {
     createRateLimiter,
-    getRateLimitKey,
+    getRequestUserId,
     isNonEmptyString,
 } from "@/lib/api/shared";
 
@@ -110,7 +110,11 @@ function parseSafeJSON(text: string): LabAIResponse | null {
 }
 
 export async function POST(request: NextRequest) {
-    const clientKey = getRateLimitKey(request);
+    const userId = await getRequestUserId(request);
+    if (!userId) {
+        return NextResponse.json({ error: "Student login required." }, { status: 401 });
+    }
+    const clientKey = `user:${userId}`;
     if (await isRateLimited(clientKey)) {
         return NextResponse.json(
             { error: "Rate limit exceeded. Please try again shortly." },

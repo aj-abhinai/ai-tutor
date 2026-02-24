@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
-  const result = await parseCurriculumRequest(request, CurriculumBodySchema);
+    const result = await parseCurriculumRequest(request, CurriculumBodySchema, { requireAuth: true });
   if (!result.ok) return result.response;
   const { subtopic, subject } = result.data;
 

@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { getSubtopicFromDB } from "@/lib/rag";
-import { createRateLimiter, getRateLimitKey } from "./shared";
+import { createRateLimiter, getRateLimitKey, getRequestUserId } from "./shared";
 import type { SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 
 // ── Result types (discriminated union on `ok`) ──
@@ -35,6 +35,7 @@ export type CurriculumContext<T> = {
     subject: SubjectName;
     subtopic: SubtopicKnowledge;
     request: NextRequest;
+    userId: string | null;
 };
 
 // Default rate limiter (10 requests per minute).
@@ -49,13 +50,20 @@ const defaultRateLimiter = createRateLimiter(60_000, 10);
 export async function parseCurriculumRequest<T extends { subject: string; chapterId: string; topicId: string; subtopicId: string }>(
     request: NextRequest,
     schema: z.ZodSchema<T>,
-    options?: { rateLimiter?: (key: string) => Promise<boolean> },
+    options?: { rateLimiter?: (key: string) => Promise<boolean>; requireAuth?: boolean },
 ): Promise<ParseResult<CurriculumContext<T>>> {
+    const requireAuth = options?.requireAuth ?? false;
+    const userId = await getRequestUserId(request);
+
+    if (requireAuth && !userId) {
+        return fail("Student login required.", 401, "UNAUTHORIZED");
+    }
+
     // 1. Rate limit
     const limiter = options?.rateLimiter ?? defaultRateLimiter;
     // Scope limits by route so heavy use of one endpoint does not throttle others.
     const routePath = request.nextUrl.pathname || "unknown-route";
-    const clientKey = `${routePath}:${getRateLimitKey(request)}`;
+    const clientKey = `${routePath}:${userId ? `user:${userId}` : getRateLimitKey(request)}`;
     if (await limiter(clientKey)) {
         return fail("Rate limit exceeded. Please try again shortly.", 429, "RATE_LIMIT");
     }
@@ -85,7 +93,7 @@ export async function parseCurriculumRequest<T extends { subject: string; chapte
         return fail("Selected chapter/topic/subtopic was not found", 400, "NOT_FOUND");
     }
 
-    return { ok: true, data: { body, subject: subject as SubjectName, subtopic, request } };
+    return { ok: true, data: { body, subject: subject as SubjectName, subtopic, request, userId } };
 }
 
 // ── Consistent error response builder ──

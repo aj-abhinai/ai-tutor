@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getChemicalFactsFromFirestore } from "@/lib/firestore-lab";
+import { getRequestUserId } from "@/lib/api/shared";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const userId = await getRequestUserId(request);
+    if (!userId) {
+        return NextResponse.json({ error: "Student login required." }, { status: 401 });
+    }
     try {
         const facts = await getChemicalFactsFromFirestore();
         return NextResponse.json({ facts });
@@ -15,4 +20,3 @@ export async function GET() {
         );
     }
 }
-

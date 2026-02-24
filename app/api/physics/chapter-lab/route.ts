@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPhysicsChapterLabFromFirestore } from "@/lib/firestore-lab";
+import { getRequestUserId } from "@/lib/api/shared";
 
 const MAX_CHAPTER_ID_LENGTH = 120;
 
 export async function GET(request: NextRequest) {
+    const userId = await getRequestUserId(request);
+    if (!userId) {
+        return NextResponse.json({ error: "Student login required." }, { status: 401 });
+    }
     const chapterId = request.nextUrl.searchParams.get("chapterId")?.trim() ?? "";
 
     if (!chapterId) {

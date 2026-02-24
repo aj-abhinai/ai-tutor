@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 
 import type { CurriculumCatalog, SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 import { Alert } from "@/components/ui/Alert";
 import { StatusCard } from "@/components/ui/StatusCard";
@@ -52,6 +53,9 @@ export default function ClientPage({
   initialCatalog: CurriculumCatalog | null;
   initialSubject: SubjectName;
 }) {
+  const { user } = useAuth();
+  const [showLoginNudge, setShowLoginNudge] = useState(false);
+  const [loginNudgeAction, setLoginNudgeAction] = useState<string>("this feature");
   // Lesson data + UI state for the active card.
   const [selectedSubtopicData, setSelectedSubtopicData] = useState<SubtopicKnowledge | null>(null);
   const [data, setData] = useState<TutorLessonResponse | null>(null);
@@ -110,6 +114,18 @@ export default function ClientPage({
   });
 
   const selectedSubtopic = selectedSubtopicData;
+
+  // Gate AI/lab features behind login without blocking the whole home screen.
+  const requireLoginFor = useCallback(
+    (action: string) => {
+      if (user) return true;
+      setLoginNudgeAction(action);
+      setShowLoginNudge(true);
+      setError("Please log in to use AI and lab features.");
+      return false;
+    },
+    [user],
+  );
 
   // Clear deep cooldown when time elapses.
   useEffect(() => {
@@ -195,6 +211,7 @@ export default function ClientPage({
   // Fetch lesson content (with cache + concurrency guard).
   const fetchLesson = async (options?: { subtopicIdOverride?: string; preserveExplainLevel?: boolean }) => {
     if (!selectedChapter || !selectedTopic) return;
+    if (!requireLoginFor("AI lesson generation")) return;
     const subtopicIdOverride = options?.subtopicIdOverride;
     const preserveExplainLevel = options?.preserveExplainLevel ?? false;
     const targetSubtopic = subtopicIdOverride
@@ -227,9 +244,11 @@ export default function ClientPage({
     setError("");
 
     try {
+      const { getAuthHeaders } = await import("@/lib/auth-client");
+      const authHeaders = await getAuthHeaders();
       const res = await fetch("/api/explain", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           subject,
           chapterId: selectedChapter.id,
@@ -269,6 +288,7 @@ export default function ClientPage({
 
   // Activate a card and ensure lesson content is loaded.
   const handleSelectCard = async (card: CardStep) => {
+    if (!requireLoginFor("AI learning cards")) return;
     if (!selectedTopic) {
       setError("Please choose a chapter and topic first.");
       return;
@@ -302,6 +322,7 @@ export default function ClientPage({
   // Fetch the deep essay and throttle regenerations.
   const fetchDeepEssay = async (force = false) => {
     if (!selectedChapter || !selectedSubtopicRef || deepLoading) return;
+    if (!requireLoginFor("deep explanation")) return;
 
     const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic?.id}:${selectedSubtopicRef.id}`;
     const cached = deepCache.current.get(cacheKey);
@@ -380,6 +401,7 @@ export default function ClientPage({
   const handleCheckShortAnswer = useCallback(
     async (payload: { answer: string; question: string; expectedAnswer: string; answerExplanation?: string }) => {
       if (!selectedChapter || !selectedSubtopicRef || checkingQuiz) return;
+      if (!requireLoginFor("AI quiz feedback")) return;
 
       setCheckingQuiz(true);
       setQuizFeedback(null);
@@ -424,12 +446,13 @@ export default function ClientPage({
         setCheckingQuiz(false);
       }
     },
-    [buildLessonContext, checkingQuiz, selectedChapter, selectedSubtopicRef, selectedTopic?.id, subject],
+    [buildLessonContext, checkingQuiz, requireLoginFor, selectedChapter, selectedSubtopicRef, selectedTopic?.id, subject],
   );
 
   // Submit the "explain back" response for AI feedback.
   const handleExplainBackCheck = async () => {
     if (!selectedChapter || !selectedSubtopicRef || !explainBack.trim() || checkingExplain) return;
+    if (!requireLoginFor("AI explain-back feedback")) return;
     setCheckingExplain(true);
     setExplainFeedback(null);
     setExplainFeedbackPreview("");
@@ -523,20 +546,58 @@ export default function ClientPage({
         {/* Lab links */}
         <div className="flex justify-center gap-3 mb-4">
           <Link
-            href="/chemistry-lab"
+            href={user ? "/chemistry-lab" : "#"}
+            onClick={(event) => {
+              if (user) return;
+              event.preventDefault();
+              requireLoginFor("Chemistry Lab");
+            }}
             className="chemistry-nav-btn"
           >
             Chemistry Lab
           </Link>
           {hasPhysicsLabForChapter && (
             <Link
-              href={selectedChapter ? `/physics-lab?chapter=${selectedChapter.id}` : "/physics-lab"}
+              href={user ? (selectedChapter ? `/physics-lab?chapter=${selectedChapter.id}` : "/physics-lab") : "#"}
+              onClick={(event) => {
+                if (user) return;
+                event.preventDefault();
+                requireLoginFor("Physics Lab");
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-all shadow-sm"
             >
-              ⚡ Try in Lab
+              Try in Lab
             </Link>
           )}
         </div>
+        {showLoginNudge && !user && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p>
+              Log in to use <strong>{loginNudgeAction}</strong>.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <Link
+                href="/login"
+                className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
+              >
+                Sign up
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowLoginNudge(false)}
+                className="rounded-full border border-transparent px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         <InputPanel
           subject={subject}

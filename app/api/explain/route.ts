@@ -92,7 +92,7 @@ function normalizeFeedbackResponse(raw: unknown): TutorFeedbackResponse | null {
 
 export async function POST(request: NextRequest) {
     // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
-    const result = await parseCurriculumRequest(request, ExplainBodySchema);
+    const result = await parseCurriculumRequest(request, ExplainBodySchema, { requireAuth: true });
     if (!result.ok) return result.response;
     const { subtopic, body } = result.data;
 

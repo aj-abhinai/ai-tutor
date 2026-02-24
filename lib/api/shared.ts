@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, type GenerationConfig } from "@google/generative-ai";
 import { NextRequest } from "next/server";
+import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
 
 type RateLimitEntry = { count: number; windowStartMs: number };
 type RateLimitBackend = "upstash" | "memory";
@@ -60,6 +61,20 @@ export function getRateLimitKey(request: NextRequest): string {
   const acceptLanguage =
     request.headers.get("accept-language")?.trim().slice(0, 80) || "unknown";
   return `${ip}:${simpleHash(`${userAgent}|${acceptLanguage}`)}`;
+}
+
+function getAuthTokenFromRequest(request: NextRequest): string | null {
+  const header = request.headers.get("authorization");
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() ?? null;
+}
+
+export async function getRequestUserId(request: NextRequest): Promise<string | null> {
+  const token = getAuthTokenFromRequest(request);
+  if (!token) return null;
+  const decoded = await verifyFirebaseIdToken(token);
+  return decoded?.uid ?? null;
 }
 
 function getRateLimitBackend(): RateLimitBackend {

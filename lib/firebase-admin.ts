@@ -15,6 +15,7 @@ import {
     type App,
     type ServiceAccount,
 } from "firebase-admin/app";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 let app: App | undefined;
@@ -68,4 +69,18 @@ export function getFirestoreClient(): Firestore {
 
     db = getFirestore(app);
     return db;
+}
+
+export async function verifyFirebaseIdToken(token: string): Promise<DecodedIdToken | null> {
+    if (!token) return null;
+    try {
+        if (getApps().length === 0) {
+            const serviceAccount = readServiceAccountFromEnvOrFile();
+            app = initializeApp({ credential: cert(serviceAccount) });
+        }
+        const auth = getAuth();
+        return await auth.verifyIdToken(token);
+    } catch {
+        return null;
+    }
 }

@@ -1,16 +1,57 @@
 import type { NextConfig } from "next";
 
+const firebaseAuthDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+const firebaseAuthOrigin = firebaseAuthDomain ? `https://${firebaseAuthDomain}` : null;
+const firebaseAppOrigin =
+  firebaseAuthDomain && firebaseAuthDomain.endsWith(".firebaseapp.com")
+    ? `https://${firebaseAuthDomain.replace(".firebaseapp.com", ".web.app")}`
+    : null;
+
+function buildSourceList(values: Array<string | null>): string {
+  return values.filter(Boolean).join(" ");
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  `script-src ${buildSourceList([
+    "'self'",
+    "'unsafe-inline'",
+    process.env.NODE_ENV === "development" ? "'unsafe-eval'" : null,
+    "https://www.gstatic.com",
+  ])}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src ${buildSourceList([
+    "'self'",
+    "data:",
+    "blob:",
+    "https://lh3.googleusercontent.com",
+  ])}`,
   "font-src 'self' data:",
-  `connect-src 'self'${process.env.NODE_ENV === "development" ? " ws: wss:" : ""}`,
+  `connect-src ${buildSourceList([
+    "'self'",
+    process.env.NODE_ENV === "development" ? "ws:" : null,
+    process.env.NODE_ENV === "development" ? "wss:" : null,
+    "https://identitytoolkit.googleapis.com",
+    "https://securetoken.googleapis.com",
+    "https://firestore.googleapis.com",
+    "https://firebaseinstallations.googleapis.com",
+    "https://www.googleapis.com",
+    "https://www.google.com",
+    "https://accounts.google.com",
+    firebaseAuthOrigin,
+  ])}`,
+  `frame-src ${buildSourceList([
+    "'self'",
+    "https://accounts.google.com",
+    "https://www.google.com",
+    "https://*.google.com",
+    firebaseAuthOrigin,
+    firebaseAppOrigin,
+  ])}`,
   "upgrade-insecure-requests",
 ].join("; ");
 

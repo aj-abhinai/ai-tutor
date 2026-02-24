@@ -16,6 +16,8 @@ import {
     type ChapterLab,
     type CircuitExperiment,
 } from "@/lib/physics-lab-types";
+import { AuthWall } from "@/components/auth/AuthWall";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type LabMode = "free" | "guided";
 
@@ -32,6 +34,7 @@ const CircuitCanvas = dynamic(
 );
 
 function PhysicsLabInner() {
+    const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const chapterId = searchParams.get("chapter") ?? "";
 
@@ -59,8 +62,11 @@ function PhysicsLabInner() {
             setLabError("");
 
             try {
+                const { getAuthHeaders } = await import("@/lib/auth-client");
+                const authHeaders = await getAuthHeaders();
                 const res = await fetch(
-                    `/api/physics/chapter-lab?chapterId=${encodeURIComponent(chapterId)}`
+                    `/api/physics/chapter-lab?chapterId=${encodeURIComponent(chapterId)}`,
+                    { headers: authHeaders },
                 );
                 const data = await res.json();
 
@@ -98,6 +104,18 @@ function PhysicsLabInner() {
     const experiments = chapterLab?.experiments ?? [];
     const currentExperiment =
         mode === "guided" ? activeExperiment ?? experiments[0] ?? null : null;
+
+    if (authLoading) {
+        return (
+            <main className="flex items-center justify-center min-h-screen p-8 text-center">
+                <p className="text-slate-500">Checking your student session...</p>
+            </main>
+        );
+    }
+
+    if (!user) {
+        return <AuthWall title="Student Login Required" message="Log in to access the physics lab." />;
+    }
 
     if (labLoading) {
         return (

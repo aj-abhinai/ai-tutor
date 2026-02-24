@@ -3,6 +3,8 @@
 import "./chem-effects.css";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { AuthWall } from "@/components/auth/AuthWall";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert } from "@/components/ui/Alert";
 import { Card } from "@/components/ui/Card";
 import { OptionButton } from "@/components/ui/OptionButton";
@@ -85,6 +87,7 @@ function buildFreeQuiz(reaction: Reaction | null): FreeQuiz {
 let sessionEntryCounter = 0;
 
 export default function ChemistryLabPage() {
+  const { user, loading: authLoading } = useAuth();
   const [mode, setMode] = useState<LabMode>("guided");
   const [activeExperiment, setActiveExperiment] = useState<Experiment | null>(null);
   const [guidedStep, setGuidedStep] = useState(0);
@@ -114,10 +117,12 @@ export default function ChemistryLabPage() {
       setDataError("");
 
       try {
+        const { getAuthHeaders } = await import("@/lib/auth-client");
+        const authHeaders = await getAuthHeaders();
         const [experimentsRes, chemicalsRes, factsRes] = await Promise.all([
-          fetch("/api/chemistry/experiments"),
-          fetch("/api/chemistry/chemicals"),
-          fetch("/api/chemistry/facts"),
+          fetch("/api/chemistry/experiments", { headers: authHeaders }),
+          fetch("/api/chemistry/chemicals", { headers: authHeaders }),
+          fetch("/api/chemistry/facts", { headers: authHeaders }),
         ]);
 
         const experimentsData: ExperimentsAPIResponse = await experimentsRes.json();
@@ -171,9 +176,11 @@ export default function ChemistryLabPage() {
     setFreeQuizChoice(null);
 
     try {
+      const { getAuthHeaders } = await import("@/lib/auth-client");
+      const authHeaders = await getAuthHeaders();
       const res = await fetch("/api/lab", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ chemicalA, chemicalB }),
       });
       const data: LabAPIResponse = await res.json();
@@ -281,6 +288,18 @@ export default function ChemistryLabPage() {
     setShowFreeQuiz(true);
     setFreeQuizChoice(null);
   }, []);
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <p className="text-sm text-slate-600">Checking your student session...</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <AuthWall title="Student Login Required" message="Log in to access the chemistry lab." />;
+  }
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff4e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf4e2_55%,#eef6ff)] px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">

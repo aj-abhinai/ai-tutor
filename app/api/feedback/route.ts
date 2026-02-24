@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
   const wantsStream = shouldStreamResponse(request);
 
   // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
-  const result = await parseCurriculumRequest(request, FeedbackBodySchema);
+  const result = await parseCurriculumRequest(request, FeedbackBodySchema, { requireAuth: true });
   if (!result.ok) return result.response;
   const { subtopic, subject, body } = result.data;
 

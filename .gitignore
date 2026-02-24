@@ -52,7 +52,9 @@ security_best_practices_report.md
 # agent skills
 .agent
 .agents
-.claude/skills/vercel-react-best-practices
+.claude/skills
+skills-lock.json
+
 
 #image
 image.png

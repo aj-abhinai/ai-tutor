@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Shared validation: rate limit, parse body, validate fields, Firestore lookup.
-  const result = await parseCurriculumRequest(request, ExpandBodySchema);
+    const result = await parseCurriculumRequest(request, ExpandBodySchema, { requireAuth: true });
   if (!result.ok) return result.response;
   const { subtopic, subject, body } = result.data;
   const { level } = body; // Zod already validated + defaulted to "standard"

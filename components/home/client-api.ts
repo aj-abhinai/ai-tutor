@@ -78,6 +78,8 @@ export async function requestDeepEssay(
   payload: DeepRequestPayload,
   onChunk?: (delta: string) => void,
 ): Promise<{ deepEssay?: string; error?: string }> {
+  const { getAuthHeaders } = await import("@/lib/auth-client");
+  const authHeaders = await getAuthHeaders();
   // Prefer streaming so the UI can render deep text progressively.
   const response = await fetch("/api/deep", {
     method: "POST",
@@ -85,6 +87,7 @@ export async function requestDeepEssay(
       "Content-Type": "application/json",
       "x-ai-stream": "1",
       Accept: "application/x-ndjson, application/json",
+      ...authHeaders,
     },
     body: JSON.stringify(payload),
   });
@@ -129,6 +132,8 @@ export async function requestFeedback(
   payload: FeedbackRequestPayload,
   onChunk?: (delta: string) => void,
 ): Promise<{ feedback?: ExplainFeedback; error?: string }> {
+  const { getAuthHeaders } = await import("@/lib/auth-client");
+  const authHeaders = await getAuthHeaders();
   // Prefer streaming so feedback can be previewed while generating.
   const response = await fetch("/api/feedback", {
     method: "POST",
@@ -136,6 +141,7 @@ export async function requestFeedback(
       "Content-Type": "application/json",
       "x-ai-stream": "1",
       Accept: "application/x-ndjson, application/json",
+      ...authHeaders,
     },
     body: JSON.stringify(payload),
   });

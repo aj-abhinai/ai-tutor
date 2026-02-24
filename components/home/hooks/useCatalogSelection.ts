@@ -103,7 +103,9 @@ export function useCatalogSelection({
       }
 
       try {
-        const res = await fetch("/api/physics/lab-chapters");
+        const { getAuthHeaders } = await import("@/lib/auth-client");
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch("/api/physics/lab-chapters", { headers: authHeaders });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Failed to load physics lab chapters");
 
