@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CurriculumCatalog, SubjectName } from "@/lib/learning-types";
+
+type UseCatalogSelectionArgs = {
+  initialCatalog: CurriculumCatalog | null;
+  initialSubject: SubjectName;
+  setError: (message: string) => void;
+};
+
+export function useCatalogSelection({
+  initialCatalog,
+  initialSubject,
+  setError,
+}: UseCatalogSelectionArgs) {
+  const [subject, setSubject] = useState<SubjectName>(initialSubject);
+  const [catalog, setCatalog] = useState<CurriculumCatalog | null>(initialCatalog);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [chapterTitle, setChapterTitle] = useState("");
+  const [topicId, setTopicId] = useState("");
+  const [subtopicId, setSubtopicId] = useState("");
+  const [physicsLabChapterIds, setPhysicsLabChapterIds] = useState<string[]>([]);
+
+  const chapterOptions = useMemo(
+    () =>
+      (catalog?.chapters ?? []).map((chapter) => ({
+        value: chapter.id,
+        label: chapter.title,
+      })),
+    [catalog],
+  );
+
+  const selectedChapter = chapterTitle
+    ? (catalog?.chapters.find((chapter) => chapter.id === chapterTitle) ?? null)
+    : null;
+
+  const topicOptions = useMemo(() => {
+    if (!selectedChapter) {
+      return [{ value: "", label: "N/A (coming soon)" }];
+    }
+    return selectedChapter.topics.map((topic) => ({
+      value: topic.id,
+      label: topic.title,
+    }));
+  }, [selectedChapter]);
+
+  const selectedTopic = selectedChapter
+    ? selectedChapter.topics.find((topic) => topic.id === topicId) ?? null
+    : null;
+
+  const selectedSubtopicRef = selectedTopic
+    ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
+    selectedTopic.subtopics[0] ??
+    null
+    : null;
+
+  // Skip client catalog fetch on first render when server provided initial data.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current && subject === initialSubject) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    async function loadCatalog() {
+      setCatalogLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`/api/catalog?subject=${encodeURIComponent(subject)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to load catalog");
+        if (!cancelled) {
+          setCatalog(data.catalog as CurriculumCatalog);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCatalog(null);
+          setError(err instanceof Error ? err.message : "Failed to load catalog");
+        }
+      } finally {
+        if (!cancelled) {
+          setCatalogLoading(false);
+        }
+      }
+    }
+
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSubject, setError, subject]);
+
+  // Fetch lab chapter metadata used by chapter-level lab deep-link.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPhysicsLabChapterIds() {
+      if (subject !== "Science") {
+        setPhysicsLabChapterIds([]);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/physics/lab-chapters");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to load physics lab chapters");
+
+        if (!cancelled) {
+          const chapterIds = Array.isArray(data?.chapterIds)
+            ? data.chapterIds.filter((id: unknown) => typeof id === "string")
+            : [];
+          setPhysicsLabChapterIds(chapterIds);
+        }
+      } catch {
+        if (!cancelled) {
+          setPhysicsLabChapterIds([]);
+        }
+      }
+    }
+
+    void loadPhysicsLabChapterIds();
+    return () => {
+      cancelled = true;
+    };
+  }, [subject]);
+
+  // Ensure a valid chapter is selected whenever catalog changes.
+  useEffect(() => {
+    const chapters = catalog?.chapters ?? [];
+    if (chapters.length === 0) {
+      setChapterTitle("");
+      return;
+    }
+    if (!chapterTitle || !chapters.some((chapter) => chapter.id === chapterTitle)) {
+      setChapterTitle(chapters[0].id);
+    }
+  }, [catalog, chapterTitle]);
+
+  // Keep topic/subtopic aligned with active chapter.
+  useEffect(() => {
+    if (!chapterTitle) {
+      setTopicId("");
+      setSubtopicId("");
+      return;
+    }
+    const chapter = catalog?.chapters.find((item) => item.id === chapterTitle);
+    if (!chapter) {
+      setTopicId("");
+      setSubtopicId("");
+      return;
+    }
+    const firstTopicId = chapter.topics[0]?.id ?? "";
+    const firstSubtopicId = chapter.topics[0]?.subtopics[0]?.id ?? "";
+    setTopicId(firstTopicId);
+    setSubtopicId(firstSubtopicId);
+  }, [chapterTitle, catalog]);
+
+  // Keep subtopic aligned with active topic.
+  useEffect(() => {
+    if (!selectedTopic) {
+      setSubtopicId("");
+      return;
+    }
+    const firstSubtopicId = selectedTopic.subtopics[0]?.id ?? "";
+    setSubtopicId(firstSubtopicId);
+  }, [selectedTopic, topicId]);
+
+  return {
+    subject,
+    setSubject,
+    catalogLoading,
+    chapterTitle,
+    setChapterTitle,
+    topicId,
+    setTopicId,
+    subtopicId,
+    setSubtopicId,
+    chapterOptions,
+    topicOptions,
+    selectedChapter,
+    selectedTopic,
+    selectedSubtopicRef,
+    physicsLabChapterIds,
+  };
+}

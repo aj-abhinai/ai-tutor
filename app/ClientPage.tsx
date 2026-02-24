@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -11,7 +11,6 @@ import { StatusCard } from "@/components/ui/StatusCard";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
 import { PageHeader } from "@/components/home/PageHeader";
-import { cleanTextForSpeech } from "@/components/home/lesson-utils";
 import {
   CardStep,
   ExplainFeedback,
@@ -19,6 +18,8 @@ import {
   TutorLessonResponse,
 } from "@/components/home/types";
 import { requestDeepEssay, requestFeedback } from "@/components/home/client-api";
+import { useCatalogSelection } from "@/components/home/hooks/useCatalogSelection";
+import { useTutorAudio } from "@/components/home/hooks/useTutorAudio";
 
 const LearnCard = dynamic(
   () => import("@/components/home/LearnCard").then((m) => m.LearnCard)
@@ -51,15 +52,8 @@ export default function ClientPage({
   initialCatalog: CurriculumCatalog | null;
   initialSubject: SubjectName;
 }) {
-  // App state for subject + lesson selection.
-  const [subject, setSubject] = useState<SubjectName>(initialSubject);
-  const [catalog, setCatalog] = useState<CurriculumCatalog | null>(initialCatalog);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [chapterTitle, setChapterTitle] = useState("");
-  const [topicId, setTopicId] = useState("");
-  const [subtopicId, setSubtopicId] = useState("");
-  const [selectedSubtopicData, setSelectedSubtopicData] = useState<SubtopicKnowledge | null>(null);
   // Lesson data + UI state for the active card.
+  const [selectedSubtopicData, setSelectedSubtopicData] = useState<SubtopicKnowledge | null>(null);
   const [data, setData] = useState<TutorLessonResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -78,7 +72,25 @@ export default function ClientPage({
   const [deepLoading, setDeepLoading] = useState(false);
   const [deepError, setDeepError] = useState("");
   const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
-  const [physicsLabChapterIds, setPhysicsLabChapterIds] = useState<string[]>([]);
+
+  // Manage catalog/selection effects in one place.
+  const {
+    subject,
+    setSubject,
+    catalogLoading,
+    chapterTitle,
+    setChapterTitle,
+    topicId,
+    setTopicId,
+    subtopicId,
+    setSubtopicId,
+    chapterOptions,
+    topicOptions,
+    selectedChapter,
+    selectedTopic,
+    selectedSubtopicRef,
+    physicsLabChapterIds,
+  } = useCatalogSelection({ initialCatalog, initialSubject, setError });
 
   // Lesson cache to prevent duplicate API calls.
   const lessonCache = useRef<Map<string, LessonPayload>>(new Map());
@@ -87,70 +99,17 @@ export default function ClientPage({
   const deepCache = useRef<Map<string, string>>(new Map());
   const deepGenerateLog = useRef<Map<string, number[]>>(new Map());
 
-  // Quiz state.
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [shortAnswer, setShortAnswer] = useState("");
-  const [showAnswer, setShowAnswer] = useState(false);
+  // Quiz state shared across questions.
   const [questionIndex, setQuestionIndex] = useState(0);
 
-  // Audio state (TTS).
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [ttsSupported, setTtsSupported] = useState(true);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-
-  // Derived DB catalog + dropdown options.
-  const chapterOptions = useMemo(
-    () =>
-      (catalog?.chapters ?? []).map((chapter) => ({
-        value: chapter.id,
-        label: chapter.title,
-      })),
-    [catalog]
-  );
-
-  // Resolve current selection chain.
-  const selectedChapter = chapterTitle
-    ? (catalog?.chapters.find((chapter) => chapter.id === chapterTitle) ?? null)
-    : null;
-
-  const topicOptions = useMemo(() => {
-    if (!selectedChapter) {
-      return [{ value: "", label: "N/A (coming soon)" }];
-    }
-    return selectedChapter.topics.map((topic) => ({
-      value: topic.id,
-      label: topic.title,
-    }));
-  }, [selectedChapter]);
-
-  const selectedTopic = selectedChapter
-    ? selectedChapter.topics.find((topic) => topic.id === topicId) ?? null
-    : null;
-
-  const selectedSubtopicRef = selectedTopic
-    ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
-    selectedTopic.subtopics[0] ??
-    null
-    : null;
+  // Isolate TTS concerns from lesson/quiz state logic.
+  const { isPlaying, ttsSupported, stopAudio, handlePlayAudio } = useTutorAudio({
+    data,
+    explainLevel,
+    deepEssay,
+  });
 
   const selectedSubtopic = selectedSubtopicData;
-
-  // Load TTS voices and cleanup audio on unmount
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setTtsSupported(false);
-      return;
-    }
-
-    const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
-    loadVoices();
-    window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
-
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
-      window.speechSynthesis.cancel();
-    };
-  }, []);
 
   // Clear deep cooldown when time elapses.
   useEffect(() => {
@@ -166,134 +125,6 @@ export default function ClientPage({
     return () => window.clearTimeout(timer);
   }, [deepCooldownUntil]);
 
-  // Load subject catalog from backend whenever subject changes (skip initial render if it matches initialSubject).
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current && subject === initialSubject) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadCatalog() {
-      setCatalogLoading(true);
-      setError("");
-      try {
-        const res = await fetch(`/api/catalog?subject=${encodeURIComponent(subject)}`);
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.error || "Failed to load catalog");
-        }
-        if (!cancelled) {
-          setCatalog(data.catalog as CurriculumCatalog);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setCatalog(null);
-          setError(err instanceof Error ? err.message : "Failed to load catalog");
-        }
-      } finally {
-        if (!cancelled) {
-          setCatalogLoading(false);
-        }
-      }
-    }
-
-    void loadCatalog();
-    return () => {
-      cancelled = true;
-    };
-  }, [subject]);
-
-  // Load physics chapter availability from backend for lab-link rendering.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPhysicsLabChapterIds() {
-      if (subject !== "Science") {
-        setPhysicsLabChapterIds([]);
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/physics/lab-chapters");
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load physics lab chapters");
-
-        if (!cancelled) {
-          const chapterIds = Array.isArray(data?.chapterIds)
-            ? data.chapterIds.filter((id: unknown) => typeof id === "string")
-            : [];
-          setPhysicsLabChapterIds(chapterIds);
-        }
-      } catch {
-        if (!cancelled) {
-          setPhysicsLabChapterIds([]);
-        }
-      }
-    }
-
-    void loadPhysicsLabChapterIds();
-    return () => {
-      cancelled = true;
-    };
-  }, [subject]);
-
-  // Pick first available chapter after catalog load.
-  useEffect(() => {
-    const chapters = catalog?.chapters ?? [];
-    if (chapters.length === 0) {
-      setChapterTitle("");
-      return;
-    }
-    if (!chapterTitle || !chapters.some((chapter) => chapter.id === chapterTitle)) {
-      setChapterTitle(chapters[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalog]);
-
-  // When chapter changes, set default topic and subtopic
-  useEffect(() => {
-    if (!chapterTitle) {
-      setTopicId("");
-      setSubtopicId("");
-      return;
-    }
-    const chapter = catalog?.chapters.find((item) => item.id === chapterTitle);
-    if (!chapter) {
-      setTopicId("");
-      setSubtopicId("");
-      return;
-    }
-    // Only set defaults when chapter changes - don't reset user's selection
-    const firstTopicId = chapter.topics[0]?.id ?? "";
-    const firstSubtopicId = chapter.topics[0]?.subtopics[0]?.id ?? "";
-    setTopicId(firstTopicId);
-    setSubtopicId(firstSubtopicId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterTitle, catalog]);
-
-  // When topic changes, set default subtopic
-  useEffect(() => {
-    if (!selectedTopic) {
-      setSubtopicId("");
-      return;
-    }
-    // Set first subtopic when topic changes
-    const firstSubtopicId = selectedTopic.subtopics[0]?.id ?? "";
-    setSubtopicId(firstSubtopicId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topicId, selectedTopic]);
-
-  // Stop audio playback and reset UI state.
-  const stopAudio = () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsPlaying(false);
-  };
-
   // Reset all lesson-related UI state between selections.
   const resetLessonState = (options?: { preserveActiveCard?: boolean; preserveExplainLevel?: boolean }) => {
     const preserveActiveCard = options?.preserveActiveCard ?? false;
@@ -302,9 +133,6 @@ export default function ClientPage({
     if (!preserveActiveCard) {
       setActiveCard(null);
     }
-    setSelectedAnswer(null);
-    setShortAnswer("");
-    setShowAnswer(false);
     setQuestionIndex(0);
     setError("");
     setSelfCheck(null);
@@ -328,14 +156,11 @@ export default function ClientPage({
   };
 
   // Reset quiz-only UI state when moving between questions.
-  const resetQuizState = () => {
-    setSelectedAnswer(null);
-    setShortAnswer("");
-    setShowAnswer(false);
+  const resetQuizState = useCallback(() => {
     setQuizFeedback(null);
     setQuizFeedbackPreview("");
     setCheckingQuiz(false);
-  };
+  }, []);
 
   // Selection handlers cascade resets to keep state consistent.
   const handleSubjectChange = (newSubject: SubjectName) => {
@@ -400,9 +225,6 @@ export default function ClientPage({
     isFetching.current = true;
     setLoading(true);
     setError("");
-    setSelectedAnswer(null);
-    setShortAnswer("");
-    setShowAnswer(false);
 
     try {
       const res = await fetch("/api/explain", {
@@ -470,100 +292,6 @@ export default function ClientPage({
     if (!data) {
       await fetchLesson();
     }
-  };
-
-  // Build and play a TTS narration from the current lesson data.
-  const handlePlayAudio = () => {
-    if (!data || !ttsSupported) return;
-
-    if (isPlaying) {
-      stopAudio();
-      return;
-    }
-
-    const deepNarrationSource =
-      explainLevel === "deep"
-        ? deepEssay || (data.bulletPoints?.deep ?? []).join(" ")
-        : "";
-    const bulletNarrationSource =
-      explainLevel === "deep"
-        ? deepNarrationSource
-        : (data.bulletPoints?.[explainLevel] ?? []).join(" ");
-    const bulletNarration = bulletNarrationSource
-      .split(/\n+/)
-      .map((point, index) => {
-        const cleaned = cleanTextForSpeech(point);
-        return cleaned ? `Point ${index + 1}. ${cleaned}` : "";
-      })
-      .filter(Boolean)
-      .join(" ");
-    const textToRead = `Quick Explanation. ${cleanTextForSpeech(
-      data.quickExplanation
-    )}. Key points. ${bulletNarration}`;
-
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.rate = 0.9;
-    utterance.onend = () => setIsPlaying(false);
-    utterance.onerror = () => setIsPlaying(false);
-
-    const availableVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-    const preferredVoice =
-      availableVoices.find((v) => v.lang.toLowerCase().includes("en-in")) ||
-      availableVoices.find((v) => v.lang.toLowerCase().includes("en-us"));
-    if (preferredVoice) utterance.voice = preferredVoice;
-
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true);
-  };
-
-  // Check quiz answers (local for MCQ, API for short answers).
-  const handleCheckAnswer = async () => {
-    if (!currentQuestion) return;
-    if (isShortAnswer) {
-      if (!selectedChapter || !selectedSubtopicRef || checkingQuiz) return;
-      if (!shortAnswer.trim()) return;
-      setCheckingQuiz(true);
-      setQuizFeedback(null);
-      setQuizFeedbackPreview("");
-      setError("");
-      try {
-        let streamedPreview = "";
-        const { feedback, error: feedbackError } = await requestFeedback(
-          {
-            subject,
-            chapterId: selectedChapter.id,
-            topicId: selectedTopic?.id,
-            subtopicId: selectedSubtopicRef.id,
-            studentAnswer: shortAnswer.trim(),
-            lessonContext: buildLessonContext(),
-            mode: "quiz",
-            question: currentQuestion.question,
-            expectedAnswer: currentQuestion.answer.correct,
-            answerExplanation: currentQuestion.answer.explanation,
-          },
-          (delta) => {
-            streamedPreview += delta;
-            setQuizFeedbackPreview(streamedPreview);
-          },
-        );
-
-        if (feedbackError) {
-          setError(feedbackError);
-        } else if (feedback) {
-          setQuizFeedback(feedback);
-          setQuizFeedbackPreview("");
-        } else {
-          setError("No feedback returned. Please try again.");
-        }
-      } catch {
-        setError("Failed to connect to API");
-      } finally {
-        setCheckingQuiz(false);
-        setShowAnswer(true);
-      }
-      return;
-    }
-    setShowAnswer(true);
   };
 
   // Update explain level (simple / standard / deep).
@@ -642,11 +370,62 @@ export default function ClientPage({
   };
 
   // Build a short lesson context for feedback prompts.
-  const buildLessonContext = () => {
+  const buildLessonContext = useCallback(() => {
     if (!data) return "";
     const points = data.bulletPoints?.standard?.slice(0, 4) ?? [];
     return `Quick Explanation: ${data.quickExplanation}\nKey Points: ${points.join(" | ")}`;
-  };
+  }, [data]);
+
+  // Submit a short-answer quiz response and stream AI feedback preview.
+  const handleCheckShortAnswer = useCallback(
+    async (payload: { answer: string; question: string; expectedAnswer: string; answerExplanation?: string }) => {
+      if (!selectedChapter || !selectedSubtopicRef || checkingQuiz) return;
+
+      setCheckingQuiz(true);
+      setQuizFeedback(null);
+      setQuizFeedbackPreview("");
+      setError("");
+
+      try {
+        let streamedPreview = "";
+        const { feedback, error: feedbackError } = await requestFeedback(
+          {
+            subject,
+            chapterId: selectedChapter.id,
+            topicId: selectedTopic?.id,
+            subtopicId: selectedSubtopicRef.id,
+            studentAnswer: payload.answer,
+            lessonContext: buildLessonContext(),
+            mode: "quiz",
+            question: payload.question,
+            expectedAnswer: payload.expectedAnswer,
+            answerExplanation: payload.answerExplanation,
+          },
+          (delta) => {
+            // Update quiz preview as chunks arrive from the stream.
+            streamedPreview += delta;
+            setQuizFeedbackPreview(streamedPreview);
+          },
+        );
+
+        if (feedbackError) {
+          setError(feedbackError);
+          return;
+        }
+        if (feedback) {
+          setQuizFeedback(feedback);
+          setQuizFeedbackPreview("");
+          return;
+        }
+        setError("No feedback returned. Please try again.");
+      } catch {
+        setError("Failed to connect to API");
+      } finally {
+        setCheckingQuiz(false);
+      }
+    },
+    [buildLessonContext, checkingQuiz, selectedChapter, selectedSubtopicRef, selectedTopic?.id, subject],
+  );
 
   // Submit the "explain back" response for AI feedback.
   const handleExplainBackCheck = async () => {
@@ -697,19 +476,6 @@ export default function ClientPage({
   const isShortAnswer = Boolean(
     currentQuestion && (!hasOptions || currentQuestion.type !== "mcq")
   );
-  const canCheckAnswer = isShortAnswer ? shortAnswer.trim().length > 0 : Boolean(selectedAnswer);
-  const isShortCorrect = Boolean(
-    currentQuestion &&
-    !isReasoning &&
-    shortAnswer.trim().length > 0 &&
-    currentQuestion.answer.correct &&
-    shortAnswer.trim().toLowerCase() === currentQuestion.answer.correct.trim().toLowerCase()
-  );
-  const isMcqCorrect = Boolean(
-    currentQuestion && selectedAnswer && selectedAnswer === currentQuestion.answer.correct
-  );
-  const aiCorrect = isShortAnswer ? quizFeedback?.isCorrect : undefined;
-  const isAnswerCorrect = isShortAnswer ? (aiCorrect ?? isShortCorrect) : isMcqCorrect;
   const questionsLength = questions.length;
   const cardDisabled = !selectedSubtopicRef || loading || catalogLoading;
   const isTopicDisabled = !selectedChapter;
@@ -855,18 +621,11 @@ export default function ClientPage({
               questionsLength={questionsLength}
               isShortAnswer={isShortAnswer}
               isReasoning={isReasoning}
-              shortAnswer={shortAnswer}
-              onShortAnswerChange={(value) => setShortAnswer(value)}
-              selectedAnswer={selectedAnswer}
-              onSelectAnswer={(value) => setSelectedAnswer(value)}
-              showAnswer={showAnswer}
-              canCheckAnswer={canCheckAnswer}
-              isAnswerCorrect={isAnswerCorrect}
               checkingQuiz={checkingQuiz}
               quizFeedbackPreview={quizFeedbackPreview}
               quizFeedback={quizFeedback}
-              onCheckAnswer={handleCheckAnswer}
-              onResetQuiz={resetQuizState}
+              onCheckShortAnswer={handleCheckShortAnswer}
+              onClearQuizFeedback={resetQuizState}
               onPrevQuestion={handlePrevQuestion}
               onNextQuestion={handleNextQuestion}
               onRestartQuestions={handleRestartQuestions}

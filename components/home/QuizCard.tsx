@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -14,18 +15,16 @@ interface QuizCardProps {
   questionsLength: number;
   isShortAnswer: boolean;
   isReasoning: boolean;
-  shortAnswer: string;
-  onShortAnswerChange: (value: string) => void;
-  selectedAnswer: string | null;
-  onSelectAnswer: (value: string) => void;
-  showAnswer: boolean;
-  canCheckAnswer: boolean;
-  isAnswerCorrect: boolean;
   checkingQuiz: boolean;
   quizFeedbackPreview?: string;
   quizFeedback: ExplainFeedback | null;
-  onCheckAnswer: () => void;
-  onResetQuiz: () => void;
+  onCheckShortAnswer: (payload: {
+    answer: string;
+    question: string;
+    expectedAnswer: string;
+    answerExplanation?: string;
+  }) => Promise<void>;
+  onClearQuizFeedback: () => void;
   onPrevQuestion: () => void;
   onNextQuestion: () => void;
   onRestartQuestions: () => void;
@@ -38,23 +37,71 @@ export function QuizCard({
   questionsLength,
   isShortAnswer,
   isReasoning,
-  shortAnswer,
-  onShortAnswerChange,
-  selectedAnswer,
-  onSelectAnswer,
-  showAnswer,
-  canCheckAnswer,
-  isAnswerCorrect,
   checkingQuiz,
   quizFeedbackPreview = "",
   quizFeedback,
-  onCheckAnswer,
-  onResetQuiz,
+  onCheckShortAnswer,
+  onClearQuizFeedback,
   onPrevQuestion,
   onNextQuestion,
   onRestartQuestions,
   onChooseNewLesson,
 }: QuizCardProps) {
+  // Keep typing/selection local so parent does not re-render on every keypress.
+  const [shortAnswer, setShortAnswer] = useState("");
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+
+  // Reset local quiz input state whenever the question changes.
+  useEffect(() => {
+    setShortAnswer("");
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    onClearQuizFeedback();
+  }, [currentQuestion?.question, onClearQuizFeedback, questionIndex]);
+
+  const canCheckAnswer = useMemo(
+    () => (isShortAnswer ? shortAnswer.trim().length > 0 : Boolean(selectedAnswer)),
+    [isShortAnswer, selectedAnswer, shortAnswer],
+  );
+
+  const isAnswerCorrect = useMemo(() => {
+    if (!currentQuestion) return false;
+    if (isShortAnswer) {
+      const aiCorrect = quizFeedback?.isCorrect;
+      if (typeof aiCorrect === "boolean") return aiCorrect;
+      if (isReasoning) return false;
+      return shortAnswer.trim().toLowerCase() === currentQuestion.answer.correct.trim().toLowerCase();
+    }
+    return selectedAnswer === currentQuestion.answer.correct;
+  }, [currentQuestion, isReasoning, isShortAnswer, quizFeedback?.isCorrect, selectedAnswer, shortAnswer]);
+
+  const handleCheckAnswer = async () => {
+    if (!currentQuestion || !canCheckAnswer) return;
+    if (!isShortAnswer) {
+      setShowAnswer(true);
+      return;
+    }
+
+    await onCheckShortAnswer({
+      answer: shortAnswer.trim(),
+      question: currentQuestion.question,
+      expectedAnswer: currentQuestion.answer.correct,
+      answerExplanation: currentQuestion.answer.explanation,
+    });
+    setShowAnswer(true);
+  };
+
+  const handleTryAgain = () => {
+    setShowAnswer(false);
+    if (isShortAnswer) {
+      setShortAnswer("");
+    } else {
+      setSelectedAnswer(null);
+    }
+    onClearQuizFeedback();
+  };
+
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
       <h2 className="text-2xl font-semibold text-slate-900 mb-6">Check Understanding</h2>
@@ -136,7 +183,7 @@ export function QuizCard({
           </label>
           <Input
             value={shortAnswer}
-            onChange={(e) => onShortAnswerChange(e.target.value)}
+            onChange={(e) => setShortAnswer(e.target.value)}
             disabled={showAnswer}
             placeholder={isReasoning ? "Explain in 1-2 sentences" : "Type your answer here"}
           />
@@ -151,7 +198,7 @@ export function QuizCard({
               isSelected={selectedAnswer === option.label}
               isCorrect={option.label === currentQuestion.answer.correct}
               showResult={showAnswer}
-              onClick={() => !showAnswer && onSelectAnswer(option.label)}
+              onClick={() => !showAnswer && setSelectedAnswer(option.label)}
               disabled={showAnswer}
             />
           ))}
@@ -165,7 +212,7 @@ export function QuizCard({
             variant="primary"
             size="lg"
             fullWidth
-            onClick={onCheckAnswer}
+            onClick={() => void handleCheckAnswer()}
             disabled={!canCheckAnswer || checkingQuiz}
           >
             {checkingQuiz ? "Checking..." : "Check Answer"}
@@ -180,8 +227,8 @@ export function QuizCard({
         <div className="animate-in fade-in zoom-in duration-300">
           <div
             className={`p-6 rounded-2xl mb-6 ${isAnswerCorrect
-                ? "bg-emerald-50/70 border border-emerald-200"
-                : "bg-amber-50/70 border border-amber-200"
+              ? "bg-emerald-50/70 border border-emerald-200"
+              : "bg-amber-50/70 border border-amber-200"
               }`}
           >
             <h3
@@ -212,7 +259,7 @@ export function QuizCard({
                   {quizFeedback.rating}
                 </div>
                 <div className="mt-2">
-                  <strong>What’s right:</strong> {quizFeedback.praise}
+                  <strong>What's right:</strong> {quizFeedback.praise}
                 </div>
                 <div className="mt-2">
                   <strong>Improve:</strong> {quizFeedback.fix}
@@ -230,7 +277,7 @@ export function QuizCard({
 
           {/* Post-answer navigation actions */}
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button variant="secondary" size="md" className="flex-1" onClick={onResetQuiz}>
+            <Button variant="secondary" size="md" className="flex-1" onClick={handleTryAgain}>
               Try Again
             </Button>
             {questionIndex < questionsLength - 1 ? (

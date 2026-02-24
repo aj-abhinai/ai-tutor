@@ -30,6 +30,16 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), "Segoe UI", system-ui, sans-serif;
   line-height: 1.6;
+  /* Avoid blinking caret on non-editable page clicks. */
+  caret-color: transparent;
+}
+
+/* Keep normal caret behavior only for editable controls. */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  caret-color: auto;
 }
 
 h1,
