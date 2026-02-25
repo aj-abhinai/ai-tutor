@@ -1,6 +1,6 @@
 import React from "react";
 
-const variants = {
+export const buttonVariants = {
     primary:
         "bg-primary text-text-on-primary hover:bg-primary-hover disabled:opacity-50 shadow-[0_12px_26px_rgba(247,97,21,0.35)]",
     secondary:
@@ -18,7 +18,7 @@ const variants = {
         "bg-error text-white hover:bg-primary-hover disabled:opacity-50",
 } as const;
 
-const sizes = {
+export const buttonSizes = {
     xs: "px-2.5 py-1 text-xs",
     sm: "px-3 py-1.5 text-xs",
     md: "px-4 py-2 text-sm",
@@ -26,8 +26,8 @@ const sizes = {
 } as const;
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: keyof typeof variants;
-    size?: keyof typeof sizes;
+    variant?: keyof typeof buttonVariants;
+    size?: keyof typeof buttonSizes;
     fullWidth?: boolean;
 }
 
@@ -44,7 +44,7 @@ export function Button({
     const w = fullWidth ? "w-full" : "";
     return (
         <button
-            className={`${base} rounded-xl font-semibold ${variants[variant]} ${sizes[size]} ${w} ${className}`}
+            className={`${base} rounded-xl font-semibold ${buttonVariants[variant]} ${buttonSizes[size]} ${w} ${className}`}
             {...rest}
         >
             {children}

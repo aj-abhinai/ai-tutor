@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 
 import type { CurriculumCatalog, SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/LinkButton";
 import { StatusCard } from "@/components/ui/StatusCard";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
@@ -545,58 +546,58 @@ export default function ClientPage({
 
         {/* Lab links */}
         <div className="flex justify-center gap-3 mb-4">
-          <Link
+          <LinkButton
             href={user ? "/chemistry-lab" : "#"}
             onClick={(event) => {
               if (user) return;
               event.preventDefault();
               requireLoginFor("Chemistry Lab");
             }}
-            className="chemistry-nav-btn"
+            variant="secondary"
+            size="md"
+            className="rounded-full"
           >
             Chemistry Lab
-          </Link>
+          </LinkButton>
           {hasPhysicsLabForChapter && (
-            <Link
+            <LinkButton
               href={user ? (selectedChapter ? `/physics-lab?chapter=${selectedChapter.id}` : "/physics-lab") : "#"}
               onClick={(event) => {
                 if (user) return;
                 event.preventDefault();
                 requireLoginFor("Physics Lab");
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-accent-light text-accent-hover border border-accent/30 hover:bg-accent-light hover:border-accent transition-all shadow-sm"
+              variant="outline"
+              size="md"
+              className="border-accent/30 bg-accent-light text-accent-hover hover:border-accent hover:bg-accent-light"
             >
               Try in Lab
-            </Link>
+            </LinkButton>
           )}
         </div>
         {showLoginNudge && !user && (
-          <div className="mb-4 rounded-xl border border-warning/20 bg-warning-light px-4 py-3 text-sm text-text">
+          <Alert variant="warning" className="mb-4 text-text">
             <p>
               Log in to use <strong>{loginNudgeAction}</strong>.
             </p>
             <div className="mt-2 flex items-center gap-2">
-              <Link
-                href="/login"
-                className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-text-on-primary hover:bg-primary-hover"
-              >
+              <LinkButton href="/login" size="sm" className="rounded-full">
                 Log in
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-full border border-secondary/30 bg-surface px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary-light"
-              >
+              </LinkButton>
+              <LinkButton href="/signup" variant="outline" size="sm" className="rounded-full border-secondary/30 text-secondary hover:bg-secondary-light">
                 Sign up
-              </Link>
-              <button
+              </LinkButton>
+              <Button
                 type="button"
                 onClick={() => setShowLoginNudge(false)}
-                className="rounded-full border border-transparent px-3 py-1 text-xs font-semibold text-text-muted hover:text-text"
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
               >
                 Dismiss
-              </button>
+              </Button>
             </div>
-          </div>
+          </Alert>
         )}
 
         <InputPanel

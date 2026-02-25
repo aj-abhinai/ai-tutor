@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -12,8 +11,12 @@ import {
 import { getFirebaseAuth } from "@/lib/firebase-client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { LinkButton } from "@/components/ui/LinkButton";
+import { TextLink } from "@/components/ui/TextLink";
 
 type FormState = {
   name: string;
@@ -113,12 +116,12 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-background">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-surface/90 p-7 shadow-lg backdrop-blur">
+    <main className="auth-shell min-h-screen flex items-center justify-center px-6 py-10 bg-background">
+      <Card className="w-full max-w-md rounded-3xl p-7 backdrop-blur">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+          <Badge variant="indigo" className="auth-eyebrow uppercase">
             Student Signup
-          </p>
+          </Badge>
           <h1 className="mt-3 text-3xl font-semibold text-text">Create your account</h1>
           <p className="mt-2 text-sm text-text-muted">
             Start saving notes, streaks, and practice history.
@@ -188,11 +191,16 @@ export default function SignupPage() {
 
         <p className="mt-5 text-center text-sm text-text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-secondary hover:text-secondary-hover">
+          <TextLink href="/login">
             Log in
-          </Link>
+          </TextLink>
         </p>
-      </div>
+        <div className="mt-3">
+          <LinkButton href="/" variant="ghost" size="sm" className="w-full">
+            Back to AI Tutor
+          </LinkButton>
+        </div>
+      </Card>
     </main>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { LinkButton } from "@/components/ui/LinkButton";
 
 type ProfileResponse = {
   profile?: {
@@ -94,28 +96,25 @@ export default function ProfilePage() {
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-background">
-        <div className="rounded-2xl border border-border bg-surface/90 px-5 py-4 text-sm text-text-muted shadow">
+      <main className="auth-shell min-h-screen flex items-center justify-center px-6 py-10 bg-background">
+        <Card className="px-5 py-4 text-sm text-text-muted">
           Loading profile...
-        </div>
+        </Card>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-background">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-surface/90 p-7 shadow-lg backdrop-blur">
+    <main className="auth-shell min-h-screen flex items-center justify-center px-6 py-10 bg-background">
+      <Card className="w-full max-w-md rounded-3xl p-7 backdrop-blur">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Student Profile</p>
+            <Badge variant="indigo" className="auth-eyebrow uppercase">Student Profile</Badge>
             <h1 className="mt-3 text-3xl font-semibold text-text">Profile</h1>
           </div>
-          <Link
-            href="/"
-            className="rounded-full border border-border bg-surface/80 px-3 py-1 text-xs font-semibold text-text hover:bg-surface"
-          >
+          <LinkButton href="/" variant="outline" size="sm" className="rounded-full">
             Back
-          </Link>
+          </LinkButton>
         </div>
 
         <form className="mt-6 space-y-4" onSubmit={handleSave}>
@@ -152,7 +151,7 @@ export default function ProfilePage() {
             {saving ? "Saving..." : "Save name"}
           </Button>
         </form>
-      </div>
+      </Card>
     </main>
   );
 }

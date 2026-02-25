@@ -1,12 +1,14 @@
 "use client";
 
 import "./chem-effects.css";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AuthWall } from "@/components/auth/AuthWall";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { LinkButton } from "@/components/ui/LinkButton";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { ExperimentPicker } from "@/components/lab/ExperimentPicker";
 import { ExperimentGuide } from "@/components/lab/ExperimentGuide";
@@ -302,7 +304,7 @@ export default function ChemistryLabPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,var(--primary-light),transparent_60%),linear-gradient(180deg,var(--background),var(--surface-alt)_55%,var(--accent-light))] px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
+    <main className="lab-bg-chemistry min-h-screen relative overflow-hidden px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-primary-light/70 blur-3xl" />
         <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-secondary-light/65 blur-3xl" />
@@ -311,16 +313,19 @@ export default function ChemistryLabPage() {
 
       <div className="relative w-full max-w-6xl">
         <div className="mb-4 flex items-center justify-between">
-          <Link href="/" className="chemistry-nav-btn">
+          <LinkButton href="/" variant="secondary" size="md" className="rounded-full">
             Back to AI Tutor
-          </Link>
-          <button
+          </LinkButton>
+          <Button
+            type="button"
             onClick={() => setShowNotebook((p) => !p)}
-            className="chemistry-nav-btn"
+            variant="secondary"
+            size="md"
+            className="rounded-full"
             aria-label="Toggle lab notebook"
           >
             {sessionLog.length > 0 ? `Notebook (${sessionLog.length})` : "Notebook"}
-          </button>
+          </Button>
         </div>
 
         <MobileDisclaimer />
@@ -341,26 +346,20 @@ export default function ChemistryLabPage() {
         )}
 
         <div className="mb-3 flex justify-center">
-          <div className="flex rounded-full border border-border bg-surface/80 p-0.5 shadow-sm backdrop-blur-sm">
-            <button
-              onClick={handleSwitchToFree}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "free"
-                ? "bg-secondary text-text-on-secondary shadow-sm"
-                : "text-text-muted hover:text-text"
-                }`}
-            >
-              Free Mix
-            </button>
-            <button
-              onClick={handleSwitchToGuided}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "guided"
-                ? "bg-secondary text-text-on-secondary shadow-sm"
-                : "text-text-muted hover:text-text"
-                }`}
-            >
-              Guided
-            </button>
-          </div>
+          <SegmentedControl
+            value={mode}
+            options={[
+              { value: "free", label: "Free Mix" },
+              { value: "guided", label: "Guided" },
+            ]}
+            onChange={(nextMode) => {
+              if (nextMode === "free") {
+                handleSwitchToFree();
+                return;
+              }
+              handleSwitchToGuided();
+            }}
+          />
         </div>
 
         {mode === "guided" && !activeExperiment && (
@@ -380,8 +379,8 @@ export default function ChemistryLabPage() {
         )}
 
         {isGuidedActive && activeExperiment && (
-          <div className="mt-2 grid gap-3 lg:items-stretch lg:grid-cols-[minmax(290px,330px)_minmax(0,1fr)]">
-            <div className="lg:sticky lg:top-3">
+          <div className="mt-2 grid gap-3 lg:grid-cols-3 lg:items-stretch">
+            <div className="lg:sticky lg:top-3 lg:col-span-1">
               <ExperimentGuide
                 experiment={activeExperiment}
                 currentStep={guidedStep}
@@ -391,7 +390,7 @@ export default function ChemistryLabPage() {
                 onQuit={handleQuitExperiment}
               />
             </div>
-            <div className="h-full">
+            <div className="h-full lg:col-span-2">
               <LabBench
                 chemicals={chemicals}
                 chemicalFacts={chemicalFacts}

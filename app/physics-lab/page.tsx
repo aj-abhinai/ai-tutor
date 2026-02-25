@@ -1,12 +1,15 @@
 "use client";
 
 import "./circuit-effects.css";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthWall } from "@/components/auth/AuthWall";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/LinkButton";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { TextLink } from "@/components/ui/TextLink";
 import type { ChapterLab, CircuitExperiment } from "@/lib/physics-lab-types";
 
 type LabMode = "free" | "guided";
@@ -16,7 +19,7 @@ const CircuitCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="mx-auto max-w-[960px] rounded-2xl border border-border bg-surface/70 px-4 py-8 text-center text-text-muted">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-border bg-surface/70 px-4 py-8 text-center text-text-muted">
         Loading circuit board...
       </div>
     ),
@@ -110,63 +113,46 @@ function PhysicsLabInner() {
       <main className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
         <h1 className="mb-4 text-2xl font-bold text-text">No Lab Available</h1>
         <p className="mb-6 text-text-muted">{labError || "This chapter does not have lab experiments yet."}</p>
-        <Link
-          href="/"
-          className="rounded-lg bg-primary px-5 py-2 font-semibold text-text-on-primary transition-colors hover:bg-primary-hover"
-        >
+        <LinkButton href="/" variant="primary" size="md">
           Back to Lessons
-        </Link>
+        </LinkButton>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,var(--surface-alt),var(--background))] px-4 py-6">
-      <div className="mx-auto mb-4 max-w-[960px]">
-        <Link href="/" className="text-sm font-medium text-secondary transition-colors hover:text-secondary-hover">
+    <main className="lab-bg-physics min-h-screen px-4 py-6">
+      <div className="mx-auto mb-4 max-w-5xl">
+        <TextLink href="/" className="text-sm font-medium">
           Back to Lessons
-        </Link>
+        </TextLink>
         <h1 className="mt-2 text-2xl font-extrabold text-text">Physics Lab</h1>
         <p className="text-sm text-text-muted">{chapterLab.chapterTitle}</p>
       </div>
 
-      <div className="mx-auto mb-4 flex max-w-[960px] gap-2">
-        <button
-          onClick={() => setMode("guided")}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-            mode === "guided"
-              ? "bg-secondary text-text-on-secondary shadow-md"
-              : "border border-border bg-surface/80 text-text-muted hover:bg-surface"
-          }`}
-        >
-          Guided
-        </button>
-        <button
-          onClick={() => setMode("free")}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-            mode === "free"
-              ? "bg-secondary text-text-on-secondary shadow-md"
-              : "border border-border bg-surface/80 text-text-muted hover:bg-surface"
-          }`}
-        >
-          Free Build
-        </button>
+      <div className="mx-auto mb-4 flex max-w-5xl gap-2">
+        <SegmentedControl
+          value={mode}
+          options={[
+            { value: "guided", label: "Guided" },
+            { value: "free", label: "Free Build" },
+          ]}
+          onChange={(nextMode) => setMode(nextMode)}
+        />
       </div>
 
       {mode === "guided" && experiments.length > 1 && (
-        <div className="mx-auto mb-4 flex max-w-[960px] flex-wrap gap-2">
+        <div className="mx-auto mb-4 flex max-w-5xl flex-wrap gap-2">
           {experiments.map((exp) => (
-            <button
+            <Button
               key={exp.id}
               onClick={() => setActiveExperiment(exp)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                currentExperiment?.id === exp.id
-                  ? "bg-accent text-text shadow-md"
-                  : "border border-border bg-surface/80 text-text-muted hover:bg-surface"
-              }`}
+              variant={currentExperiment?.id === exp.id ? "accent" : "outline"}
+              size="sm"
+              className={currentExperiment?.id === exp.id ? "" : "text-text-muted"}
             >
               {exp.title}
-            </button>
+            </Button>
           ))}
         </div>
       )}
