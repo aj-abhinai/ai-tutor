@@ -1,15 +1,15 @@
-import { Card, type CardProps } from "./Card";
+import React from "react";
 
-interface StatusCardProps extends Omit<CardProps, "children"> {
+interface StatusCardProps {
     message: string;
-    tone?: "muted" | "error";
+    tone?: "info" | "muted" | "error";
 }
 
-export function StatusCard({ message, tone = "muted", className = "", ...props }: StatusCardProps) {
-    const toneClass = tone === "error" ? "text-rose-700" : "text-slate-600";
+export function StatusCard({ message, tone = "info" }: StatusCardProps) {
+    const toneClass = tone === "error" ? "text-error" : "text-text-muted";
     return (
-        <Card className={`text-center ${toneClass} ${className}`.trim()} {...props}>
+        <div className={`rounded-xl border border-border bg-surface/70 px-5 py-4 text-sm ${toneClass}`}>
             {message}
-        </Card>
+        </div>
     );
 }

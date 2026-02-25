@@ -12,23 +12,23 @@ interface ListenCardProps {
 export function ListenCard({ isPlaying, ttsSupported, onPlayAudio }: ListenCardProps) {
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300 text-center">
-      <h2 className="text-2xl font-semibold text-slate-900 mb-6">Listen and Learn</h2>
+      <h2 className="text-2xl font-semibold text-text mb-6">Listen and Learn</h2>
 
-      <div className="bg-white/80 rounded-2xl p-8 mb-6 flex flex-col items-center justify-center border border-slate-200">
+      <div className="bg-surface/80 rounded-2xl p-8 mb-6 flex flex-col items-center justify-center border border-border">
         <Button
           onClick={onPlayAudio}
           disabled={!ttsSupported}
           variant="primary"
           size="lg"
-          className={`w-24 h-24 !rounded-full !px-0 !py-0 text-2xl shadow-[0_16px_30px_rgba(15,23,42,0.15)] transition-all transform ${isPlaying
-              ? "!bg-rose-500 !text-white animate-pulse scale-105"
-              : "!bg-emerald-600 !text-white hover:scale-110"
+          className={`w-24 h-24 !rounded-full !px-0 !py-0 text-2xl shadow-[0_16px_30px_rgba(10,24,54,0.15)] transition-all transform ${isPlaying
+            ? "!bg-error !text-white animate-pulse scale-105"
+            : "!bg-secondary !text-white hover:scale-110"
             }`}
           aria-disabled={!ttsSupported}
         >
           {isPlaying ? "Pause" : "Play"}
         </Button>
-        <p className="mt-4 text-slate-600 font-medium">
+        <p className="mt-4 text-text-muted font-medium">
           {ttsSupported
             ? isPlaying
               ? "Reading aloud..."
@@ -37,7 +37,7 @@ export function ListenCard({ isPlaying, ttsSupported, onPlayAudio }: ListenCardP
         </p>
       </div>
 
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-text-muted">
         Tip: You can go back to the Learn card to read the text version.
       </div>
     </Card>

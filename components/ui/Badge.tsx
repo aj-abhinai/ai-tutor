@@ -1,31 +1,26 @@
-import { HTMLAttributes, forwardRef } from "react";
+import React from "react";
 
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-    variant?: "amber" | "teal" | "indigo" | "emerald" | "gray" | "rose" | "sky";
+const variants = {
+    amber: "bg-warning-light text-warning border-warning/30",
+    teal: "bg-accent-light text-accent-hover border-accent/30",
+    indigo: "bg-secondary-light text-secondary border-secondary/30",
+    emerald: "bg-accent-light text-accent-hover border-accent/30",
+    gray: "bg-muted-bg text-text border-border",
+    rose: "bg-error-light text-error border-error/30",
+    sky: "bg-accent-light text-accent-hover border-accent/30",
+} as const;
+
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+    variant?: keyof typeof variants;
 }
 
-const variantStyles: Record<string, string> = {
-    amber: "bg-amber-50 text-amber-700 border-amber-200",
-    teal: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    indigo: "bg-sky-50 text-sky-700 border-sky-200",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    gray: "bg-slate-100 text-slate-700 border-slate-200",
-    rose: "bg-rose-50 text-rose-700 border-rose-200",   // Hard difficulty
-    sky: "bg-sky-50 text-sky-600 border-sky-200",       // Easy difficulty
-};
-
-export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-    ({ variant = "amber", className = "", children, ...props }, ref) => {
-        return (
-            <span
-                ref={ref}
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border ${variantStyles[variant]} ${className}`}
-                {...props}
-            >
-                {children}
-            </span>
-        );
-    }
-);
-
-Badge.displayName = "Badge";
+export function Badge({ variant = "gray", children, className = "", ...rest }: BadgeProps) {
+    return (
+        <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${variants[variant]} ${className}`}
+            {...rest}
+        >
+            {children}
+        </span>
+    );
+}

@@ -18,11 +18,11 @@ interface ExperimentPickerProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    "Carbonate–Acid": "bg-orange-100 text-orange-800",
-    "Metal–Acid": "bg-blue-100 text-blue-800",
-    "Neutralization": "bg-teal-100 text-teal-800",
-    "Displacement": "bg-indigo-100 text-indigo-800",
-    "Double Displacement": "bg-purple-100 text-purple-800",
+    "Carbonate–Acid": "bg-primary-light text-primary-hover",
+    "Metal–Acid": "bg-accent-light text-accent-hover",
+    "Neutralization": "bg-accent-light text-accent-hover",
+    "Displacement": "bg-secondary-light text-secondary",
+    "Double Displacement": "bg-secondary-light text-secondary",
 };
 
 function difficultyVariant(d: Experiment["difficulty"]) {
@@ -54,7 +54,7 @@ export function ExperimentPicker({ experiments, onSelect, onBackToFree }: Experi
             {/* Card grid */}
             <div className="exp-picker-grid">
                 {experiments.map((exp) => {
-                    const catColor = CATEGORY_COLORS[exp.category] ?? "bg-slate-100 text-slate-700";
+                    const catColor = CATEGORY_COLORS[exp.category] ?? "bg-muted-bg text-text";
                     return (
                         <Card
                             key={exp.id}

@@ -30,7 +30,7 @@ function formatTime(ts: number): string {
 export function LabNotebook({ entries }: LabNotebookProps) {
     if (entries.length === 0) {
         return (
-            <Card variant="subtle" padding="md" className="text-center text-slate-400 text-sm">
+            <Card variant="subtle" padding="md" className="text-center text-text-muted text-sm">
                 📓 Your lab notebook is empty — complete a reaction to add an entry.
             </Card>
         );
@@ -41,7 +41,7 @@ export function LabNotebook({ entries }: LabNotebookProps) {
             <h3 className="lab-notebook-title">📓 Lab Notebook</h3>
             <div className="lab-notebook-entries">
                 {entries.map((entry) => (
-                    <Card key={entry.id} variant="subtle" padding="sm" className="lab-notebook-entry">
+                    <Card key={entry.id} variant="subtle" padding="md" className="lab-notebook-entry">
                         <div className="lab-notebook-entry-top">
                             <span className="lab-notebook-chemicals">
                                 {entry.chemicalA.replace(/ \(.+\)$/, "")}

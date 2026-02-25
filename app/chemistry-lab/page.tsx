@@ -292,7 +292,7 @@ export default function ChemistryLabPage() {
   if (authLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
-        <p className="text-sm text-slate-600">Checking your student session...</p>
+        <p className="text-sm text-text-muted">Checking your student session...</p>
       </main>
     );
   }
@@ -302,11 +302,11 @@ export default function ChemistryLabPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff4e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf4e2_55%,#eef6ff)] px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
+    <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,var(--primary-light),transparent_60%),linear-gradient(180deg,var(--background),var(--surface-alt)_55%,var(--accent-light))] px-4 py-4 sm:px-6 sm:py-5 flex flex-col items-center">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
-        <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-200/25 blur-3xl" />
+        <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-primary-light/70 blur-3xl" />
+        <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-secondary-light/65 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-accent-light/60 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-6xl">
@@ -326,10 +326,10 @@ export default function ChemistryLabPage() {
         <MobileDisclaimer />
 
         <div className="text-center mb-3">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-secondary via-primary to-accent bg-clip-text text-transparent">
             Chemistry Reaction Lab
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-text-muted mt-1">
             Mix chemicals, observe reactions, and learn the science behind them.
           </p>
         </div>
@@ -341,17 +341,21 @@ export default function ChemistryLabPage() {
         )}
 
         <div className="mb-3 flex justify-center">
-          <div className="flex rounded-full border border-slate-200 bg-white/80 p-0.5 shadow-sm backdrop-blur-sm">
+          <div className="flex rounded-full border border-border bg-surface/80 p-0.5 shadow-sm backdrop-blur-sm">
             <button
               onClick={handleSwitchToFree}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "free" ? "bg-sky-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "free"
+                ? "bg-secondary text-text-on-secondary shadow-sm"
+                : "text-text-muted hover:text-text"
                 }`}
             >
               Free Mix
             </button>
             <button
               onClick={handleSwitchToGuided}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "guided" ? "bg-sky-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${mode === "guided"
+                ? "bg-secondary text-text-on-secondary shadow-sm"
+                : "text-text-muted hover:text-text"
                 }`}
             >
               Guided
@@ -361,7 +365,7 @@ export default function ChemistryLabPage() {
 
         {mode === "guided" && !activeExperiment && (
           dataLoading ? (
-            <Card variant="subtle" padding="md" className="text-sm text-slate-500 text-center">
+            <Card variant="subtle" padding="md" className="text-sm text-text-muted text-center">
               Loading experiments from Firestore...
             </Card>
           ) : experiments.length > 0 ? (
@@ -455,8 +459,8 @@ export default function ChemistryLabPage() {
 
         {mode === "free" && result && showFreeQuiz && (
           <Card variant="subtle" padding="md" className="mt-3">
-            <p className="text-sm font-semibold text-slate-700">Quick Check</p>
-            <p className="text-sm text-slate-600 mt-1">{freeQuiz.question}</p>
+            <p className="text-sm font-semibold text-text">Quick Check</p>
+            <p className="text-sm text-text-muted mt-1">{freeQuiz.question}</p>
             <div className="mt-3 grid gap-2">
               {freeQuiz.options.map((option, index) => (
                 <OptionButton

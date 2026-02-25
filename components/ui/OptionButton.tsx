@@ -1,64 +1,56 @@
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import React from "react";
 
-export interface OptionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface OptionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     label: string;
     text: string;
-    isSelected?: boolean;
-    isCorrect?: boolean;
-    showResult?: boolean;
+    isSelected: boolean;
+    isCorrect: boolean;
+    showResult: boolean;
 }
 
-export const OptionButton = forwardRef<HTMLButtonElement, OptionButtonProps>(
-    ({ label, text, isSelected, isCorrect, showResult, className = "", ...props }, ref) => {
-        let style =
-            "border-slate-200 bg-white/80 text-slate-800 hover:border-emerald-200 hover:bg-emerald-50/60";
-        let labelStyle = "bg-slate-100 text-slate-700";
+export function OptionButton({
+    label,
+    text,
+    isSelected,
+    isCorrect,
+    showResult,
+    className = "",
+    ...rest
+}: OptionButtonProps) {
+    let style = "border-border bg-surface/80 text-text hover:border-accent hover:bg-accent-light/60";
+    let labelStyle = "bg-muted-bg text-text";
 
-        if (showResult) {
-            if (isCorrect) {
-                style = "bg-emerald-100 border-emerald-500 text-emerald-900";
-                labelStyle = "bg-emerald-200 text-emerald-900";
-            } else if (isSelected) {
-                style = "bg-rose-100 border-rose-400 text-rose-900";
-                labelStyle = "bg-rose-200 text-rose-900";
-            }
+    if (showResult) {
+        if (isCorrect) {
+            style = "bg-success-light border-success text-text";
+            labelStyle = "bg-success/20 text-text";
         } else if (isSelected) {
-            style =
-                "bg-emerald-100 border-emerald-500 text-emerald-900 shadow-sm transform scale-[1.01]";
-            labelStyle = "bg-emerald-200 text-emerald-900";
+            style = "bg-error-light border-error text-text";
+            labelStyle = "bg-error/20 text-text";
         }
-
-        const showStatus = showResult && (isCorrect || isSelected);
-        const statusText = isCorrect ? "Correct" : "Incorrect";
-
-        return (
-            <button
-                ref={ref}
-                className={`w-full rounded-xl border p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 ${style} ${className}`}
-                {...props}
-            >
-                <div className="flex items-start gap-3">
-                    <span
-                        className={`mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${labelStyle}`}
-                    >
-                        {label}
-                    </span>
-                    <span
-                        className="flex-1 min-w-0 text-sm leading-relaxed"
-                    >
-                        {text}
-                    </span>
-                    {showStatus && (
-                        <span
-                            className={`text-xs font-semibold ${isCorrect ? "text-emerald-700" : "text-rose-700"}`}
-                        >
-                            {statusText}
-                        </span>
-                    )}
-                </div>
-            </button>
-        );
+    } else if (isSelected) {
+        style = "bg-secondary-light border-secondary text-text shadow-sm transform scale-[1.01]";
+        labelStyle = "bg-secondary/20 text-secondary";
     }
-);
 
-OptionButton.displayName = "OptionButton";
+    return (
+        <button
+            className={`w-full rounded-xl border p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background ${style} ${className}`}
+            {...rest}
+        >
+            <div className="flex items-center gap-3">
+                <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${labelStyle}`}
+                >
+                    {label}
+                </span>
+                <span className="flex-1 text-sm" dangerouslySetInnerHTML={{ __html: text }} />
+                {showResult && (
+                    <span className={`text-xs font-semibold ${isCorrect ? "text-success" : "text-error"}`}>
+                        {isCorrect ? "Correct" : isSelected ? "Incorrect" : ""}
+                    </span>
+                )}
+            </div>
+        </button>
+    );
+}

@@ -32,7 +32,7 @@ export const COMPONENT_CATALOG: Record<ComponentType, CircuitComponentDef> = {
         label: "Battery",
         description: "Provides electrical energy. Has positive (+) and negative (−) terminals.",
         icon: "🔋",
-        color: "#f59e0b",
+        color: "#f76115",
         terminals: [
             { polarity: "+", dx: 2, dy: 0 },
             { polarity: "-", dx: 0, dy: 0 },
@@ -45,7 +45,7 @@ export const COMPONENT_CATALOG: Record<ComponentType, CircuitComponentDef> = {
         label: "Bulb",
         description: "Glows when electric current flows through it.",
         icon: "💡",
-        color: "#fbbf24",
+        color: "#ff8445",
         terminals: [
             { dx: 0, dy: 1 },
             { dx: 1, dy: 1 },
@@ -58,7 +58,7 @@ export const COMPONENT_CATALOG: Record<ComponentType, CircuitComponentDef> = {
         label: "Switch",
         description: "Opens or closes the circuit. Toggle to control current flow.",
         icon: "🔘",
-        color: "#64748b",
+        color: "#0a1836",
         terminals: [
             { dx: 0, dy: 0 },
             { dx: 2, dy: 0 },
@@ -71,7 +71,7 @@ export const COMPONENT_CATALOG: Record<ComponentType, CircuitComponentDef> = {
         label: "Wire",
         description: "Conducts electricity between components.",
         icon: "〰️",
-        color: "#78716c",
+        color: "#b8bccf",
         terminals: [
             { dx: 0, dy: 0 },
             { dx: 1, dy: 0 },
@@ -84,7 +84,7 @@ export const COMPONENT_CATALOG: Record<ComponentType, CircuitComponentDef> = {
         label: "LED",
         description: "Glows only when connected the right way. Longer leg is positive (+).",
         icon: "🔴",
-        color: "#ef4444",
+        color: "#f76115",
         terminals: [
             { polarity: "+", dx: 0, dy: 1 },
             { polarity: "-", dx: 1, dy: 1 },

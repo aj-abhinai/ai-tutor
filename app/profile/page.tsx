@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 type ProfileResponse = {
   profile?: {
@@ -91,8 +94,8 @@ export default function ProfilePage() {
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-[radial-gradient(circle_at_top,#fff6ea,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf5e6_55%,#f9f0dd)]">
-        <div className="rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 text-sm text-slate-700 shadow">
+      <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-background">
+        <div className="rounded-2xl border border-border bg-surface/90 px-5 py-4 text-sm text-text-muted shadow">
           Loading profile...
         </div>
       </main>
@@ -100,54 +103,54 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-[radial-gradient(circle_at_top,#fff6ea,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf5e6_55%,#f9f0dd)]">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white/90 p-7 shadow-lg backdrop-blur">
+    <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-background">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-surface/90 p-7 shadow-lg backdrop-blur">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Student Profile</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900">Profile</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Student Profile</p>
+            <h1 className="mt-3 text-3xl font-semibold text-text">Profile</h1>
           </div>
           <Link
             href="/"
-            className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-white"
+            className="rounded-full border border-border bg-surface/80 px-3 py-1 text-xs font-semibold text-text hover:bg-surface"
           >
             Back
           </Link>
         </div>
 
         <form className="mt-6 space-y-4" onSubmit={handleSave}>
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-text">
             Name
-            <input
+            <Input
               type="text"
               autoComplete="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-800 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              className="mt-2 py-2 text-sm"
               placeholder="Your name"
             />
           </label>
 
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-text">
             Email (read only)
-            <input
+            <Input
               type="email"
               value={email}
               readOnly
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600 shadow-sm"
+              className="mt-2 bg-muted-bg py-2 text-sm text-text-muted"
             />
           </label>
 
-          {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div>}
-          {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{success}</div>}
+          {error && <Alert variant="error" className="px-3 py-2 text-xs">{error}</Alert>}
+          {success && <Alert variant="success" className="px-3 py-2 text-xs">{success}</Alert>}
 
-          <button
+          <Button
             type="submit"
             disabled={!canSave}
-            className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            className="w-full py-2 text-sm"
           >
             {saving ? "Saving..." : "Save name"}
-          </button>
+          </Button>
         </form>
       </div>
     </main>

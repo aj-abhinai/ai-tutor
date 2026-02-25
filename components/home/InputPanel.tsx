@@ -31,10 +31,9 @@ export function InputPanel({
   showChapterWarning,
 }: InputPanelProps) {
   return (
-    <Card variant="subtle" className="backdrop-blur-sm">
-      {/* Subject toggle buttons */}
+    <Card variant="subtle" className="relative z-20 overflow-visible backdrop-blur-sm">
       <div className="mb-5">
-        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+        <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
           Subject
         </label>
         <div className="flex gap-3">
@@ -49,10 +48,9 @@ export function InputPanel({
         </div>
       </div>
 
-      {/* Chapter and topic selectors */}
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
             Chapter
           </label>
           <Select
@@ -64,7 +62,7 @@ export function InputPanel({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
             Topic
           </label>
           <Select
@@ -77,14 +75,13 @@ export function InputPanel({
         </div>
       </div>
 
-      {/* Helper text and availability warning */}
-      <p className="text-sm text-slate-500 mt-4">
+      <p className="text-sm text-text-muted mt-4">
         Pick a chapter and topic, then choose a card below to load the lesson.
       </p>
       {showChapterWarning && (
-        <p className="text-xs text-amber-700 mt-2">
+        <p className="text-xs text-warning mt-2">
           Detailed topics are coming soon for this chapter. Please pick a chapter without the
-          "Coming soon" tag.
+          &quot;Coming soon&quot; tag.
         </p>
       )}
     </Card>

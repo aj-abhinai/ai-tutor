@@ -1,40 +1,31 @@
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import React from "react";
 
-export interface SubjectButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    subject: "Science" | "Maths";
-    isActive?: boolean;
+type Subject = "science" | "maths" | "Science" | "Maths";
+
+interface SubjectButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    subject: Subject;
+    isActive: boolean;
 }
 
-const subjectStyles = {
-    Science: {
-        active:
-            "bg-emerald-100 border-emerald-400 text-emerald-800 shadow-[0_10px_22px_rgba(16,185,129,0.25)]",
-        inactive:
-            "bg-white/80 border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-700",
-    },
-    Maths: {
-        active:
-            "bg-sky-100 border-sky-400 text-sky-800 shadow-[0_10px_22px_rgba(14,165,233,0.25)]",
-        inactive:
-            "bg-white/80 border-slate-200 text-slate-500 hover:border-sky-300 hover:text-sky-700",
-    },
-};
+export function SubjectButton({
+    subject,
+    isActive,
+    className = "",
+    children,
+    ...rest
+}: SubjectButtonProps) {
+    const normalized = subject.toLowerCase() as "science" | "maths";
+    const styles = isActive
+        ? "bg-secondary-light border-secondary text-secondary shadow-[0_10px_22px_rgba(92,49,181,0.2)]"
+        : "bg-surface/80 border-border text-text-muted hover:border-accent hover:text-accent-hover";
 
-export const SubjectButton = forwardRef<HTMLButtonElement, SubjectButtonProps>(
-    ({ subject, isActive = false, className = "", children, ...props }, ref) => {
-        const style = subjectStyles[subject][isActive ? "active" : "inactive"];
-
-        return (
-            <button
-                ref={ref}
-                aria-pressed={isActive}
-            className={`flex-1 py-3 rounded-xl font-semibold border transition-all cursor-pointer ${style} ${className}`}
-                {...props}
-            >
-                {children || subject}
-            </button>
-        );
-    }
-);
-
-SubjectButton.displayName = "SubjectButton";
+    return (
+        <button
+            aria-pressed={isActive}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold capitalize transition-all duration-200 ${styles} ${className}`}
+            {...rest}
+        >
+            {children || normalized}
+        </button>
+    );
+}

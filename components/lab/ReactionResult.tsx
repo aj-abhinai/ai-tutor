@@ -135,7 +135,7 @@ export function ReactionResult({
 
             {/* Balanced equation */}
             {reaction && (
-                <Card variant="subtle" padding="sm" className="reaction-result-equation-card">
+                <Card variant="subtle" padding="md" className="reaction-result-equation-card">
                     <p className="reaction-result-equation-label">Balanced Equation</p>
                     {equationHtml ? (
                         <div

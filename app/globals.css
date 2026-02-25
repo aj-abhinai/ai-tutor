@@ -1,14 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --ink-muted: #475569;
+  /*
+   * Huemint Palette — Semantic Design Tokens
+   *
+   * Raw palette:
+   *   #f9fbfa  off-white      → surfaces
+   *   #d5d8e4  lavender        → borders, muted surfaces
+   *   #0a1836  dark navy       → text, dark bg
+   *   #5c31b5  purple          → secondary CTA, links
+   *   #f76115  orange          → primary CTA, action
+   *   #13d7c5  teal            → accent, highlights, success
+   */
+
+  /* ── Surfaces ────────────────────────────── */
+  --background: #f9fbfa;
+  --foreground: #0a1836;
+  --surface: #ffffff;
+  --surface-alt: #f0f1f5;
+  --muted-bg: #e8eaf0;
+
+  /* ── Text ────────────────────────────────── */
+  --text: #0a1836;
+  --text-muted: #4a4e69;
+  --text-on-primary: #ffffff;
+  --text-on-secondary: #ffffff;
+
+  /* ── Borders ─────────────────────────────── */
+  --border: #d5d8e4;
+  --border-hover: #b8bccf;
+  --border-focus: #5c31b5;
+
+  /* ── Primary (orange – main CTA) ─────────── */
+  --primary: #f76115;
+  --primary-hover: #d9500e;
+  --primary-light: #fef0e8;
+
+  /* ── Secondary (purple – links, badges) ──── */
+  --secondary: #5c31b5;
+  --secondary-hover: #461fa0;
+  --secondary-light: #ede7f8;
+
+  /* ── Accent (teal – highlight, success) ──── */
+  --accent: #13d7c5;
+  --accent-hover: #0fb5a6;
+  --accent-light: #e2faf7;
+
+  /* ── Semantic states ─────────────────────── */
+  --success: #13d7c5;
+  --success-light: #e2faf7;
+  --error: #f76115;
+  --error-light: #fef0e8;
+  --warning: #f76115;
+  --warning-light: #fef0e8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Surfaces */
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-muted-bg: var(--muted-bg);
+
+  /* Text */
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-primary: var(--text-on-primary);
+  --color-text-on-secondary: var(--text-on-secondary);
+
+  /* Borders */
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-border-focus: var(--border-focus);
+
+  /* Primary */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+
+  /* Secondary */
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-light: var(--secondary-light);
+
+  /* Accent */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+
+  /* States */
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+
+  /* Fonts */
   --font-sans: var(--font-body);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
@@ -16,8 +106,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a1836;
+    --foreground: #f9fbfa;
+    --surface: #111d40;
+    --surface-alt: #162550;
+    --muted-bg: #1a2a4e;
+    --text: #f9fbfa;
+    --text-muted: #b8bccf;
+    --border: #1a2a4e;
+    --border-hover: #2a3a6e;
   }
 }
 
@@ -30,11 +127,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), "Segoe UI", system-ui, sans-serif;
   line-height: 1.6;
-  /* Avoid blinking caret on non-editable page clicks. */
   caret-color: transparent;
 }
 
-/* Keep normal caret behavior only for editable controls. */
 input,
 textarea,
 select,
@@ -50,37 +145,38 @@ h4 {
   letter-spacing: -0.01em;
 }
 
-/* Shared CTA style for Chemistry Playground navigation buttons */
+/* ── Shared CTA: Chemistry nav button ────── */
 .chemistry-nav-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   border-radius: 9999px;
-  border: 1px solid #c4b5fd;
-  background: #7c3aed;
+  border: 1px solid var(--secondary);
+  background: var(--secondary);
   padding: 0.5rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: #ffffff;
-  box-shadow: 0 8px 20px rgba(109, 40, 217, 0.25);
+  box-shadow: 0 8px 20px rgba(92, 49, 181, 0.25);
   transition: background-color 0.2s ease;
 }
 
 .chemistry-nav-btn:hover {
-  background: #6d28d9;
+  background: var(--secondary-hover);
 }
 
 .chemistry-nav-btn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* Lab page animations */
+/* ── Lab page animations ─────────────────── */
 @keyframes bubbleUp {
   0% {
     transform: translateY(0) scale(1);
     opacity: 0.6;
   }
+
   100% {
     transform: translateY(-80px) scale(0.4);
     opacity: 0;
@@ -92,9 +188,11 @@ h4 {
     transform: translateY(-12px);
     opacity: 0;
   }
+
   60% {
     opacity: 0.7;
   }
+
   100% {
     transform: translateY(0);
     opacity: 0.5;
@@ -102,11 +200,13 @@ h4 {
 }
 
 @keyframes heatGlow {
+
   0%,
   100% {
     opacity: 0.2;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.45;
     transform: scale(1.08);
@@ -118,22 +218,24 @@ h4 {
     opacity: 0;
     transform: translateY(12px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-
 @keyframes pourStream {
   0% {
     opacity: 0.35;
     transform: scaleY(0.85);
   }
+
   50% {
     opacity: 0.8;
     transform: scaleY(1);
   }
+
   100% {
     opacity: 0.35;
     transform: scaleY(0.85);
@@ -145,12 +247,13 @@ h4 {
     opacity: 0;
     transform: translateY(0) scale(0.8);
   }
+
   40% {
     opacity: 0.25;
   }
+
   100% {
     opacity: 0;
     transform: translateY(-16px) scale(1.1);
   }
 }
-

@@ -1,30 +1,24 @@
-import { HTMLAttributes, forwardRef } from "react";
+import React from "react";
 
-export interface AlertProps extends HTMLAttributes<HTMLDivElement> {
-    variant?: "error" | "success" | "warning" | "info";
+const variants = {
+    error: "text-error bg-error-light border-error/20",
+    success: "text-accent-hover bg-accent-light border-accent/20",
+    warning: "text-warning bg-warning-light border-warning/20",
+    info: "text-text-muted bg-surface/70 border-border",
+} as const;
+
+interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+    variant?: keyof typeof variants;
 }
 
-const variantStyles: Record<string, string> = {
-    error: "text-rose-700 bg-rose-50 border-rose-100",
-    success: "text-emerald-800 bg-emerald-50 border-emerald-100",
-    warning: "text-amber-800 bg-amber-50 border-amber-100",
-    info: "text-slate-600 bg-white/70 border-slate-200",
-};
-
-export const Alert = forwardRef<HTMLDivElement, AlertProps>(
-    ({ variant = "info", className = "", children, ...props }, ref) => {
-        return (
-            <div
-                ref={ref}
-                role="alert"
-                aria-live="polite"
-                className={`p-3 rounded-xl text-center border ${variantStyles[variant]} ${className}`}
-                {...props}
-            >
-                {children}
-            </div>
-        );
-    }
-);
-
-Alert.displayName = "Alert";
+export function Alert({ variant = "info", children, className = "", role = "alert", ...rest }: AlertProps) {
+    return (
+        <div
+            className={`rounded-xl border px-4 py-3 text-sm font-medium ${variants[variant]} ${className}`}
+            role={role}
+            {...rest}
+        >
+            {children}
+        </div>
+    );
+}

@@ -532,12 +532,12 @@ export default function ClientPage({
   };
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-[radial-gradient(circle_at_top,#fff1e6,transparent_60%),linear-gradient(180deg,#f7fbff,#fdf5e6_55%,#f9f0dd)] px-6 py-8 flex flex-col items-center">
+    <main className="min-h-screen relative overflow-hidden bg-background px-6 py-8 flex flex-col items-center">
       {/* Decorative background orbs */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
-        <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-rose-200/30 blur-3xl" />
+        <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-secondary-light/40 blur-3xl" />
+        <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-accent-light/40 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-primary-light/30 blur-3xl" />
       </div>
       <div className="relative w-full max-w-4xl">
         {/* Hero header + subject selectors */}
@@ -564,34 +564,34 @@ export default function ClientPage({
                 event.preventDefault();
                 requireLoginFor("Physics Lab");
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-accent-light text-accent-hover border border-accent/30 hover:bg-accent-light hover:border-accent transition-all shadow-sm"
             >
               Try in Lab
             </Link>
           )}
         </div>
         {showLoginNudge && !user && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="mb-4 rounded-xl border border-warning/20 bg-warning-light px-4 py-3 text-sm text-text">
             <p>
               Log in to use <strong>{loginNudgeAction}</strong>.
             </p>
             <div className="mt-2 flex items-center gap-2">
               <Link
                 href="/login"
-                className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-text-on-primary hover:bg-primary-hover"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
+                className="rounded-full border border-secondary/30 bg-surface px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary-light"
               >
                 Sign up
               </Link>
               <button
                 type="button"
                 onClick={() => setShowLoginNudge(false)}
-                className="rounded-full border border-transparent px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                className="rounded-full border border-transparent px-3 py-1 text-xs font-semibold text-text-muted hover:text-text"
               >
                 Dismiss
               </button>
