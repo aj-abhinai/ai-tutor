@@ -1,19 +1,27 @@
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/physics/chapter-lab/route";
+import { getRequestUserId } from "@/lib/api/shared";
 import { getPhysicsChapterLabFromFirestore } from "@/lib/firestore-lab";
 
 jest.mock("@/lib/firestore-lab", () => ({
     getPhysicsChapterLabFromFirestore: jest.fn(),
+}));
+jest.mock("@/lib/api/shared", () => ({
+    getRequestUserId: jest.fn(),
 }));
 
 const getPhysicsChapterLabFromFirestoreMock =
     getPhysicsChapterLabFromFirestore as jest.MockedFunction<
         typeof getPhysicsChapterLabFromFirestore
     >;
+const getRequestUserIdMock =
+    getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
 
 describe("/api/physics/chapter-lab", () => {
     beforeEach(() => {
         getPhysicsChapterLabFromFirestoreMock.mockReset();
+        getRequestUserIdMock.mockReset();
+        getRequestUserIdMock.mockResolvedValue("student-1");
     });
 
     it("rejects missing chapterId query", async () => {

@@ -7,6 +7,23 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/lab/route";
+import { getRequestUserId } from "@/lib/api/shared";
+import { getReactionsFromFirestore } from "@/lib/firestore-lab";
+
+jest.mock("@/lib/api/shared", () => {
+    const actual = jest.requireActual("@/lib/api/shared");
+    return {
+        ...actual,
+        getRequestUserId: jest.fn(),
+    };
+});
+jest.mock("@/lib/firestore-lab", () => ({
+    getReactionsFromFirestore: jest.fn(),
+}));
+
+const getRequestUserIdMock = getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
+const getReactionsFromFirestoreMock =
+    getReactionsFromFirestore as jest.MockedFunction<typeof getReactionsFromFirestore>;
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -49,6 +66,41 @@ const LEAD_IODIDE_PAIR = {
 /* ── Tests ────────────────────────────────────────────────── */
 
 describe("/api/lab – Reaction Playground API", () => {
+    beforeEach(() => {
+        getRequestUserIdMock.mockReset();
+        getRequestUserIdMock.mockResolvedValue("student-1");
+        getReactionsFromFirestoreMock.mockReset();
+        getReactionsFromFirestoreMock.mockResolvedValue([
+            {
+                id: "r1",
+                reactantA: "Zinc (Zn)",
+                reactantB: "Hydrochloric Acid (HCl)",
+                products: "Zinc chloride + Hydrogen gas",
+                equation: "Zn + 2HCl -> ZnCl2 + H2",
+                category: "Single Displacement",
+                visual: { color: false, gas: true, precipitate: false, heat: "exothermic" },
+            },
+            {
+                id: "r2",
+                reactantA: "Calcium Carbonate (CaCO₃)",
+                reactantB: "Vinegar (CH₃COOH)",
+                products: "Calcium acetate + Carbon dioxide + Water",
+                equation: "CaCO₃ + 2CH₃COOH -> Ca(CH₃COO)₂ + CO₂ + H₂O",
+                category: "Acid-Carbonate",
+                visual: { color: false, gas: true, precipitate: false, heat: "neutral" },
+            },
+            {
+                id: "r3",
+                reactantA: "Lead Nitrate (Pb(NO₃)₂)",
+                reactantB: "Potassium Iodide (KI)",
+                products: "Lead iodide + Potassium nitrate",
+                equation: "Pb(NO₃)₂ + 2KI -> PbI₂ + 2KNO₃",
+                category: "Double Displacement",
+                visual: { color: true, gas: false, precipitate: true, heat: "neutral" },
+            },
+        ] as Awaited<ReturnType<typeof getReactionsFromFirestore>>);
+    });
+
     /* ---------- Input validation ---------- */
     describe("Input validation", () => {
         it("rejects invalid JSON body", async () => {

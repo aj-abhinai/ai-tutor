@@ -4,6 +4,7 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/deep/route";
+import { getRequestUserId } from "@/lib/api/shared";
 import { getSubtopicFromDB } from "@/lib/rag";
 import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
 
@@ -13,8 +14,16 @@ const generateContentStreamMock = jest.fn();
 jest.mock("@/lib/rag", () => ({
   getSubtopicFromDB: jest.fn(),
 }));
+jest.mock("@/lib/api/shared", () => {
+  const actual = jest.requireActual("@/lib/api/shared");
+  return {
+    ...actual,
+    getRequestUserId: jest.fn(),
+  };
+});
 
 const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
+const getRequestUserIdMock = getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
 
 jest.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
@@ -45,6 +54,8 @@ describe("/api/deep - Deep explanation API", () => {
     generateContentStreamMock.mockReset();
     getSubtopicFromDBMock.mockReset();
     getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
+    getRequestUserIdMock.mockReset();
+    getRequestUserIdMock.mockResolvedValue("student-1");
     process.env.GEMINI_API_KEY = "test-key";
   });
 

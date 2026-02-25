@@ -6,14 +6,24 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/explain/route";
+import { getRequestUserId } from "@/lib/api/shared";
 import { getSubtopicFromDB } from "@/lib/rag";
 import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
+
+jest.mock("@/lib/api/shared", () => {
+  const actual = jest.requireActual("@/lib/api/shared");
+  return {
+    ...actual,
+    getRequestUserId: jest.fn(),
+  };
+});
 
 jest.mock("@/lib/rag", () => ({
   getSubtopicFromDB: jest.fn(),
 }));
 
 const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
+const getRequestUserIdMock = getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
 
 interface TutorResponse {
   content: {
@@ -56,6 +66,8 @@ describe("/api/explain - Standard 7 Tutor API", () => {
   beforeEach(() => {
     getSubtopicFromDBMock.mockReset();
     getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
+    getRequestUserIdMock.mockReset();
+    getRequestUserIdMock.mockResolvedValue("student-1");
   });
 
   describe("Input validation", () => {

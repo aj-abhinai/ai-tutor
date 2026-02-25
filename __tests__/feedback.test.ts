@@ -6,6 +6,7 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/feedback/route";
+import { getRequestUserId } from "@/lib/api/shared";
 import { getSubtopicFromDB } from "@/lib/rag";
 import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
 
@@ -15,8 +16,16 @@ const generateContentStreamMock = jest.fn();
 jest.mock("@/lib/rag", () => ({
   getSubtopicFromDB: jest.fn(),
 }));
+jest.mock("@/lib/api/shared", () => {
+  const actual = jest.requireActual("@/lib/api/shared");
+  return {
+    ...actual,
+    getRequestUserId: jest.fn(),
+  };
+});
 
 const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
+const getRequestUserIdMock = getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
 
 jest.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
@@ -48,6 +57,8 @@ describe("/api/feedback - Explain-it-back API", () => {
     generateContentStreamMock.mockReset();
     getSubtopicFromDBMock.mockReset();
     getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
+    getRequestUserIdMock.mockReset();
+    getRequestUserIdMock.mockResolvedValue("student-1");
     process.env.GEMINI_API_KEY = "test-key";
   });
 
@@ -191,6 +202,7 @@ describe("/api/feedback - Explain-it-back API", () => {
     });
 
     it("falls back to rule-based feedback on invalid model JSON", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       generateContentMock.mockResolvedValue({
         response: { text: () => "not json" },
       });
@@ -211,6 +223,8 @@ describe("/api/feedback - Explain-it-back API", () => {
       expect(typeof data.feedback.fix).toBe("string");
       expect(typeof data.feedback.rereadTip).toBe("string");
       expect(typeof data.feedback.isCorrect).toBe("boolean");
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
     it("streams NDJSON feedback events when x-ai-stream is enabled", async () => {
