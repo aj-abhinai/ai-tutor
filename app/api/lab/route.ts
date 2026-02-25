@@ -8,7 +8,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import type { Reaction } from "@/lib/reactions";
-import { getReactionsFromFirestore } from "@/lib/firestore-lab";
+import { getReactionsFromFirestore } from "@/lib/chemistry/firestore";
 import { findExampleReactionForChemical, findReaction } from "@/lib/reaction-engine";
 import {
     createRateLimiter,

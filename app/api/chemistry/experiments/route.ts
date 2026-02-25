@@ -1,4 +1,4 @@
-import { getExperimentsFromFirestore } from "@/lib/firestore-lab";
+import { getExperimentsFromFirestore } from "@/lib/chemistry/firestore";
 import { createChemistryRoute } from "@/lib/api/create-chemistry-route";
 
 export const GET = createChemistryRoute(

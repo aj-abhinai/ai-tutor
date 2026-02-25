@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { OptionButton } from "@/components/ui/OptionButton";
+import { TextLink } from "@/components/ui/TextLink";
 import type { Experiment, ExperimentStep, ObservationQuestion } from "@/lib/experiments";
 
 interface ExperimentGuideProps {
@@ -88,12 +89,15 @@ export function ExperimentGuide({
                     {step.hint && (
                         <div className="guide-hint-zone">
                             {!showHint ? (
-                                <button
+                                <Button
                                     onClick={() => setShowHint(true)}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     className="guide-hint-link"
                                 >
                                     💡 Need a hint?
-                                </button>
+                                </Button>
                             ) : (
                                 <Alert variant="warning">
                                     💡 {step.hint}
@@ -125,14 +129,14 @@ export function ExperimentGuide({
 
             {/* "Study in Tutor" deep-link */}
             {reactionDone && experiment.chapterId && (
-                <a
+                <TextLink
                     href={`/?chapter=${experiment.chapterId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="guide-chapter-link"
                 >
                     📖 Study "{experiment.chapterName}" in the Tutor →
-                </a>
+                </TextLink>
             )}
 
             {/* Observation quiz */}

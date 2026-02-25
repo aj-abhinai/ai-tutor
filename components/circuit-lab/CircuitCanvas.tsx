@@ -19,6 +19,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { useCallback } from "react";
+import { Button } from "@/components/ui/Button";
 import {
     type ComponentType,
     COMPONENT_CATALOG,
@@ -175,12 +176,14 @@ export function CircuitCanvas({ experiment, mode }: CircuitCanvasProps) {
 
             {/* ── Controls ─────────────────────────────── */}
             <div className="circuit-controls">
-                <button
+                <Button
                     onClick={clearBoard}
                     className="circuit-control-btn"
+                    variant="outline"
+                    size="sm"
                 >
                     Clear Board
-                </button>
+                </Button>
             </div>
 
             {/* ── Guided Mode Panel ────────────────────── */}

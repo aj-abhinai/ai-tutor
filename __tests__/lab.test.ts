@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/lab/route";
 import { getRequestUserId } from "@/lib/api/shared";
-import { getReactionsFromFirestore } from "@/lib/firestore-lab";
+import { getReactionsFromFirestore } from "@/lib/chemistry/firestore";
 
 jest.mock("@/lib/api/shared", () => {
     const actual = jest.requireActual("@/lib/api/shared");
@@ -17,7 +17,7 @@ jest.mock("@/lib/api/shared", () => {
         getRequestUserId: jest.fn(),
     };
 });
-jest.mock("@/lib/firestore-lab", () => ({
+jest.mock("@/lib/chemistry/firestore", () => ({
     getReactionsFromFirestore: jest.fn(),
 }));
 
@@ -78,7 +78,7 @@ describe("/api/lab – Reaction Playground API", () => {
                 products: "Zinc chloride + Hydrogen gas",
                 equation: "Zn + 2HCl -> ZnCl2 + H2",
                 category: "Single Displacement",
-                visual: { color: false, gas: true, precipitate: false, heat: "exothermic" },
+                visual: { color: "", gas: true, precipitate: false, heat: "exothermic" },
             },
             {
                 id: "r2",
@@ -87,7 +87,7 @@ describe("/api/lab – Reaction Playground API", () => {
                 products: "Calcium acetate + Carbon dioxide + Water",
                 equation: "CaCO₃ + 2CH₃COOH -> Ca(CH₃COO)₂ + CO₂ + H₂O",
                 category: "Acid-Carbonate",
-                visual: { color: false, gas: true, precipitate: false, heat: "neutral" },
+                visual: { color: "", gas: true, precipitate: false, heat: null },
             },
             {
                 id: "r3",
@@ -96,7 +96,7 @@ describe("/api/lab – Reaction Playground API", () => {
                 products: "Lead iodide + Potassium nitrate",
                 equation: "Pb(NO₃)₂ + 2KI -> PbI₂ + 2KNO₃",
                 category: "Double Displacement",
-                visual: { color: true, gas: false, precipitate: true, heat: "neutral" },
+                visual: { color: "Yellow", gas: false, precipitate: true, heat: null },
             },
         ] as Awaited<ReturnType<typeof getReactionsFromFirestore>>);
     });

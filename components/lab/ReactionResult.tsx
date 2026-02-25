@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { TextLink } from "@/components/ui/TextLink";
 import { type Reaction } from "@/lib/reactions";
 import { buildSimulationPlan } from "@/lib/simulation-engine";
 
@@ -153,14 +154,14 @@ export function ReactionResult({
 
             {/* Chapter deep-link */}
             {chapterId && chapterName && (
-                <a
+                <TextLink
                     href={`/?chapter=${chapterId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="reaction-result-chapter-link"
                 >
                     📖 Study "{chapterName}" in the Tutor →
-                </a>
+                </TextLink>
             )}
 
             {/* Free mode: optional Test Yourself button */}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPhysicsChapterLabFromFirestore } from "@/lib/firestore-lab";
+import { getPhysicsChapterLabFromFirestore } from "@/lib/physics/firestore";
 import { getRequestUserId } from "@/lib/api/shared";
 
 const MAX_CHAPTER_ID_LENGTH = 120;
