@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CurriculumCatalog, SubjectName } from "@/lib/learning-types";
 
+const ALL_SUBJECTS: SubjectName[] = ["Science", "Maths"];
+
 type UseCatalogSelectionArgs = {
   initialCatalog: CurriculumCatalog | null;
   initialSubject: SubjectName;
@@ -16,6 +18,9 @@ export function useCatalogSelection({
 }: UseCatalogSelectionArgs) {
   const [subject, setSubject] = useState<SubjectName>(initialSubject);
   const [catalog, setCatalog] = useState<CurriculumCatalog | null>(initialCatalog);
+  const [catalogBySubject, setCatalogBySubject] = useState<Partial<Record<SubjectName, CurriculumCatalog>>>(
+    initialCatalog ? { [initialSubject]: initialCatalog } : {},
+  );
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [chapterTitle, setChapterTitle] = useState("");
   const [topicId, setTopicId] = useState("");
@@ -55,11 +60,53 @@ export function useCatalogSelection({
     null
     : null;
 
-  // Skip client catalog fetch on first render when server provided initial data.
-  const isFirstRender = useRef(true);
+  async function fetchCatalogForSubject(targetSubject: SubjectName): Promise<CurriculumCatalog> {
+    const res = await fetch(`/api/catalog?subject=${encodeURIComponent(targetSubject)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Failed to load catalog");
+    return data.catalog as CurriculumCatalog;
+  }
+
+  // On first client load, fetch both subjects in parallel and cache them.
+  const prefetchedBothRef = useRef(false);
   useEffect(() => {
-    if (isFirstRender.current && subject === initialSubject) {
-      isFirstRender.current = false;
+    if (prefetchedBothRef.current) return;
+    prefetchedBothRef.current = true;
+
+    let cancelled = false;
+    async function prefetchBothCatalogs() {
+      const missingSubjects = ALL_SUBJECTS.filter((value) => !catalogBySubject[value]);
+      if (missingSubjects.length === 0) return;
+
+      try {
+        const results = await Promise.all(
+          missingSubjects.map(async (value) => [value, await fetchCatalogForSubject(value)] as const),
+        );
+        if (cancelled) return;
+        setCatalogBySubject((prev) => {
+          const next = { ...prev };
+          for (const [value, loadedCatalog] of results) {
+            next[value] = loadedCatalog;
+          }
+          return next;
+        });
+      } catch {
+        // Keep the current subject usable even if background prefetch fails.
+      }
+    }
+
+    void prefetchBothCatalogs();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogBySubject]);
+
+  // On subject change, use cache first; fetch only if cache is missing.
+  useEffect(() => {
+    const cached = catalogBySubject[subject];
+    if (cached) {
+      setCatalog(cached);
+      setCatalogLoading(false);
       return;
     }
 
@@ -68,11 +115,10 @@ export function useCatalogSelection({
       setCatalogLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/catalog?subject=${encodeURIComponent(subject)}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load catalog");
+        const loadedCatalog = await fetchCatalogForSubject(subject);
         if (!cancelled) {
-          setCatalog(data.catalog as CurriculumCatalog);
+          setCatalog(loadedCatalog);
+          setCatalogBySubject((prev) => ({ ...prev, [subject]: loadedCatalog }));
         }
       } catch (err) {
         if (!cancelled) {
@@ -90,7 +136,7 @@ export function useCatalogSelection({
     return () => {
       cancelled = true;
     };
-  }, [initialSubject, setError, subject]);
+  }, [catalogBySubject, setError, subject]);
 
   // Fetch lab chapter metadata used by chapter-level lab deep-link.
   useEffect(() => {
