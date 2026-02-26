@@ -11,6 +11,7 @@ import {
   ExplanationPanel,
   LearnHeader,
   SelfCheckPanel,
+  StoryPanel,
   StudyGuidePanel,
   SubtopicSelector,
   VisualCardsPanel,
@@ -127,6 +128,8 @@ export function LearnCard({
           onNext={handleNextVisualCard}
         />
       )}
+
+      <StoryPanel selectedSubtopic={selectedSubtopic} />
 
       <StudyGuidePanel selectedSubtopic={selectedSubtopic} />
       <ExamplesPanel selectedSubtopic={selectedSubtopic} />

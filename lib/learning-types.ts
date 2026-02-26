@@ -38,6 +38,7 @@ export interface SubtopicKnowledge {
     caption?: string;
   }[];
   questionBank: QuestionItem[];
+  storyImage?: string;
 }
 
 export interface TopicSummary {

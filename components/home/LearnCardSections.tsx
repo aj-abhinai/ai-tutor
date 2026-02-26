@@ -244,6 +244,45 @@ export function VisualCardsPanel({ visualCards, visualIndex, isFlipping, onNext 
   );
 }
 
+interface StoryPanelProps {
+  selectedSubtopic: SubtopicKnowledge | null;
+}
+
+export function StoryPanel({ selectedSubtopic }: StoryPanelProps) {
+  if (!selectedSubtopic) return null;
+
+  const storyImage = selectedSubtopic.storyImage;
+
+  return (
+    <div className="mt-5 rounded-2xl border border-border bg-surface/80 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">Story</div>
+          <div className="text-sm font-semibold text-text">{selectedSubtopic.title}</div>
+        </div>
+      </div>
+      
+      {storyImage ? (
+        <div className="rounded-xl border border-border bg-surface-alt overflow-hidden">
+          <img
+            src={storyImage}
+            alt={`Story for ${selectedSubtopic.title}`}
+            className="h-auto w-full object-contain"
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-alt py-12 text-center">
+          <div className="mb-3 text-4xl">📖</div>
+          <div className="text-sm font-semibold text-text-muted">Story Coming Soon</div>
+          <div className="mt-1 text-xs text-text-muted/70">
+            Fun visual stories for this topic will be available soon!
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface StudyGuidePanelProps {
   selectedSubtopic: SubtopicKnowledge | null;
 }
