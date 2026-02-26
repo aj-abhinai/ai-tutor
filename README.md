@@ -16,6 +16,10 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths through 
 - Catalog loading: `GET /api/catalog`.
 - Lesson loading: `POST /api/explain` (returns `content` and selected `subtopic`).
 - AI routes use DB-loaded subtopic context: `/api/expand`, `/api/deep`, `/api/feedback`.
+- Domain data access is modular:
+  - `lib/chemistry/firestore.ts` for Chemistry Lab data
+  - `lib/physics/firestore.ts` for Physics Lab data
+  - `lib/firestore-lab.ts` is a temporary backward-compatibility shim
 
 ## Tech Stack
 - Next.js App Router, React 19, TypeScript, Tailwind CSS.
@@ -47,6 +51,9 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths through 
 - `POST /api/deep` return long-form deep explanation
 - `POST /api/feedback` return explain-it-back and quiz feedback
 - `POST /api/lab` return lab simulation result + simplified explanation
+- `GET /api/chemistry/chemicals` return available chemistry lab chemicals
+- `GET /api/chemistry/facts` return chemistry facts from Firestore
+- `GET /api/chemistry/experiments` return chemistry experiments from Firestore
 - `GET /api/physics/chapter-lab` return physics chapter lab data from Firestore
 - `GET /api/physics/lab-chapters` return chapter IDs that currently have Physics Lab data
 

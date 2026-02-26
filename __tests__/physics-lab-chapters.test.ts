@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/physics/lab-chapters/route";
-import { getPhysicsLabChapterIdsFromFirestore } from "@/lib/firestore-lab";
+import { getPhysicsLabChapterIdsFromFirestore } from "@/lib/physics/firestore";
 import { getRequestUserId } from "@/lib/api/shared";
 
-jest.mock("@/lib/firestore-lab", () => ({
+jest.mock("@/lib/physics/firestore", () => ({
     getPhysicsLabChapterIdsFromFirestore: jest.fn(),
 }));
 jest.mock("@/lib/api/shared", () => ({

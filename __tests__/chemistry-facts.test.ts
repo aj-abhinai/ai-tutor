@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/chemistry/facts/route";
-import { getChemicalFactsFromFirestore } from "@/lib/firestore-lab";
+import { getChemicalFactsFromFirestore } from "@/lib/chemistry/firestore";
 import { getRequestUserId } from "@/lib/api/shared";
 
-jest.mock("@/lib/firestore-lab", () => ({
+jest.mock("@/lib/chemistry/firestore", () => ({
     getChemicalFactsFromFirestore: jest.fn(),
 }));
 jest.mock("@/lib/api/shared", () => ({
