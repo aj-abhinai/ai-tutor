@@ -12,9 +12,10 @@ const EXPLAIN_LEVELS: ExplainLevel[] = ["simple", "standard", "deep"];
 interface LearnHeaderProps {
   explainLevel: ExplainLevel;
   onExplainLevelChange: (level: ExplainLevel) => void;
+  onOpenNotes?: () => void;
 }
 
-export function LearnHeader({ explainLevel, onExplainLevelChange }: LearnHeaderProps) {
+export function LearnHeader({ explainLevel, onExplainLevelChange, onOpenNotes }: LearnHeaderProps) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -38,6 +39,17 @@ export function LearnHeader({ explainLevel, onExplainLevelChange }: LearnHeaderP
           </Button>
         ))}
       </div>
+      {onOpenNotes && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onOpenNotes}
+          className="!rounded-full !px-3 !py-1"
+        >
+          Notes
+        </Button>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
 import { requestDeepEssay, requestFeedback } from "@/components/home/client-api";
 import { useCatalogSelection } from "@/components/home/hooks/useCatalogSelection";
 import { useTutorAudio } from "@/components/home/hooks/useTutorAudio";
+import { TopicNotesPanel } from "@/components/notes/TopicNotesPanel";
 
 const LearnCard = dynamic(
   () => import("@/components/home/LearnCard").then((m) => m.LearnCard)
@@ -77,6 +78,7 @@ export default function ClientPage({
   const [deepLoading, setDeepLoading] = useState(false);
   const [deepError, setDeepError] = useState("");
   const [deepCooldownUntil, setDeepCooldownUntil] = useState<number | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   // Manage catalog/selection effects in one place.
   const {
@@ -532,6 +534,15 @@ export default function ClientPage({
     resetLessonState();
   };
 
+  const handleOpenNotes = () => {
+    if (!selectedChapter || !selectedTopic) {
+      setError("Please choose a chapter and topic first.");
+      return;
+    }
+    if (!requireLoginFor("topic notes")) return;
+    setNotesOpen(true);
+  };
+
   return (
     <main className="min-h-screen relative overflow-hidden bg-background px-6 py-8 flex flex-col items-center">
       {/* Decorative background orbs */}
@@ -663,6 +674,7 @@ export default function ClientPage({
               explainFeedback={explainFeedback}
               selfCheck={selfCheck}
               onSelfCheckChange={(value) => setSelfCheck(value)}
+              onOpenNotes={handleOpenNotes}
             />
           )}
 
@@ -696,6 +708,21 @@ export default function ClientPage({
           )}
         </div>
       </div>
+      <TopicNotesPanel
+        open={notesOpen}
+        onClose={() => setNotesOpen(false)}
+        context={
+          selectedChapter && selectedTopic
+            ? {
+                subject,
+                chapterId: selectedChapter.id,
+                chapterTitle: selectedChapter.title,
+                topicId: selectedTopic.id,
+                topicTitle: selectedTopic.title,
+              }
+            : null
+        }
+      />
     </main>
   );
 }

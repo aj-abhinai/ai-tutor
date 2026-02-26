@@ -35,14 +35,19 @@ export function Select({
     );
 
     useEffect(() => {
-        function handlePointerDown(event: MouseEvent) {
+        function handlePointerDown(event: PointerEvent) {
             if (!rootRef.current?.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         }
-        document.addEventListener("mousedown", handlePointerDown);
-        return () => document.removeEventListener("mousedown", handlePointerDown);
+        document.addEventListener("pointerdown", handlePointerDown);
+        return () => document.removeEventListener("pointerdown", handlePointerDown);
     }, []);
+
+    useEffect(() => {
+        // Keep dropdown state consistent when parent-controlled value changes.
+        setIsOpen(false);
+    }, [currentValue]);
 
     function handleSelect(nextValue: string) {
         if (disabled) return;
@@ -59,7 +64,7 @@ export function Select({
         : "bg-surface/90 border-border text-text hover:border-accent focus-visible:border-secondary focus-visible:ring-2 focus-visible:ring-secondary-light cursor-pointer";
 
     return (
-        <label className="block">
+        <div className="block">
             {label && (
                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-muted">
                     {label}
@@ -138,6 +143,6 @@ export function Select({
                     </option>
                 ))}
             </select>
-        </label>
+        </div>
     );
 }

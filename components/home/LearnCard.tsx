@@ -39,6 +39,7 @@ interface LearnCardProps {
   explainFeedback: ExplainFeedback | null;
   selfCheck: "confident" | "unsure" | null;
   onSelfCheckChange: (value: "confident" | "unsure") => void;
+  onOpenNotes?: () => void;
 }
 
 export function LearnCard({
@@ -63,6 +64,7 @@ export function LearnCard({
   explainFeedback,
   selfCheck,
   onSelfCheckChange,
+  onOpenNotes,
 }: LearnCardProps) {
   const bulletPoints = explainLevel === "deep" ? [] : data.bulletPoints?.[explainLevel] ?? [];
   const explanationHtml = data.quickExplanation;
@@ -92,7 +94,11 @@ export function LearnCard({
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
-      <LearnHeader explainLevel={explainLevel} onExplainLevelChange={onExplainLevelChange} />
+      <LearnHeader
+        explainLevel={explainLevel}
+        onExplainLevelChange={onExplainLevelChange}
+        onOpenNotes={onOpenNotes}
+      />
 
       <SubtopicSelector
         selectedTopic={selectedTopic}

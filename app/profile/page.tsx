@@ -150,6 +150,9 @@ export default function ProfilePage() {
           >
             {saving ? "Saving..." : "Save name"}
           </Button>
+          <LinkButton href="/notes" variant="outline" size="md" className="w-full py-2 text-sm text-center">
+            My Notes
+          </LinkButton>
         </form>
       </Card>
     </main>
