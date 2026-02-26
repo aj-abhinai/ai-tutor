@@ -153,6 +153,9 @@ export default function ProfilePage() {
           <LinkButton href="/notes" variant="outline" size="md" className="w-full py-2 text-sm text-center">
             My Notes
           </LinkButton>
+          <LinkButton href="/progress" variant="secondary" size="md" className="w-full py-2 text-sm text-center">
+            View Progress
+          </LinkButton>
         </form>
       </Card>
     </main>

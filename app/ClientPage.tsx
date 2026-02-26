@@ -485,7 +485,8 @@ export default function ClientPage({
 
           {/* Learn card (text + activities) */}
           {activeCard === "learn" && data && !loading && (
-            <LearnCard
+            <article id="tour-explain-section">
+              <LearnCard
               data={data}
               selectedTopic={selectedTopic}
               selectedSubtopic={selectedSubtopic}
@@ -509,6 +510,7 @@ export default function ClientPage({
               onSelfCheckChange={(value) => setSelfCheck(value)}
               onOpenNotes={handleOpenNotes}
             />
+          </article>
           )}
 
           {/* Listen card (TTS) */}

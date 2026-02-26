@@ -9,6 +9,7 @@ import { LinkButton } from "@/components/ui/LinkButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { recordTestCompletion } from "@/components/progress";
 
 interface ChapterQuestion {
   chapterId: string;
@@ -95,12 +96,27 @@ export default function UnittestClientPage() {
     setChapterSubmitted(true);
   };
 
-  const handleNextChapter = () => {
+  const handleNextChapter = async () => {
     if (currentChapterIndex < questions.length - 1) {
       setCurrentChapterIndex((prev) => prev + 1);
       setCurrentAnswer("");
       setChapterSubmitted(false);
     } else {
+      // Record progress for each completed chapter
+      if (user) {
+        try {
+          for (const q of questions) {
+            await recordTestCompletion(
+              `${selectedSubject}-${q.chapterId}`,
+              `${q.chapterTitle} - Unit Test`,
+              q.chapterId,
+              q.chapterTitle
+            );
+          }
+        } catch {
+          // Silently fail - don't block UI
+        }
+      }
       setTestState("results");
     }
   };
