@@ -94,7 +94,22 @@ export function InputPanel({
           )}
         </div>
 
-        <div className="flex-shrink-0 pt-8">
+        <div className="flex-shrink-0 pt-8 flex gap-2">
+          <LinkButton
+            href={user ? "/quick-revision" : "#"}
+            onClick={(event) => {
+              if (user) return;
+              event.preventDefault();
+              onRequireLogin?.("Quick Revision");
+            }}
+            onMouseEnter={() => void import("@/app/quick-revision/page")}
+            onFocus={() => void import("@/app/quick-revision/page")}
+            variant="neutral"
+            size="md"
+            className="rounded-full bg-white border border-border text-text hover:bg-surface whitespace-nowrap"
+          >
+            Quick Revision
+          </LinkButton>
           <LinkButton
             href={user ? "/unittest" : "#"}
             onClick={(event) => {
