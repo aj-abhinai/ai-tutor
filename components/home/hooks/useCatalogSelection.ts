@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CurriculumCatalog, SubjectName } from "@/lib/learning-types";
+import type { CurriculumCatalog, SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 
 const ALL_SUBJECTS: SubjectName[] = ["Science", "Maths"];
 
@@ -55,9 +55,9 @@ export function useCatalogSelection({
     : null;
 
   const selectedSubtopicRef = selectedTopic
-    ? selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
-    selectedTopic.subtopics[0] ??
-    null
+    ? (selectedTopic.subtopics.find((subtopic) => subtopic.id === subtopicId) ??
+      selectedTopic.subtopics[0] ??
+      null) as SubtopicKnowledge | null
     : null;
 
   async function fetchCatalogForSubject(targetSubject: SubjectName): Promise<CurriculumCatalog> {

@@ -56,6 +56,16 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: [
+      "framer-motion",
+      "@xyflow/react",
+      "katex",
+      "firebase",
+      "firebase/auth",
+      "firebase/firestore",
+    ],
+  },
   async headers() {
     return [
       {

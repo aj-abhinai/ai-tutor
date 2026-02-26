@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/TextArea";
@@ -246,7 +248,7 @@ interface StudyGuidePanelProps {
   selectedSubtopic: SubtopicKnowledge | null;
 }
 
-export function StudyGuidePanel({ selectedSubtopic }: StudyGuidePanelProps) {
+export const StudyGuidePanel = memo(function StudyGuidePanel({ selectedSubtopic }: StudyGuidePanelProps) {
   if (!selectedSubtopic) return null;
 
   return (
@@ -276,7 +278,7 @@ export function StudyGuidePanel({ selectedSubtopic }: StudyGuidePanelProps) {
       </div>
     </details>
   );
-}
+});
 
 interface ExamplesPanelProps {
   selectedSubtopic: SubtopicKnowledge | null;
