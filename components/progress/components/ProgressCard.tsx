@@ -18,6 +18,7 @@ interface ProgressCardProps {
   isLoading?: boolean;
 }
 
+// Main progress display card with stats and list
 export function ProgressCard({
   totalCompleted,
   streakDays,

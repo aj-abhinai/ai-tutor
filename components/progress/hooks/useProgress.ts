@@ -22,6 +22,7 @@ interface UseProgressReturn {
   refresh: () => Promise<void>;
 }
 
+// Hook to manage student progress state
 export function useProgress(): UseProgressReturn {
   const { user } = useAuth();
   const [progress, setProgress] = useState<StudentProgressView | null>(null);

@@ -5,6 +5,7 @@ interface ProgressStatsProps {
   streakDays: number;
 }
 
+// Stats display: total completed & streak days
 export function ProgressStats({ totalCompleted, streakDays }: ProgressStatsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">

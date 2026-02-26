@@ -3,6 +3,7 @@
 import { getFirestoreClient } from "@/lib/firebase-admin";
 import type { StudentProgress, UnitTestResult } from "@/lib/profile-types";
 
+// Firestore progress operations for student progress tracking
 const PROGRESS_COLLECTION = "student_progress";
 
 function getTodayDate(): string {
@@ -15,6 +16,7 @@ function getYesterdayDate(): string {
   return d.toISOString().split("T")[0];
 }
 
+// Get student progress from Firestore
 export async function getStudentProgress(
   userId: string
 ): Promise<StudentProgress | null> {
@@ -24,6 +26,7 @@ export async function getStudentProgress(
   return doc.data() as StudentProgress;
 }
 
+// Ensure progress doc exists, create if not
 export async function ensureStudentProgress(
   userId: string
 ): Promise<StudentProgress> {
@@ -50,6 +53,7 @@ export async function ensureStudentProgress(
   return progress;
 }
 
+// Record a unit test completion, update streak
 export async function recordUnitTestCompletion(
   userId: string,
   testId: string,

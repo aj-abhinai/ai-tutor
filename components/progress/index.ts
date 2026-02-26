@@ -1,3 +1,4 @@
+// Progress components, hooks, and API exports
 export { useProgress } from "./hooks/useProgress";
 export { getProgress, recordTestCompletion } from "./api/client";
 export { ProgressCard } from "./components/ProgressCard";

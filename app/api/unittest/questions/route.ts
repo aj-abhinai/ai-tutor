@@ -3,6 +3,7 @@ import { getFirestoreClient } from "@/lib/firebase-admin";
 import { isValidSubject } from "@/lib/api/shared";
 import type { QuestionItem, SubtopicKnowledge } from "@/lib/learning-types";
 
+// GET /api/unittest/questions - fetch quiz questions
 export async function GET(request: NextRequest) {
   const subject = request.nextUrl.searchParams.get("subject");
   if (!subject || !isValidSubject(subject)) {

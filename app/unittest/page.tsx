@@ -17,6 +17,7 @@ function PageSkeleton() {
     );
 }
 
+// Unit test page
 export default function Page() {
     return (
         <Suspense fallback={<PageSkeleton />}>

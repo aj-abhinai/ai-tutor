@@ -15,6 +15,7 @@ import {
 } from "@/lib/progress/firestore";
 import type { StudentProgressView } from "@/lib/profile-types";
 
+// Rate limiter: 30 requests per minute
 const rateLimiter = createRateLimiter(60 * 1000, 30);
 
 const RecordCompletionSchema = z.object({
@@ -29,6 +30,7 @@ const NO_STORE_HEADERS = {
   "Cache-Control": "no-store, private",
 };
 
+// GET /api/progress - fetch user progress
 export async function GET(request: NextRequest) {
   const userId = await getRequestUserId(request);
   if (!userId) {
@@ -66,6 +68,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/progress - record test completion
 export async function POST(request: NextRequest) {
   const userId = await getRequestUserId(request);
   if (!userId) {

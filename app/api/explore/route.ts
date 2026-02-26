@@ -31,6 +31,7 @@ Rules:
 
 User's question: `;
 
+// POST /api/explore - AI search endpoint
 export async function POST(request: NextRequest) {
   const userId = await getRequestUserId(request);
   const rateLimitKey = userId || request.headers.get("x-forwarded-for") || "unknown";

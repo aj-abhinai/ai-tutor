@@ -4,6 +4,7 @@ import type { StudentProgressView, UnitTestResult } from "@/lib/profile-types";
 
 export type { StudentProgressView, UnitTestResult };
 
+// Fetch progress from API
 export async function getProgress(): Promise<StudentProgressView> {
   const { getAuthHeaders } = await import("@/lib/auth-client");
   const authHeaders = await getAuthHeaders();
@@ -21,6 +22,7 @@ export async function getProgress(): Promise<StudentProgressView> {
   return response.json();
 }
 
+// Submit test completion to API
 export async function recordTestCompletion(
   testId: string,
   testTitle: string,

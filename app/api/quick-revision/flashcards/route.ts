@@ -11,6 +11,7 @@ interface Flashcard {
   definition: string;
 }
 
+// GET /api/quick-revision/flashcards - fetch flashcards
 export async function GET(request: NextRequest) {
   const subject = request.nextUrl.searchParams.get("subject");
   if (!subject || !isValidSubject(subject)) {

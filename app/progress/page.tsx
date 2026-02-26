@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { ProgressCard } from "@/components/progress/components/ProgressCard";
 import { ProgressEmpty } from "@/components/progress/components/ProgressEmpty";
 
+// Progress page - shows student progress and streak
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
   const { progress, isLoading, error } = useProgress();

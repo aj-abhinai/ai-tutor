@@ -17,6 +17,7 @@ function PageSkeleton() {
     );
 }
 
+// Quick revision page - flashcard review
 export default function Page() {
     return (
         <Suspense fallback={<PageSkeleton />}>

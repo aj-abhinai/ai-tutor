@@ -26,6 +26,7 @@ interface ChapterGroup {
 
 type RevisionState = "select" | "reviewing";
 
+// Quick revision client - flashcard review flow
 export default function QuickRevisionClientPage() {
   const { user } = useAuth();
   const [selectedSubject, setSelectedSubject] = useState<SubjectName>("Science");

@@ -25,6 +25,7 @@ interface ChapterResult {
 
 type TestState = "select" | "testing" | "results";
 
+// Unit test client - quiz flow
 export default function UnittestClientPage() {
   const { user } = useAuth();
   const [selectedSubject, setSelectedSubject] = useState<SubjectName>("Science");

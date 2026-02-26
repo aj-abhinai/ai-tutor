@@ -27,6 +27,7 @@ function formatDate(timestamp: number): string {
   }
 }
 
+// List of recent test completions
 export function ProgressList({ completions }: ProgressListProps) {
   if (completions.length === 0) {
     return null;

@@ -31,6 +31,7 @@ const TOPIC_TAGS = [
   { value: "geometry", label: "Geometry", color: "sky" },
 ];
 
+// Explore client - AI search interface
 export function ExploreClient() {
   const { user, loading: authLoading } = useAuth();
   const [query, setQuery] = useState("");

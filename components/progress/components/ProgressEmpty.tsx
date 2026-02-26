@@ -7,6 +7,7 @@ interface ProgressEmptyProps {
   message?: string;
 }
 
+// Empty state when no progress yet
 export function ProgressEmpty({
   message = "No unit tests completed yet. Start learning to track your progress!",
 }: ProgressEmptyProps) {

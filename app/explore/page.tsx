@@ -17,6 +17,7 @@ function PageSkeleton() {
   );
 }
 
+// Explore page - AI Q&A
 export default function ExplorePage() {
   return (
     <Suspense fallback={<PageSkeleton />}>
