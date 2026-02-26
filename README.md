@@ -57,26 +57,7 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths through 
 - `GET /api/physics/chapter-lab` return physics chapter lab data from Firestore
 - `GET /api/physics/lab-chapters` return chapter IDs that currently have Physics Lab data
 
-## Subtopic RAG Pipeline (Developer Ingestion)
-- Developer-only ingest script (no frontend upload):
-  - `npm run ingest:subtopic -- --subject Science --chapterId chapter-3 --topicId topic-3-1 --subtopicId subtopic-3-1-a --title "Heat Transfer" --pdfPath "D:\\docs\\heat-transfer.pdf"`
-- Optional admin API ingestion:
-  - `POST /api/rag/ingest` with `x-rag-admin-token: <RAG_INGEST_ADMIN_TOKEN>`
-  - JSON body: `{ subject, chapterId, topicId, subtopicId, title, sourceName?, pdfBase64 }`
-- Runtime RAG answer API:
-  - `POST /api/rag/query` with `{ subject, chapterId, topicId, subtopicId, question, topK?, lane? }`
-  - `lane`: `facts | activities | both`
-- Generated question-bank API:
-  - `POST /api/rag/questions` with `{ subject, chapterId, topicId, subtopicId, limit? }`
-
-### RAG Firestore Collections
-- `subtopic_documents` full extracted markdown per subtopic
-- `subtopic_facts` factual chunks + embeddings
-- `subtopic_activities` activity chunks + embeddings
-- `subtopic_questions` generated exam/practice questions
-
-### RAG Environment Variables
-- `GEMINI_API_KEY` required for extraction, embedding, and answer generation
-- `RAG_INGEST_ADMIN_TOKEN` required only for `POST /api/rag/ingest`
-- Firebase Admin credentials (already used by existing API routes)
+## RAG Status
+- RAG routes are currently disabled by default.
+- They can be enabled explicitly for future scope with `ENABLE_RAG_ROUTES=true`.
 

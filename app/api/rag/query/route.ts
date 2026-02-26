@@ -3,7 +3,18 @@ import { parseCurriculumRequest } from "@/lib/api/middleware";
 import { RagQueryBodySchema } from "@/lib/api/validation";
 import { answerSubtopicQuestion } from "@/lib/rag-pipeline";
 
+function isRagEnabled(): boolean {
+  return process.env.ENABLE_RAG_ROUTES === "true";
+}
+
 export async function POST(request: NextRequest) {
+  if (!isRagEnabled()) {
+    return NextResponse.json(
+      { error: "RAG routes are disabled.", code: "RAG_DISABLED" },
+      { status: 503 },
+    );
+  }
+
   const parsed = await parseCurriculumRequest(request, RagQueryBodySchema, { requireAuth: true });
   if (!parsed.ok) return parsed.response;
 

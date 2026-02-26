@@ -6,6 +6,10 @@ import { ingestSubtopicPdf } from "@/lib/rag-pipeline";
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
+function isRagEnabled(): boolean {
+  return process.env.ENABLE_RAG_ROUTES === "true";
+}
+
 function hasAdminToken(request: NextRequest): boolean {
   const expected = process.env.RAG_INGEST_ADMIN_TOKEN;
   if (!expected) return false;
@@ -26,6 +30,13 @@ function decodeBase64Pdf(pdfBase64: string): Uint8Array {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isRagEnabled()) {
+    return NextResponse.json(
+      { error: "RAG routes are disabled.", code: "RAG_DISABLED" },
+      { status: 503 },
+    );
+  }
+
   if (!hasAdminToken(request)) {
     return NextResponse.json(
       { error: "Missing or invalid ingest admin token", code: "UNAUTHORIZED" },
