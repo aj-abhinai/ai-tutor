@@ -10,6 +10,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { StatusCard } from "@/components/ui/StatusCard";
+import { TourModal, useTour } from "@/components/ui/TourModal";
 import { CardNav } from "@/components/home/CardNav";
 import { InputPanel } from "@/components/home/InputPanel";
 import { PageHeader } from "@/components/home/PageHeader";
@@ -57,6 +58,7 @@ export default function ClientPage({
   initialSubject: SubjectName;
 }) {
   const { user } = useAuth();
+  const { showTour, closeTour, tourReady } = useTour();
   const [isLessonPending, startLessonTransition] = useTransition();
   const [showLoginNudge, setShowLoginNudge] = useState(false);
   const [loginNudgeAction, setLoginNudgeAction] = useState<string>("this feature");
@@ -368,7 +370,9 @@ export default function ClientPage({
   };
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-background px-6 py-8 flex flex-col items-center">
+    <>
+      {tourReady && <TourModal isOpen={showTour} onClose={closeTour} />}
+      <main className="min-h-screen relative overflow-hidden bg-background px-6 py-8 flex flex-col items-center">
       {/* Decorative background orbs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-secondary-light/40 blur-3xl" />
@@ -553,6 +557,7 @@ export default function ClientPage({
         }
       />
     </main>
+    </>
   );
 }
 

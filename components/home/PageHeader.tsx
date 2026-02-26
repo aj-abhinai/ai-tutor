@@ -30,6 +30,13 @@ export function PageHeader() {
           {!loading && user ? (
             <>
               <Link
+                href="/explore"
+                className="rounded-full border border-secondary/30 bg-secondary-light px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary-light/80"
+                title="Explore - Ask anything about your topics"
+              >
+                Explore
+              </Link>
+              <Link
                 href="/profile"
                 className="rounded-full border border-border bg-surface/80 px-3 py-1 text-xs font-semibold text-text hover:bg-surface"
                 title="Open student profile"
