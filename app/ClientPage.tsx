@@ -450,6 +450,7 @@ export default function ClientPage({
           onTopicChange={handleTopicChange}
           isTopicDisabled={isTopicDisabled}
           showChapterWarning={showChapterWarning}
+          onRequireLogin={requireLoginFor}
         />
 
         {/* Learn / Listen / Quiz navigation */}
