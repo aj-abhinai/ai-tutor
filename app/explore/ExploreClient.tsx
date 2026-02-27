@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
-import ReactMarkdown from "react-markdown";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { StatusCard } from "@/components/ui/StatusCard";
+
+const ReactMarkdown = lazy(() => import("react-markdown"));
 
 interface ChatMessage {
   id: string;
@@ -30,6 +31,37 @@ const TOPIC_TAGS = [
   { value: "algebra", label: "Algebra", color: "rose" },
   { value: "geometry", label: "Geometry", color: "sky" },
 ];
+
+const TAG_COLORS: Record<string, Record<string, string>> = {
+  science: { selected: "bg-secondary text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  maths: { selected: "bg-warning text-text", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  physics: { selected: "bg-accent text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  chemistry: { selected: "bg-secondary text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  biology: { selected: "bg-accent text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  algebra: { selected: "bg-accent text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+  geometry: { selected: "bg-error text-white", unselected: "bg-surface border border-border text-text-muted hover:border-secondary" },
+};
+
+const getTagClass = (tag: string, selected: boolean): string => {
+  const colors = TAG_COLORS[tag];
+  if (!colors) return "bg-surface border border-border text-text-muted hover:border-secondary";
+  return selected ? colors.selected : colors.unselected;
+};
+
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }: { children?: React.ReactNode }) => <p className="mb-2 last:mb-0">{children}</p>,
+  ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+  ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+  li: ({ children }: { children?: React.ReactNode }) => <li className="mb-1">{children}</li>,
+  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold">{children}</strong>,
+  em: ({ children }: { children?: React.ReactNode }) => <em>{children}</em>,
+  code: ({ children }: { children?: React.ReactNode }) => <code className="bg-muted-bg px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+  pre: ({ children }: { children?: React.ReactNode }) => <pre className="bg-muted-bg p-3 rounded-lg overflow-x-auto mb-2 text-xs">{children}</pre>,
+  blockquote: ({ children }: { children?: React.ReactNode }) => <blockquote className="border-l-2 border-secondary pl-3 italic text-text-muted">{children}</blockquote>,
+  h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+  h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-base font-semibold mb-2">{children}</h2>,
+  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+};
 
 // Explore client - AI chat interface
 export function ExploreClient() {
@@ -54,13 +86,13 @@ export function ExploreClient() {
     await signOut(auth);
   };
 
-  const toggleTag = (tag: string) => {
+  const toggleTag = useCallback((tag: string) => {
     startTransition(() => {
       setSelectedTags((prev) =>
         prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
       );
     });
-  };
+  }, []);
 
   const handleSendMessage = async () => {
     if (!query.trim() || isSearching) return;
@@ -235,13 +267,7 @@ export function ExploreClient() {
               <button
                 key={tag.value}
                 onClick={() => toggleTag(tag.value)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  selectedTags.includes(tag.value)
-                    ? tag.color === "secondary"
-                      ? "bg-secondary text-white"
-                      : "bg-warning text-text"
-                    : "bg-surface border border-border text-text-muted hover:border-secondary"
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${getTagClass(tag.value, selectedTags.includes(tag.value))}`}
               >
                 {tag.label}
               </button>
@@ -250,19 +276,7 @@ export function ExploreClient() {
               <button
                 key={tag.value}
                 onClick={() => toggleTag(tag.value)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  selectedTags.includes(tag.value)
-                    ? tag.color === "teal"
-                      ? "bg-accent text-white"
-                      : tag.color === "indigo"
-                      ? "bg-secondary text-white"
-                      : tag.color === "emerald"
-                      ? "bg-accent text-white"
-                      : tag.color === "rose"
-                      ? "bg-error text-white"
-                      : "bg-accent text-white"
-                    : "bg-surface border border-border text-text-muted hover:border-secondary"
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${getTagClass(tag.value, selectedTags.includes(tag.value))}`}
               >
                 {tag.label}
               </button>
@@ -304,24 +318,11 @@ export function ExploreClient() {
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   ) : (
                     <div className="prose prose-sm max-w-none text-text">
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                          em: ({ children }) => <em>{children}</em>,
-                          code: ({ children }) => <code className="bg-muted-bg px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
-                          pre: ({ children }) => <pre className="bg-muted-bg p-3 rounded-lg overflow-x-auto mb-2 text-xs">{children}</pre>,
-                          blockquote: ({ children }) => <blockquote className="border-l-2 border-secondary pl-3 italic text-text-muted">{children}</blockquote>,
-                          h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      <Suspense fallback={<p className="text-text-muted">Loading...</p>}>
+                        <ReactMarkdown components={MARKDOWN_COMPONENTS}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </Suspense>
                     </div>
                   )}
                   {message.role === "assistant" && message.sources && message.sources.length > 0 && (
