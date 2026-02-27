@@ -1,0 +1,9 @@
+# Developer-only Python seeder (exclude from deployment upload/build context)
+scripts/ncert-seeder/**
+
+# Local Python virtual environment
+.venv/
+
+# Python caches
+**/__pycache__/
+*.pyc

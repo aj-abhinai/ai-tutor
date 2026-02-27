@@ -211,9 +211,10 @@ export function useCatalogSelection({
       return;
     }
     if (!chapterTitle || !chapters.some((chapter) => chapter.id === chapterTitle)) {
-      setChapterTitle(pickDefaultChapterId(subject, catalog));
+      const effectiveSubject = (catalog?.subject ?? subject) as SubjectName;
+      setChapterTitle(pickDefaultChapterId(effectiveSubject, catalog));
     }
-  }, [catalog, chapterTitle, subject]);
+  }, [catalog, chapterTitle]);
 
   // Keep topic/subtopic aligned with active chapter.
   useEffect(() => {
