@@ -32,6 +32,11 @@ function humanizeId(id: string): string {
     .join(" ");
 }
 
+function isPlaceholderChapterTitle(value: string | undefined): boolean {
+  const title = (value || "").trim().toLowerCase();
+  return !title || title === "detected chapter" || title === "chapter";
+}
+
 export async function getSubtopicFromDB(
   subject: string,
   chapterId: string,
@@ -79,7 +84,9 @@ const getCachedCatalog = unstable_cache(
 
       if (!chapterId || !topicId || !subtopicId) continue;
 
-      const chapterTitle = data.chapterTitle || humanizeId(chapterId);
+      const chapterTitle = isPlaceholderChapterTitle(data.chapterTitle)
+        ? humanizeId(chapterId)
+        : (data.chapterTitle as string);
       const topicTitle = data.topicTitle || humanizeId(topicId);
       const subtopicTitle = data.content?.title || data.subtopicTitle || humanizeId(subtopicId);
 

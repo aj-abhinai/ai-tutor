@@ -11,6 +11,35 @@ type UseCatalogSelectionArgs = {
   setError: (message: string) => void;
 };
 
+function pickDefaultChapterId(subject: SubjectName, catalog: CurriculumCatalog | null): string {
+  const chapters = catalog?.chapters ?? [];
+  if (chapters.length === 0) return "";
+
+  if (subject !== "Science") {
+    return chapters[0].id;
+  }
+
+  let bestId = chapters[0].id;
+  let bestScore = -1;
+
+  for (const chapter of chapters) {
+    const text = `${chapter.id} ${chapter.title}`.toLowerCase();
+    let score = 0;
+
+    if (text.includes("electricity") || text.includes("electric")) score += 3;
+    if (text.includes("circuit") || text.includes("circuits")) score += 3;
+    if (text.includes("component") || text.includes("components")) score += 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = chapter.id;
+    }
+  }
+
+  // Only enforce special default if we found a meaningful match.
+  return bestScore > 0 ? bestId : chapters[0].id;
+}
+
 export function useCatalogSelection({
   initialCatalog,
   initialSubject,
@@ -182,9 +211,9 @@ export function useCatalogSelection({
       return;
     }
     if (!chapterTitle || !chapters.some((chapter) => chapter.id === chapterTitle)) {
-      setChapterTitle(chapters[0].id);
+      setChapterTitle(pickDefaultChapterId(subject, catalog));
     }
-  }, [catalog, chapterTitle]);
+  }, [catalog, chapterTitle, subject]);
 
   // Keep topic/subtopic aligned with active chapter.
   useEffect(() => {
