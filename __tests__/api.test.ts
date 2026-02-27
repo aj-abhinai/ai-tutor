@@ -6,15 +6,23 @@
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/explain/route";
-import { getRequestUserId } from "@/lib/api/shared";
+import {
+  createGeminiModel,
+  getRequestUserId,
+  hasAiRouteAccess,
+} from "@/lib/api/shared";
 import { getSubtopicFromDB } from "@/lib/rag";
 import { MOCK_SUBTOPIC } from "./fixtures/subtopic";
+
+const generateContentMock = jest.fn();
 
 jest.mock("@/lib/api/shared", () => {
   const actual = jest.requireActual("@/lib/api/shared");
   return {
     ...actual,
+    createGeminiModel: jest.fn(),
     getRequestUserId: jest.fn(),
+    hasAiRouteAccess: jest.fn(),
   };
 });
 
@@ -24,6 +32,8 @@ jest.mock("@/lib/rag", () => ({
 
 const getSubtopicFromDBMock = getSubtopicFromDB as jest.MockedFunction<typeof getSubtopicFromDB>;
 const getRequestUserIdMock = getRequestUserId as jest.MockedFunction<typeof getRequestUserId>;
+const hasAiRouteAccessMock = hasAiRouteAccess as jest.MockedFunction<typeof hasAiRouteAccess>;
+const createGeminiModelMock = createGeminiModel as jest.MockedFunction<typeof createGeminiModel>;
 
 interface TutorResponse {
   content: {
@@ -64,10 +74,17 @@ const makeRawRequest = (rawBody: string, headers: Record<string, string> = {}) =
 
 describe("/api/explain - Standard 7 Tutor API", () => {
   beforeEach(() => {
+    createGeminiModelMock.mockReset();
+    createGeminiModelMock.mockReturnValue({
+      generateContent: generateContentMock,
+    } as unknown as ReturnType<typeof createGeminiModel>);
+    generateContentMock.mockReset();
     getSubtopicFromDBMock.mockReset();
     getSubtopicFromDBMock.mockResolvedValue(MOCK_SUBTOPIC);
     getRequestUserIdMock.mockReset();
     getRequestUserIdMock.mockResolvedValue("student-1");
+    hasAiRouteAccessMock.mockReset();
+    hasAiRouteAccessMock.mockReturnValue(true);
   });
 
   describe("Input validation", () => {
@@ -200,6 +217,171 @@ describe("/api/explain - Standard 7 Tutor API", () => {
       expect(response.status).toBe(200);
       const data = (await response.json()) as TutorResponse;
       expect(data.content.curiosityQuestion).toBeDefined();
+    });
+  });
+
+  describe("Feedback mode", () => {
+    it("rejects feedback requests without AI route access", async () => {
+      hasAiRouteAccessMock.mockReturnValueOnce(false);
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "Current flows through a closed loop.",
+        })
+      );
+
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.code).toBe("UNAUTHORIZED");
+      expect(createGeminiModelMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects too-long feedback answers", async () => {
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "a".repeat(601),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("600 characters or less");
+      expect(createGeminiModelMock).not.toHaveBeenCalled();
+    });
+
+    it("returns 500 when Gemini model is unavailable", async () => {
+      createGeminiModelMock.mockReturnValueOnce(null);
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "Current flows through a closed loop.",
+        })
+      );
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.code).toBe("AI_UNAVAILABLE");
+    });
+
+    it("returns 502 with details in non-production on model failure", async () => {
+      generateContentMock.mockRejectedValueOnce(new Error("gemini boom"));
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "Current flows through a closed loop.",
+        })
+      );
+
+      expect(response.status).toBe(502);
+      const data = await response.json();
+      expect(data.code).toBe("AI_FAILURE");
+      expect(data.details).toContain("gemini boom");
+    });
+
+    it("returns 502 without details in production on model failure", async () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+
+      try {
+        generateContentMock.mockRejectedValueOnce(new Error("prod boom"));
+
+        const response = await POST(
+          makeJsonRequest({
+            ...VALID_BODY,
+            mode: "feedback",
+            studentAnswer: "Current flows through a closed loop.",
+          })
+        );
+
+        expect(response.status).toBe(502);
+        const data = await response.json();
+        expect(data.code).toBe("AI_FAILURE");
+        expect(data.details).toBeUndefined();
+      } finally {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("returns 502 when model output is invalid JSON", async () => {
+      generateContentMock.mockResolvedValueOnce({
+        response: { text: () => "not json" },
+      });
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "Current flows through a closed loop.",
+        })
+      );
+
+      expect(response.status).toBe(502);
+      const data = await response.json();
+      expect(data.error).toContain("invalid JSON");
+    });
+
+    it("returns 502 when model JSON shape is missing fields", async () => {
+      generateContentMock.mockResolvedValueOnce({
+        response: {
+          text: () =>
+            JSON.stringify({
+              rating: "good start",
+              praise: "Nice effort",
+              fix: "Add what happens in open circuits",
+            }),
+        },
+      });
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: "Current flows through a closed loop.",
+        })
+      );
+
+      expect(response.status).toBe(502);
+      const data = await response.json();
+      expect(data.error).toContain("unexpected response");
+    });
+
+    it("returns normalized feedback in success path", async () => {
+      generateContentMock.mockResolvedValueOnce({
+        response: {
+          text: () =>
+            JSON.stringify({
+              rating: " great ",
+              praise: " Right: You explained current flow. ",
+              fix: " Add that open circuits stop current. ",
+              rereadTip: " Re-read closed and open circuits. ",
+            }),
+        },
+      });
+
+      const response = await POST(
+        makeJsonRequest({
+          ...VALID_BODY,
+          mode: "feedback",
+          studentAnswer: " Current flows through a closed loop. ",
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.feedback).toEqual({
+        rating: "great",
+        praise: "Right: You explained current flow.",
+        fix: "Add that open circuits stop current.",
+        rereadTip: "Re-read closed and open circuits.",
+      });
     });
   });
 });
