@@ -7,8 +7,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createGeminiModel, createRateLimiter, getRequestUserId, isNonEmptyString } from "@/lib/api/shared";
+import { createGeminiModel, createRateLimiter, getRequestUserId, hasAiRouteAccess, isNonEmptyString } from "@/lib/api/shared";
 
+const MAX_QUERY_LENGTH = 2000;
+const VALID_SUBJECTS = ["science", "maths"] as const;
 const rateLimiter = createRateLimiter(60 * 1000, 10);
 
 interface ExploreBody {
@@ -33,7 +35,22 @@ User's question: `;
 
 // POST /api/explore - AI search endpoint
 export async function POST(request: NextRequest) {
+  const originCheck = hasAiRouteAccess(request);
+  if (!originCheck) {
+    return NextResponse.json(
+      { error: "Invalid origin" },
+      { status: 403 }
+    );
+  }
+
   const userId = await getRequestUserId(request);
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 }
+    );
+  }
+
   const rateLimitKey = userId || request.headers.get("x-forwarded-for") || "unknown";
   
   if (await rateLimiter(rateLimitKey)) {
@@ -54,8 +71,20 @@ export async function POST(request: NextRequest) {
     }
 
     const query = body.query.trim();
-    const subjects = body.subjects || [];
-    const topics = body.topics || [];
+    
+    if (query.length > MAX_QUERY_LENGTH) {
+      return NextResponse.json(
+        { error: `Query exceeds maximum length of ${MAX_QUERY_LENGTH} characters` },
+        { status: 400 }
+      );
+    }
+
+    const subjects = (body.subjects || []).filter((s: unknown): s is string => 
+      typeof s === "string" && VALID_SUBJECTS.includes(s.toLowerCase() as typeof VALID_SUBJECTS[number])
+    );
+    const topics = (body.topics || []).filter((t: unknown): t is string => 
+      typeof t === "string" && t.length > 0 && t.length <= 100
+    ).map((t: string) => t.trim().slice(0, 100));
 
     const model = createGeminiModel("gemini-2.5-flash-lite");
     

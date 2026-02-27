@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
+import ReactMarkdown from "react-markdown";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/LinkButton";
-import { Badge } from "@/components/ui/Badge";
 import { StatusCard } from "@/components/ui/StatusCard";
 
-interface SearchResult {
+interface ChatMessage {
   id: string;
-  question: string;
-  answer: string;
-  sources: string[];
+  role: "user" | "assistant";
+  content: string;
+  sources?: string[];
 }
 
 const SUBJECT_TAGS = [
@@ -31,15 +31,23 @@ const TOPIC_TAGS = [
   { value: "geometry", label: "Geometry", color: "sky" },
 ];
 
-// Explore client - AI search interface
+// Explore client - AI chat interface
 export function ExploreClient() {
   const { user, loading: authLoading } = useAuth();
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isPending, startTransition] = useTransition();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isSearching]);
 
   const handleLogout = async () => {
     const auth = getFirebaseAuth();
@@ -54,11 +62,21 @@ export function ExploreClient() {
     });
   };
 
-  const handleSearch = async () => {
+  const handleSendMessage = async () => {
     if (!query.trim() || isSearching) return;
 
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: query.trim(),
+    };
+
+    startTransition(() => {
+      setMessages((prev) => [...prev, userMessage]);
+    });
+
+    setQuery("");
     setIsSearching(true);
-    setHasSearched(true);
 
     try {
       const { getAuthHeaders } = await import("@/lib/auth-client");
@@ -68,7 +86,7 @@ export function ExploreClient() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
-          query: query.trim(),
+          query: userMessage.content,
           subjects: selectedTags.filter(t => t === "science" || t === "maths"),
           topics: selectedTags.filter(t => t !== "science" && t !== "maths"),
         }),
@@ -78,20 +96,22 @@ export function ExploreClient() {
 
       startTransition(() => {
         if (res.ok && data?.answer) {
-          setResults([
+          setMessages((prev) => [
+            ...prev,
             {
-              id: "1",
-              question: query,
-              answer: data.answer,
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: data.answer,
               sources: data.sources || ["Class 7 NCERT"],
             },
           ]);
         } else {
-          setResults([
+          setMessages((prev) => [
+            ...prev,
             {
-              id: "1",
-              question: query,
-              answer: data.error || "I couldn't find an answer. Try a different question.",
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: data.error || "I couldn't find an answer. Try a different question.",
               sources: [],
             },
           ]);
@@ -99,11 +119,12 @@ export function ExploreClient() {
       });
     } catch {
       startTransition(() => {
-        setResults([
+        setMessages((prev) => [
+          ...prev,
           {
-            id: "1",
-            question: query,
-            answer: "Something went wrong. Please try again.",
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "Something went wrong. Please try again.",
             sources: [],
           },
         ]);
@@ -112,6 +133,15 @@ export function ExploreClient() {
       setIsSearching(false);
     }
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const hasMessages = messages.length > 0;
 
   if (authLoading) {
     return (
@@ -150,23 +180,28 @@ export function ExploreClient() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-background px-6 py-8 flex flex-col items-center">
+    <main className="min-h-screen relative overflow-hidden bg-background flex flex-col">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-secondary-light/40 blur-3xl" />
         <div className="absolute top-40 -right-10 h-72 w-72 rounded-full bg-accent-light/40 blur-3xl" />
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-primary-light/30 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-3xl">
-        <div className="mb-8">
+      <div className="relative w-full max-w-3xl mx-auto flex flex-col h-screen">
+        <header className="px-6 py-4 flex-shrink-0">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <div className="text-center sm:text-left">
               <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary-light px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary">
-                Class 7 NCERT
+                AI Tutor
               </Link>
-              <h1 className="mt-4 text-3xl font-semibold text-text">Explore</h1>
-              <p className="text-sm text-text-muted mt-2">
-                Ask anything. Get AI answers with sources.
+              <h1 className="mt-4 text-2xl font-semibold text-text flex items-center gap-2">
+                <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                AI Chat
+              </h1>
+              <p className="text-sm text-text-muted mt-1">
+                Ask me anything about Science or Maths
               </p>
             </div>
 
@@ -191,133 +226,160 @@ export function ExploreClient() {
               </button>
             </div>
           </div>
-        </div>
+        </header>
 
-        <Card padding="lg" className="mb-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-text-muted">Subjects:</span>
-              {SUBJECT_TAGS.map((tag) => (
-                <button
-                  key={tag.value}
-                  onClick={() => toggleTag(tag.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                    selectedTags.includes(tag.value)
-                      ? tag.color === "secondary"
-                        ? "bg-secondary text-white"
-                        : "bg-warning text-text"
-                      : "bg-surface border border-border text-text-muted hover:border-secondary"
-                  }`}
-                >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-text-muted">Topics:</span>
-              {TOPIC_TAGS.map((tag) => (
-                <button
-                  key={tag.value}
-                  onClick={() => toggleTag(tag.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                    selectedTags.includes(tag.value)
-                      ? tag.color === "teal"
-                        ? "bg-accent text-white"
-                        : tag.color === "indigo"
-                        ? "bg-secondary text-white"
-                        : tag.color === "emerald"
-                        ? "bg-accent text-white"
-                        : tag.color === "rose"
-                        ? "bg-error text-white"
-                        : "bg-accent text-white"
-                      : "bg-surface border border-border text-text-muted hover:border-secondary"
-                  }`}
-                >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch();
-                  }
-                }}
-                placeholder="Ask anything about your subjects..."
-                className="flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              />
-              <Button
-                variant="primary"
-                onClick={handleSearch}
-                disabled={!query.trim() || isSearching}
-                className="px-6"
+        <div className="px-6 flex-shrink-0">
+          <div className="flex flex-wrap gap-2 pb-4 border-b border-border/50">
+            <span className="text-xs text-text-muted self-center mr-1">Filter:</span>
+            {SUBJECT_TAGS.map((tag) => (
+              <button
+                key={tag.value}
+                onClick={() => toggleTag(tag.value)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                  selectedTags.includes(tag.value)
+                    ? tag.color === "secondary"
+                      ? "bg-secondary text-white"
+                      : "bg-warning text-text"
+                    : "bg-surface border border-border text-text-muted hover:border-secondary"
+                }`}
               >
-                {isSearching ? "..." : "Search"}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {isSearching || isPending ? (
-          <Card padding="lg" className="text-center mb-6">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 border-4 border-secondary border-t-transparent rounded-full animate-spin" />
-              <p className="text-text-muted">Searching...</p>
-            </div>
-          </Card>
-        ) : null}
-
-        {!hasSearched && !isSearching && (
-          <Card padding="lg" className="text-center">
-            <p className="text-text-muted">
-              Select tags to filter your search, then ask any question about Science or Maths.
-            </p>
-          </Card>
-        )}
-
-        {hasSearched && results.length > 0 && !isSearching && (
-          <div className="flex flex-col gap-4">
-            {results.map((result) => (
-              <Card key={result.id} padding="md">
-                <div className="space-y-3">
-                  <div className="flex justify-end">
-                    <div className="bg-primary text-white px-4 py-2 rounded-2xl rounded-br-md max-w-[85%]">
-                      <p className="text-sm">{result.question}</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="bg-surface border border-border px-4 py-3 rounded-2xl rounded-bl-md max-w-[85%]">
-                      <div className="prose prose-sm max-w-none text-text">
-                        <p className="whitespace-pre-wrap">{result.answer}</p>
-                      </div>
-                      {result.sources.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <p className="text-xs text-text-muted mb-2">Sources:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {result.sources.map((source, i) => (
-                              <span
-                                key={i}
-                                className="inline-flex items-center rounded-full border border-border bg-muted-bg px-2.5 py-0.5 text-xs font-semibold text-text"
-                              >
-                                {source}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                {tag.label}
+              </button>
+            ))}
+            {TOPIC_TAGS.map((tag) => (
+              <button
+                key={tag.value}
+                onClick={() => toggleTag(tag.value)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                  selectedTags.includes(tag.value)
+                    ? tag.color === "teal"
+                      ? "bg-accent text-white"
+                      : tag.color === "indigo"
+                      ? "bg-secondary text-white"
+                      : tag.color === "emerald"
+                      ? "bg-accent text-white"
+                      : tag.color === "rose"
+                      ? "bg-error text-white"
+                      : "bg-accent text-white"
+                    : "bg-surface border border-border text-text-muted hover:border-secondary"
+                }`}
+              >
+                {tag.label}
+              </button>
             ))}
           </div>
-        )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {!hasMessages && !isSearching && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-16 h-16 rounded-full bg-secondary-light/50 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-text-muted max-w-xs">
+                Start a conversation! Ask me anything about your Science or Maths topics.
+              </p>
+              <p className="text-xs text-text-muted/60 mt-3">
+                Note: Chat is not saved. Messages will be lost on refresh.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[85%] px-4 py-3 rounded-2xl ${
+                    message.role === "user"
+                      ? "bg-primary text-white rounded-br-md"
+                      : "bg-surface border border-border text-text rounded-bl-md"
+                  }`}
+                >
+                  {message.role === "user" ? (
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <div className="prose prose-sm max-w-none text-text">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          em: ({ children }) => <em>{children}</em>,
+                          code: ({ children }) => <code className="bg-muted-bg px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+                          pre: ({ children }) => <pre className="bg-muted-bg p-3 rounded-lg overflow-x-auto mb-2 text-xs">{children}</pre>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-secondary pl-3 italic text-text-muted">{children}</blockquote>,
+                          h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                  {message.role === "assistant" && message.sources && message.sources.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <p className="text-xs text-text-muted mb-2">Sources:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {message.sources.map((source: string, i: number) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center rounded-full border border-border bg-muted-bg px-2.5 py-0.5 text-xs font-semibold text-text"
+                          >
+                            {source}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isSearching && (
+              <div className="flex justify-start">
+                <div className="bg-surface border border-border px-4 py-3 rounded-2xl rounded-bl-md">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        <div className="px-6 py-4 flex-shrink-0 border-t border-border/50 bg-background/80 backdrop-blur-sm">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message..."
+              className="flex-1 rounded-full border border-border bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            />
+            <Button
+              variant="primary"
+              onClick={handleSendMessage}
+              disabled={!query.trim() || isSearching}
+              className="rounded-full px-5"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </Button>
+          </div>
+        </div>
       </div>
     </main>
   );

@@ -10,6 +10,7 @@ A Next.js app that helps Class 7 students learn NCERT Science and Maths through 
 - Explain-it-back and short-answer feedback via Gemini.
 - Deep explanation generation via Gemini.
 - Chemistry and Physics lab modules with deterministic simulation behavior.
+- Additional pages: `app/unittest/page.tsx`, `app/explore/page.tsx`, `app/progress/page.tsx`, and `app/notes/page.tsx`.
 
 ## Current Architecture (V2)
 - Runtime curriculum source: Firestore (`curriculum_chunks`).

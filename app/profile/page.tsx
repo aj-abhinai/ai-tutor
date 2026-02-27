@@ -1,4 +1,4 @@
-"use client";
+"use client"; // Enable client-side rendering
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { LinkButton } from "@/components/ui/LinkButton";
 
-type ProfileResponse = {
+type ProfileResponse = { // Response type for profile API
   profile?: {
     name: string;
     email: string;
@@ -18,19 +18,19 @@ type ProfileResponse = {
   error?: string;
 };
 
-export default function ProfilePage() {
+export default function ProfilePage() { // Main profile page component
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
+  const [name, setName] = useState(""); // User's display name
+  const [email, setEmail] = useState(""); // User's email (read-only)
+  const [saving, setSaving] = useState(false); // Save operation state
+  const [pageLoading, setPageLoading] = useState(true); // Initial load state
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const canSave = useMemo(() => name.trim().length >= 2 && !saving, [name, saving]);
+  const canSave = useMemo(() => name.trim().length >= 2 && !saving, [name, saving]); // Validate name length
 
-  useEffect(() => {
+  useEffect(() => { // Load profile on mount
     if (loading) return;
     if (!user) {
       router.replace("/login");
@@ -61,7 +61,7 @@ export default function ProfilePage() {
     void load();
   }, [loading, router, user]);
 
-  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => { // Save profile changes
     event.preventDefault();
     if (!canSave) return;
     setSaving(true);
@@ -94,7 +94,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (pageLoading) {
+  if (pageLoading) { // Show loading spinner while fetching
     return (
       <main className="auth-shell min-h-screen flex items-center justify-center px-6 py-10 bg-background">
         <Card className="px-5 py-4 text-sm text-text-muted">
@@ -104,7 +104,7 @@ export default function ProfilePage() {
     );
   }
 
-  return (
+  return ( // Render profile form
     <main className="auth-shell min-h-screen flex items-center justify-center px-6 py-10 bg-background">
       <Card className="w-full max-w-md rounded-3xl p-7 backdrop-blur">
         <div className="flex items-start justify-between">

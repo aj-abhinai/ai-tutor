@@ -1,8 +1,9 @@
-"use client";
+"use client"; // Client-side component for authentication wall
 
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/LinkButton";
 
+// Blocked access component shown to unauthenticated users
 export function AuthWall({
   title = "Student Login Required",
   message = "Please log in to continue learning.",

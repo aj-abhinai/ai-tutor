@@ -31,10 +31,13 @@ export function PageHeader() {
             <>
               <Link
                 href="/explore"
-                className="rounded-full border border-secondary/30 bg-secondary-light px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary-light/80"
-                title="Explore - Ask anything about your topics"
+                className="rounded-full border border-secondary/30 bg-secondary-light px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary-light/80 flex items-center gap-1.5"
+                title="AI Chat - Ask anything about your topics"
               >
-                Explore
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                AI Chat
               </Link>
               <Link
                 href="/profile"
