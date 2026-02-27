@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import "katex/dist/katex.min.css";
 import { Card } from "@/components/ui/Card";
 import type { SubtopicKnowledge, TopicSummary } from "@/lib/learning-types";
@@ -14,7 +13,6 @@ import {
   StoryPanel,
   StudyGuidePanel,
   SubtopicSelector,
-  VisualCardsPanel,
 } from "./LearnCardSections";
 import type { ExplainFeedback, ExplainLevel, TutorLessonResponse } from "./types";
 
@@ -75,23 +73,6 @@ export function LearnCard({
   const cooldownSeconds = Math.ceil(cooldownMs / 1000);
   const cooldownLabel = cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : null;
   const canGenerate = !deepLoading && cooldownSeconds === 0;
-  const visualCards = selectedSubtopic?.visualCards ?? [];
-  const [visualIndex, setVisualIndex] = useState(0);
-  const [isFlipping, setIsFlipping] = useState(false);
-
-  useEffect(() => {
-    setVisualIndex(0);
-    setIsFlipping(false);
-  }, [selectedSubtopic?.id]);
-
-  const handleNextVisualCard = () => {
-    if (visualCards.length <= 1 || isFlipping) return;
-    setIsFlipping(true);
-    window.setTimeout(() => {
-      setVisualIndex((prev) => (prev + 1) % visualCards.length);
-      setIsFlipping(false);
-    }, 180);
-  };
 
   return (
     <Card variant="highlight" padding="lg" className="animate-in fade-in duration-300">
@@ -119,15 +100,6 @@ export function LearnCard({
         cooldownLabel={cooldownLabel}
         onGenerateDeep={onGenerateDeep}
       />
-
-      {visualCards.length > 0 && (
-        <VisualCardsPanel
-          visualCards={visualCards}
-          visualIndex={visualIndex}
-          isFlipping={isFlipping}
-          onNext={handleNextVisualCard}
-        />
-      )}
 
       <StoryPanel selectedSubtopic={selectedSubtopic} />
 

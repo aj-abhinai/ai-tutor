@@ -64,4 +64,20 @@ service-account.json
 v2.md
 vercel-launch-checklist.md
 
+# ncert-seeder
+scripts/ncert-seeder/pdf/*
+!scripts/ncert-seeder/pdf/.gitkeep
+scripts/ncert-seeder/output/*
+!scripts/ncert-seeder/output/.gitkeep
+scripts/ncert-seeder/archive/*
+!scripts/ncert-seeder/archive/.gitkeep
+scripts/ncert-seeder/__pycache__
+scripts/upsert-topic-image.js
+
+# local python env (developer-only tooling)
+.venv/
+**/__pycache__/
+*.pyc
+
+
 
