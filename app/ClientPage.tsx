@@ -93,6 +93,7 @@ export default function ClientPage({
 
   // Lesson cache to prevent duplicate API calls.
   const lessonCache = useRef<Map<string, LessonPayload>>(new Map());
+  const storyImageCache = useRef<Map<string, string | null>>(new Map());
   const isFetching = useRef(false);
 
   const selectedSubtopic = selectedSubtopicData;
@@ -247,10 +248,18 @@ export default function ClientPage({
 
     // Check cache first
     const cacheKey = `${subject}:${selectedChapter.id}:${selectedTopic.id}:${targetSubtopic.id}`;
+    // Start story-image lookup in parallel with lesson fetch.
+    const storyImagePromise = fetchStoryImageForSubtopic(
+      selectedChapter.id,
+      selectedTopic.id,
+      targetSubtopic.id
+    );
     const cached = lessonCache.current.get(cacheKey);
     if (cached) {
+      const storyImage = await storyImagePromise;
+      const cachedWithStory = { ...cached.subtopic, storyImage: storyImage ?? undefined };
       setData(cached.content);
-      setSelectedSubtopicData(cached.subtopic);
+      setSelectedSubtopicData(cachedWithStory);
       resetInteractionState();
       if (!preserveExplainLevel) {
         setExplainLevel("simple");
@@ -281,16 +290,21 @@ export default function ClientPage({
       } else if (!resData?.content || !resData?.subtopic) {
         setError("Received an empty response. Please try again.");
       } else {
+        const storyImage = await storyImagePromise;
+        const enrichedSubtopic: SubtopicKnowledge = {
+          ...(resData.subtopic as SubtopicKnowledge),
+          storyImage: storyImage ?? undefined,
+        };
         // Store in cache
         lessonCache.current.set(cacheKey, {
           content: resData.content as TutorLessonResponse,
-          subtopic: resData.subtopic as SubtopicKnowledge,
+          subtopic: enrichedSubtopic,
         });
         // Wrap state updates in transition so the old content stays visible
         // until the new lesson is ready to render.
         startLessonTransition(() => {
           setData(resData.content);
-          setSelectedSubtopicData(resData.subtopic);
+          setSelectedSubtopicData(enrichedSubtopic);
           resetInteractionState();
           if (!preserveExplainLevel) {
             setExplainLevel("simple");
@@ -304,6 +318,85 @@ export default function ClientPage({
       setLoading(false);
     }
   };
+
+  // Fetch story image scoped to selected subtopic (comic type only).
+  const fetchStoryImageForSubtopic = useCallback(
+    async (chapterId: string, topicIdValue: string, subtopicIdValue: string): Promise<string | null> => {
+      if (!user) return null;
+
+      // Keep a small in-memory cache so moving between cards/subtopics is instant.
+      const cacheKey = `${subject}:${chapterId}:${topicIdValue}:${subtopicIdValue}:comic`;
+      if (storyImageCache.current.has(cacheKey)) {
+        return storyImageCache.current.get(cacheKey) ?? null;
+      }
+
+      try {
+        const { getAuthHeaders } = await import("@/lib/auth-client");
+        const authHeaders = await getAuthHeaders();
+        // Query helper to read first image URL for a given scope.
+        const fetchFirstImageUrl = async (
+          params: URLSearchParams,
+          options?: { topicOnly?: boolean }
+        ): Promise<string | null> => {
+          const res = await fetch(`/api/topic-images?${params.toString()}`, {
+            method: "GET",
+            headers: { ...authHeaders },
+          });
+          const resData = await res.json();
+          if (!res.ok || !Array.isArray(resData.images) || resData.images.length === 0) {
+            return null;
+          }
+          const images = options?.topicOnly
+            ? (resData.images as Array<{ imageUrl?: string; subtopicId?: string }>).filter(
+                (img) => !String(img.subtopicId || "").trim()
+              )
+            : (resData.images as Array<{ imageUrl?: string; subtopicId?: string }>);
+
+          return (images[0]?.imageUrl as string | undefined) || null;
+        };
+
+        // 1) Prefer exact subtopic comic.
+        const scopedParams = new URLSearchParams({
+          subject,
+          chapterId,
+          topicId: topicIdValue,
+          subtopicId: subtopicIdValue,
+          type: "comic",
+        });
+        let imageUrl = await fetchFirstImageUrl(scopedParams);
+
+        // 2) Fallback to topic-level comic.
+        if (!imageUrl) {
+          const topicComicParams = new URLSearchParams({
+            subject,
+            chapterId,
+            topicId: topicIdValue,
+            type: "comic",
+          });
+          imageUrl = await fetchFirstImageUrl(topicComicParams, { topicOnly: true });
+        }
+
+        // 3) Last fallback: any topic image.
+        if (!imageUrl) {
+          const topicAnyParams = new URLSearchParams({
+            subject,
+            chapterId,
+            topicId: topicIdValue,
+          });
+          imageUrl = await fetchFirstImageUrl(topicAnyParams, { topicOnly: true });
+        }
+
+        // Cache only hits so newly inserted DB records can appear without restart.
+        if (imageUrl) {
+          storyImageCache.current.set(cacheKey, imageUrl);
+        }
+        return imageUrl;
+      } catch {
+        return null;
+      }
+    },
+    [subject, user]
+  );
 
   // Activate a card and ensure lesson content is loaded.
   const handleSelectCard = async (card: CardStep) => {

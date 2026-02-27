@@ -72,6 +72,7 @@ scripts/ncert-seeder/output/*
 scripts/ncert-seeder/archive/*
 !scripts/ncert-seeder/archive/.gitkeep
 scripts/ncert-seeder/__pycache__
+scripts/upsert-topic-image.js
 
 # local python env (developer-only tooling)
 .venv/

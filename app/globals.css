@@ -199,18 +199,6 @@ h4 {
   box-shadow: 0 4px 12px rgba(92, 49, 181, 0.2);
 }
 
-.learn-visual-card {
-  transform: rotateY(0deg);
-}
-
-.learn-visual-card--flipping {
-  transform: rotateY(90deg);
-}
-
-.learn-visual-card__image {
-  max-height: 32.5rem;
-}
-
 /* ── Lab page animations ─────────────────── */
 @keyframes bubbleUp {
   0% {

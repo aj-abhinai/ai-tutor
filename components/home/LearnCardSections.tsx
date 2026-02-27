@@ -199,51 +199,6 @@ export function ExplanationPanel({
   );
 }
 
-interface VisualCardsPanelProps {
-  visualCards: NonNullable<SubtopicKnowledge["visualCards"]>;
-  visualIndex: number;
-  isFlipping: boolean;
-  onNext: () => void;
-}
-
-export function VisualCardsPanel({ visualCards, visualIndex, isFlipping, onNext }: VisualCardsPanelProps) {
-  const currentVisualCard = visualCards[visualIndex] ?? null;
-
-  if (!currentVisualCard) return null;
-
-  return (
-    <div className="mt-5 rounded-2xl border border-border bg-surface/80 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">Visual Card</div>
-          <div className="text-sm font-semibold text-text">{currentVisualCard.title}</div>
-        </div>
-        <div className="text-xs text-text-muted">
-          {visualIndex + 1} / {visualCards.length}
-        </div>
-      </div>
-      <div
-        className={`learn-visual-card rounded-xl border border-border bg-surface-alt p-3 transition-transform duration-200 ${
-          isFlipping ? "learn-visual-card--flipping" : ""
-        }`}
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        <img
-          src={currentVisualCard.imageSrc}
-          alt={currentVisualCard.title}
-          className="learn-visual-card__image h-auto w-full rounded-lg bg-surface object-contain"
-        />
-      </div>
-      {currentVisualCard.caption && <p className="mt-3 text-sm text-text">{currentVisualCard.caption}</p>}
-      <div className="mt-3">
-        <Button variant="secondary" size="sm" onClick={onNext} disabled={visualCards.length <= 1 || isFlipping}>
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 interface StoryPanelProps {
   selectedSubtopic: SubtopicKnowledge | null;
 }

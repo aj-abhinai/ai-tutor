@@ -17,9 +17,11 @@ import {
 } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage, type Storage } from "firebase-admin/storage";
 
 let app: App | undefined;
 let db: Firestore | undefined;
+let storage: Storage | undefined;
 
 function normalizeServiceAccount(input: string): ServiceAccount {
     const parsed = JSON.parse(input) as Record<string, unknown>;
@@ -57,27 +59,49 @@ function readServiceAccountFromEnvOrFile(): ServiceAccount {
     return normalizeServiceAccount(readFileSync("./service-account.json", "utf8"));
 }
 
-export function getFirestoreClient(): Firestore {
-    if (db) return db;
+function normalizeBucketName(raw: string): string {
+    const trimmed = raw.trim();
+    const withoutProtocol = trimmed.replace(/^gs:\/\//, "");
+    return withoutProtocol.split("/")[0];
+}
 
-    if (getApps().length === 0) {
-        const serviceAccount = readServiceAccountFromEnvOrFile();
-        app = initializeApp({ credential: cert(serviceAccount) });
-    } else {
+function getOrInitApp(): App {
+    if (app) return app;
+
+    if (getApps().length > 0) {
         app = getApps()[0];
+        return app;
     }
 
-    db = getFirestore(app);
+    const serviceAccount = readServiceAccountFromEnvOrFile();
+    const envBucket =
+        process.env.FIREBASE_STORAGE_BUCKET ||
+        process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    const storageBucket = envBucket ? normalizeBucketName(envBucket) : undefined;
+
+    app = initializeApp({
+        credential: cert(serviceAccount),
+        storageBucket,
+    });
+    return app;
+}
+
+export function getFirestoreClient(): Firestore {
+    if (db) return db;
+    db = getFirestore(getOrInitApp());
     return db;
+}
+
+export function getStorageClient(): Storage {
+    if (storage) return storage;
+    storage = getStorage(getOrInitApp());
+    return storage;
 }
 
 export async function verifyFirebaseIdToken(token: string): Promise<DecodedIdToken | null> {
     if (!token) return null;
     try {
-        if (getApps().length === 0) {
-            const serviceAccount = readServiceAccountFromEnvOrFile();
-            app = initializeApp({ credential: cert(serviceAccount) });
-        }
+        getOrInitApp();
         const auth = getAuth();
         return await auth.verifyIdToken(token);
     } catch {
