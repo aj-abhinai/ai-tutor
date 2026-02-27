@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -207,6 +207,11 @@ export function StoryPanel({ selectedSubtopic }: StoryPanelProps) {
   if (!selectedSubtopic) return null;
 
   const storyImage = selectedSubtopic.storyImage;
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [selectedSubtopic.id, storyImage]);
 
   return (
     <div className="mt-5 rounded-2xl border border-border bg-surface/80 p-4">
@@ -217,12 +222,13 @@ export function StoryPanel({ selectedSubtopic }: StoryPanelProps) {
         </div>
       </div>
       
-      {storyImage ? (
+      {storyImage && !imageFailed ? (
         <div className="rounded-xl border border-border bg-surface-alt overflow-hidden">
           <img
             src={storyImage}
             alt={`Story for ${selectedSubtopic.title}`}
             className="h-auto w-full object-contain"
+            onError={() => setImageFailed(true)}
           />
         </div>
       ) : (

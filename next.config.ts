@@ -29,6 +29,8 @@ const contentSecurityPolicy = [
     "data:",
     "blob:",
     "https://lh3.googleusercontent.com",
+    "https://firebasestorage.googleapis.com",
+    "https://storage.googleapis.com",
   ])}`,
   "font-src 'self' data:",
   `connect-src ${buildSourceList([
