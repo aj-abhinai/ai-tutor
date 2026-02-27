@@ -425,24 +425,25 @@ async function writeChunksAndQuestions(params: {
     deleteByScope(QUESTION_COLLECTION, params.scope),
   ]);
 
-  const chunkDocs: RagChunkDoc[] = [];
-  for (let i = 0; i < params.chunks.length; i += 1) {
-    const chunk = params.chunks[i];
-    const embedding = await embedText(chunk.text);
+  const embeddings = await Promise.all(
+    params.chunks.map((chunk) => embedText(chunk.text))
+  );
+
+  const chunkDocs: RagChunkDoc[] = params.chunks.map((chunk, i) => {
     const lanePrefix = chunk.lane === "facts" ? "f" : "a";
     const chunkId = `${params.docId}__${lanePrefix}__${i + 1}`;
-    chunkDocs.push({
+    return {
       ...params.scope,
       docId: params.docId,
       chunkId,
       lane: chunk.lane,
       heading: chunk.heading,
       text: chunk.text,
-      embedding,
+      embedding: embeddings[i],
       sourceOrder: chunk.sourceOrder,
       createdAtMs: now,
-    });
-  }
+    };
+  });
 
   const factChunks = chunkDocs.filter((chunk) => chunk.lane === "facts");
   const activityChunks = chunkDocs.filter((chunk) => chunk.lane === "activities");

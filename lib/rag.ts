@@ -59,6 +59,28 @@ export async function getSubtopicFromDB(
   }
 }
 
+const getCachedSubtopic = unstable_cache(
+  async (
+    subject: string,
+    chapterId: string,
+    topicId: string,
+    subtopicId: string
+  ): Promise<SubtopicKnowledge | null> => {
+    return getSubtopicFromDB(subject, chapterId, topicId, subtopicId);
+  },
+  ["subtopic"],
+  { revalidate: 300, tags: ["curriculum"] }
+);
+
+export async function getSubtopicFromDBCached(
+  subject: string,
+  chapterId: string,
+  topicId: string,
+  subtopicId: string
+): Promise<SubtopicKnowledge | null> {
+  return getCachedSubtopic(subject, chapterId, topicId, subtopicId);
+}
+
 // Cache catalog reads for one hour to reduce repeated Firestore queries.
 const getCachedCatalog = unstable_cache(
   async (subj: SubjectName): Promise<CurriculumCatalog> => {

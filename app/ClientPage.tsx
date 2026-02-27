@@ -203,34 +203,34 @@ export default function ClientPage({
   }, [resetInteractionState, resetQuizState, resetDeepState, stopAudio]);
 
   // Selection handlers cascade resets to keep state consistent.
-  const handleSubjectChange = (newSubject: SubjectName) => {
+  const handleSubjectChange = useCallback((newSubject: SubjectName) => {
     setSubject(newSubject);
     setChapterTitle("");
     setTopicId("");
     setSubtopicId("");
     resetLessonState();
-  };
+  }, [resetLessonState]);
 
-  const handleChapterChange = (newChapter: string) => {
+  const handleChapterChange = useCallback((newChapter: string) => {
     setChapterTitle(newChapter);
     setTopicId("");
     setSubtopicId("");
     resetLessonState();
-  };
+  }, [resetLessonState]);
 
-  const handleTopicChange = (newTopicId: string) => {
+  const handleTopicChange = useCallback((newTopicId: string) => {
     setTopicId(newTopicId);
     setSubtopicId("");
     resetLessonState();
-  };
+  }, [resetLessonState]);
 
-  const handleSubtopicChange = async (newSubtopicId: string) => {
+  const handleSubtopicChange = useCallback(async (newSubtopicId: string) => {
     setSubtopicId(newSubtopicId);
     resetLessonState({ preserveActiveCard: true, preserveExplainLevel: true });
     if (activeCard) {
       await fetchLesson({ subtopicIdOverride: newSubtopicId, preserveExplainLevel: true });
     }
-  };
+  }, [activeCard, resetLessonState]);
 
   // Fetch lesson content (with cache + concurrency guard).
   const fetchLesson = async (options?: { subtopicIdOverride?: string; preserveExplainLevel?: boolean }) => {
@@ -399,7 +399,7 @@ export default function ClientPage({
   );
 
   // Activate a card and ensure lesson content is loaded.
-  const handleSelectCard = async (card: CardStep) => {
+  const handleSelectCard = useCallback(async (card: CardStep) => {
     if (!requireLoginFor("AI learning cards")) return;
     if (!selectedTopic) {
       setError("Please choose a chapter and topic first.");
@@ -422,12 +422,29 @@ export default function ClientPage({
     if (!data) {
       await fetchLesson();
     }
-  };
+  }, [requireLoginFor, selectedTopic, selectedSubtopicRef, resetInteractionState, resetQuizState, stopAudio, data, fetchLesson]);
 
   // Update explain level (simple / standard / deep).
-  const handleExplainLevelChange = (level: ExplainLevel) => {
+  const handleExplainLevelChange = useCallback((level: ExplainLevel) => {
     setExplainLevel(level);
-  };
+  }, []);
+
+  // Shortcut to clear selections and start a new lesson.
+  const handleChooseNewLesson = useCallback(() => {
+    setChapterTitle("");
+    setTopicId("");
+    setSubtopicId("");
+    resetLessonState();
+  }, [resetLessonState]);
+
+  const handleOpenNotes = useCallback(() => {
+    if (!selectedChapter || !selectedTopic) {
+      setError("Please choose a chapter and topic first.");
+      return;
+    }
+    if (!requireLoginFor("topic notes")) return;
+    setNotesOpen(true);
+  }, [selectedChapter, selectedTopic, requireLoginFor]);
 
   // Derived quiz state for rendering + validation.
   const questions = selectedSubtopic?.questionBank ?? [];
@@ -444,23 +461,6 @@ export default function ClientPage({
   const hasPhysicsLabForChapter = Boolean(
     selectedChapter && physicsLabChapterIds.includes(selectedChapter.id)
   );
-
-  // Shortcut to clear selections and start a new lesson.
-  const handleChooseNewLesson = () => {
-    setChapterTitle("");
-    setTopicId("");
-    setSubtopicId("");
-    resetLessonState();
-  };
-
-  const handleOpenNotes = () => {
-    if (!selectedChapter || !selectedTopic) {
-      setError("Please choose a chapter and topic first.");
-      return;
-    }
-    if (!requireLoginFor("topic notes")) return;
-    setNotesOpen(true);
-  };
 
   return (
     <>

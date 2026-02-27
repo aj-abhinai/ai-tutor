@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
-import { getSubtopicFromDB } from "@/lib/rag";
+import { getSubtopicFromDBCached } from "@/lib/rag";
 import { createRateLimiter, getRateLimitKey, getRequestUserId } from "./shared";
 import type { SubtopicKnowledge, SubjectName } from "@/lib/learning-types";
 
@@ -88,7 +88,7 @@ export async function parseCurriculumRequest<T extends { subject: string; chapte
     const { subject, chapterId, topicId, subtopicId } = body;
 
     // 4. Resolve subtopic from Firestore
-    const subtopic = await getSubtopicFromDB(subject, chapterId, topicId, subtopicId);
+    const subtopic = await getSubtopicFromDBCached(subject, chapterId, topicId, subtopicId);
     if (!subtopic) {
         return fail("Selected chapter/topic/subtopic was not found", 400, "NOT_FOUND");
     }
