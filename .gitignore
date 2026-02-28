@@ -78,6 +78,7 @@ scripts/upsert-topic-image.js
 .venv/
 **/__pycache__/
 *.pyc
+scripts/comic-generator/data/panels
 
 
 

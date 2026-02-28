@@ -9,7 +9,10 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "test": "jest",
     "ingest:subtopic": "tsx scripts/ingest-subtopic-pdf.ts",
-    "topic-image:upsert": "node scripts/upsert-topic-image.js"
+    "topic-image:upsert": "node scripts/upsert-topic-image.js",
+    "comic:test": "tsx scripts/comic-generator/test-run.ts",
+    "comic:iterate": "tsx scripts/comic-generator/iterate.ts",
+    "comic:character": "tsx scripts/comic-generator/character-creator.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -33,6 +36,7 @@
     "@types/node": "^25.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^10.0.1",
     "eslint-config-next": "16.1.6",
     "jest": "^30.2.0",
