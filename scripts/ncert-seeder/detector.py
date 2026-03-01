@@ -1,3 +1,4 @@
+# Section/topic/subtopic boundary detection from PDF text
 """
 Section Detector - Detect chapter, topic, and subtopic boundaries from PDF text.
 Uses pattern matching and font analysis to identify section hierarchies.

@@ -1,3 +1,4 @@
+# PDF text extraction with layout information
 """
 PDF Extractor - Extract raw text with layout information from PDF files.
 Improved column detection and layout preservation.

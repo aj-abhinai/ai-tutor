@@ -1,5 +1,6 @@
 # Developer-only Python seeder (exclude from deployment upload/build context)
 scripts/ncert-seeder/**
+scripts/comic-generator/**
 
 # Local Python virtual environment
 .venv/

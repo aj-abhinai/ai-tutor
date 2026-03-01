@@ -1,3 +1,4 @@
+// Lists available Gemini models via API
 interface GeminiModel {
   name?: string;
   supportedGenerationMethods?: string[];

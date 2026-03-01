@@ -1,3 +1,4 @@
+// Main pipeline orchestrating the entire comic generation flow
 import { ensureCharacterReference } from "./character-creator";
 import { generateComicScript } from "./script-generator";
 import { generatePanelVariants } from "./panel-generator";

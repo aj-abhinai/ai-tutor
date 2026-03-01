@@ -10,8 +10,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGeminiModel, createRateLimiter, getRequestUserId, hasAiRouteAccess, isNonEmptyString } from "@/lib/api/shared";
 
 const MAX_QUERY_LENGTH = 2000;
+const MAX_SUBJECT_FILTERS = 5;
+const MAX_TOPIC_FILTERS = 20;
+const MAX_TOPIC_LENGTH = 100;
 const VALID_SUBJECTS = ["science", "maths"] as const;
-const rateLimiter = createRateLimiter(60 * 1000, 10);
+const MINUTE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MINUTE_RATE_LIMIT_MAX_REQUESTS = 5;
+const DAILY_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DAILY_RATE_LIMIT_MAX_REQUESTS = 50;
+const minuteRateLimiter = createRateLimiter(MINUTE_RATE_LIMIT_WINDOW_MS, MINUTE_RATE_LIMIT_MAX_REQUESTS);
+const dailyRateLimiter = createRateLimiter(DAILY_RATE_LIMIT_WINDOW_MS, DAILY_RATE_LIMIT_MAX_REQUESTS);
 
 interface ExploreBody {
   query: string;
@@ -51,18 +59,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rateLimitKey = userId || request.headers.get("x-forwarded-for") || "unknown";
-  
-  if (await rateLimiter(rateLimitKey)) {
+  const routePath = request.nextUrl.pathname || "/api/explore";
+  const rateLimitBaseKey = `${routePath}:user:${userId}`;
+
+  if (await minuteRateLimiter(`${rateLimitBaseKey}:minute`)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: "Rate limit exceeded: maximum 5 requests per minute." },
+      { status: 429 }
+    );
+  }
+
+  if (await dailyRateLimiter(`${rateLimitBaseKey}:day`)) {
+    return NextResponse.json(
+      { error: "Daily limit reached: maximum 50 requests per day." },
       { status: 429 }
     );
   }
 
   try {
-    const body = await request.json() as ExploreBody;
-    
+    const rawBody: unknown = await request.json();
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const body = rawBody as ExploreBody;
     if (!isNonEmptyString(body.query)) {
       return NextResponse.json(
         { error: "Query is required" },
@@ -79,12 +102,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const subjects = (body.subjects || []).filter((s: unknown): s is string => 
-      typeof s === "string" && VALID_SUBJECTS.includes(s.toLowerCase() as typeof VALID_SUBJECTS[number])
+    const subjectValues = Array.isArray(body.subjects)
+      ? body.subjects.slice(0, MAX_SUBJECT_FILTERS)
+      : [];
+    const topicValues = Array.isArray(body.topics)
+      ? body.topics.slice(0, MAX_TOPIC_FILTERS)
+      : [];
+
+    const subjects = Array.from(
+      new Set(
+        subjectValues.filter((s: unknown): s is string =>
+          typeof s === "string" && VALID_SUBJECTS.includes(s.toLowerCase() as typeof VALID_SUBJECTS[number])
+        )
+      )
     );
-    const topics = (body.topics || []).filter((t: unknown): t is string => 
-      typeof t === "string" && t.length > 0 && t.length <= 100
-    ).map((t: string) => t.trim().slice(0, 100));
+    const topics = Array.from(
+      new Set(
+        topicValues
+          .filter((t: unknown): t is string => typeof t === "string")
+          .map((t: string) => t.trim())
+          .filter((t: string) => t.length > 0 && t.length <= MAX_TOPIC_LENGTH)
+      )
+    );
 
     const model = createGeminiModel("gemini-2.5-flash-lite");
     

@@ -1,3 +1,4 @@
+# JSON schema validation for curriculum data
 """
 Validator - JSON schema validation for SubtopicKnowledge.
 """

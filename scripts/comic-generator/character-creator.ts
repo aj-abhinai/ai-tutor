@@ -1,3 +1,4 @@
+// Generates character reference images for comic characters
 import { generateImageWithREST } from "./gemini-client";
 import { characterConfig } from "./config";
 import fs from "fs";

@@ -1,3 +1,4 @@
+// Google Gemini API client for image/text generation and OCR
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { IMAGE_MODEL, TEXT_MODEL, OCR_MODEL } from "./config";
 

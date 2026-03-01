@@ -1,3 +1,4 @@
+# Text chunking for LLM processing
 """
 Chunker - Split text into token-based chunks for LLM processing.
 """

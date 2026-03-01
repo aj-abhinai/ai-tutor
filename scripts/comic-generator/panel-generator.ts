@@ -1,3 +1,4 @@
+// Generates panel images from comic scripts
 import { extractTextFromImageWithREST, generateImageWithREST } from "./gemini-client";
 import {
   characterConfig,

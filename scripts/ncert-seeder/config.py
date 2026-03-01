@@ -1,3 +1,4 @@
+# Configuration constants for NCERT seeder
 import os
 from pathlib import Path
 

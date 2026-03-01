@@ -1,3 +1,4 @@
+// TypeScript interfaces for comic data structures
 export interface CharacterAppearance {
   size: string;
   feathers: string;

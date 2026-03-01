@@ -1,3 +1,4 @@
+# Main entry point: orchestrates PDF extraction, structure detection, and LLM processing
 """
 NCERT Seeder: PDF -> curriculum_chunks Firestore documents
 

@@ -1,3 +1,4 @@
+// Generates comic scripts from topics using LLM
 import { getTextModel } from "./gemini-client";
 import {
   characterConfig,

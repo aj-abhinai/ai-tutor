@@ -1,3 +1,4 @@
+// Test entry point for comic generation pipeline
 ﻿import { runPipeline } from "./pipeline";
 import path from "path";
 import readline from "readline";

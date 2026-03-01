@@ -1,3 +1,4 @@
+# Firestore database writing for processed curriculum data
 """
 Firestore Writer - Write processed curriculum data to Firestore.
 """

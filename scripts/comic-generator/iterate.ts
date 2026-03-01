@@ -1,3 +1,4 @@
+// Iterates through panel variants for manual selection
 import path from "path";
 import fs from "fs";
 import readline from "readline";

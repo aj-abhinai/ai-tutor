@@ -1,3 +1,4 @@
+// Character and style configuration for comic generation
 import { CharacterDefinition } from "./types";
 
 export const CHITRILET_COUNT = 4;
